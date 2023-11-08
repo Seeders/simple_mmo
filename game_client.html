@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Simple MMORPG</title>
+<style>
+  canvas {
+    border: 1px solid black;
+  }
+  #chat {
+	float: left;
+    margin-top: 10px;
+  }
+  #chatMessages {
+    height: 200px;
+    overflow-y: scroll;
+    background-color: #f1f1f1;
+    padding: 5px;
+    width: 300px;
+  }
+  #chatInput {
+    width: 300px;
+  }
+  
+  #combat-log {
+	float: left;
+	margin: 1em 0 0 1em;
+	border: 1px solid black;
+	min-width: 200px;
+	height: 200px;
+	padding: 1em;
+  }
+
+  .inventory-grid {
+		float: left;
+		display: grid;
+		grid-template-columns: repeat(5, 1fr); /* Creates a 5x5 grid */
+		grid-gap: 5px; /* Space between slots */
+		max-width: 250px; /* Adjust based on your slot size */
+		margin: 1em 0 0 1em;
+	}
+
+	.slot {
+		width: 40px; /* Width of each slot */
+		height: 40px; /* Height of each slot */
+		border: 1px solid #ccc; /* Slot border */
+		background-color: #f8f8f8; /* Slot background color */
+		position: relative; /* Needed for absolute positioning of items */
+	}
+
+	.item {
+		width: 100%;
+		height: 100%;
+		cursor: pointer; /* Indicates the item is clickable/draggable */
+		position: absolute; /* Position the item inside the slot */
+		top: 0;
+		left: 0;
+	}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<div id="chat">
+  <div id="chatMessages"></div>
+  <input type="text" id="chatInput" placeholder="Type a message..." />
+</div>
+<div id="inventory"  class="inventory-grid">
+    <!-- Inventory items will be dynamically added here -->
+</div>
+<div id="combat-log"></div>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const combatLogElement = document.getElementById('combat-log');
+
+const players = {};
+const chat = [];
+const tileSize = 32; // Size of each tile in pixels
+const unitSize = 64;
+const terrainColors = {
+    'water': '#0000ff',
+    'sand': '#f4a460',
+    'grass': '#008000',
+    'forest': '#006400',
+    'mountains': '#a52a2a'
+};
+const terrainImages = {
+    'water': new Image(),
+    'sand': new Image(),
+    'grass': new Image(),
+    'forest': new Image(),
+    'mountains': new Image()
+};
+
+const unitImages = {
+	'lava_beast': new Image(),
+	'forest_sprite': new Image(),
+	'rock_troll': new Image(),
+	'ghost_wraith': new Image(),
+	'desert_scorpion': new Image(),
+	'sky_serpent': new Image(),
+	'crystal_giant': new Image(),
+	'swamp_hag': new Image(),
+	'thunder_djinn': new Image(),
+	'bone_warrior': new Image(),
+	'hero': new Image()
+};
+
+const itemImages = {
+	'health_potion': new Image()
+}
+
+terrainImages['water'].src = './images/water.png';
+terrainImages['sand'].src = './images/sand.png';
+terrainImages['grass'].src = './images/grass.png';
+terrainImages['forest'].src = './images/forest.png';
+terrainImages['mountains'].src = './images/mountain.png';
+unitImages['lava_beast'].src = './images/lava_beast.png';
+unitImages['forest_sprite'].src = './images/forest_sprite.png';
+unitImages['rock_troll'].src = './images/rock_troll.png';
+unitImages['ghost_wraith'].src = './images/ghost_wraith.png';
+unitImages['desert_scorpion'].src = './images/desert_scorpion.png';
+unitImages['sky_serpent'].src = './images/sky_serpent.png';
+unitImages['crystal_giant'].src = './images/crystal_giant.png';
+unitImages['swamp_hag'].src = './images/swamp_hag.png';
+unitImages['thunder_djinn'].src = './images/thunder_djinn.png';
+unitImages['bone_warrior'].src = './images/bone_warrior.png';
+unitImages['hero'].src = './images/hero.png';
+itemImages['health_potion'].src = './images/health_potion.png';
+let playerInventory = [];
+let enemies = {};  // Object to store enemies
+let items = {};  
+let selectedTarget = null;  // Store the selected target
+let socket = new WebSocket("ws://localhost:6789/");
+let currentId = null;
+let color = null;
+let terrain = [];
+let offsetX = 0;
+let offsetY = 0;
+let loadedImages = 0;
+let gameLoaded = false;
+const totalImages = Object.keys(terrainImages).length;
+
+Object.values(terrainImages).forEach(image => {
+    image.onload = () => {
+        loadedImages++;
+        if (loadedImages === totalImages) {
+            // All images are loaded
+			gameLoaded = true;
+        }
+    };
+});
+
+socket.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    switch(data.type) {
+        case "init":
+            currentId = data.id;
+            color = data.color;
+            terrain = data.terrain;
+			for (const player of data.players) {
+                players[player.id] = {color: player.color, position: player.position, stats: player.stats};
+            }
+            for (const enemy of data.enemies) {
+                enemies[enemy.id] = {color: 'red', position: enemy.position, stats: enemy.stats};
+            }
+            offsetX = canvas.width / 2 - players[currentId].position.x * tileSize;
+            offsetY = canvas.height / 2 - players[currentId].position.y * tileSize;
+            
+            break;
+        case "new_player":
+            players[data.id] = {color: data.color, position: data.position, stats: data.stats};
+            break;
+        case "player_move":
+            players[data.id].position = data.position;
+            break;
+        case "player_disconnect":
+            delete players[data.id];
+            break;
+        case "chat":
+            chat.push(data);
+            displayChatMessage(data.sender, data.message);
+            break;
+        case "player_respawn":
+            if (data.playerId === currentId) {
+                // If the current player has respawned, update their position and health
+                players[currentId].position = data.position;
+                players[currentId].stats.health = data.health;
+                // Adjust the offset to center the view on the player's new position
+                offsetX = canvas.width / 2 - players[currentId].position.x * tileSize;
+                offsetY = canvas.height / 2 - players[currentId].position.y * tileSize;
+            } else {
+                // If another player has respawned, just update their position and health
+                if (players[data.playerId]) {
+                    players[data.playerId].position = data.position;
+                    players[data.playerId].stats.health = data.health;
+                }
+            }
+            break;
+        case "combat_update":
+            // Handle combat updates
+            if (data.playerId) {
+                players[data.playerId].stats.health = data.playerHealth;
+            }
+            if (data.enemyId && enemies[data.enemyId]) {
+                enemies[data.enemyId].stats.health = data.enemyHealth;
+                if (data.enemyHealth <= 0) {
+                    delete enemies[data.enemyId];
+                }
+            }
+            break;
+        case "enemy_death":
+            if (data.playerId === currentId) {
+                // Update player's experience and level
+                players[currentId].stats.experience = data.experience;
+                players[currentId].stats.level = data.level;
+                players[currentId].stats.next_level_exp = data.next_level_exp;
+            }
+            // Remove the enemy from the game
+            delete enemies[data.enemyId];
+            break;
+        case "level_up":
+            if (data.playerId === currentId) {
+				let player = players[currentId]
+				if (player) {
+					player.stats.level = data.level;
+					player.stats.max_health = data.max_health;
+					player.stats.health = data.health;
+					player.stats.next_level_exp = data.next_level_exp;
+				}
+			}
+			break;
+        case "health_regeneration":
+			let player = players[data.playerId]
+			if (player) {
+				player.stats.health = data.newHealth;
+			}
+			
+			break;
+		case "item_drop":
+            items[data.itemId] = data.item;
+            break;
+		case "item_pickup":
+			// Remove the item from the ground
+			if (data.playerId === currentId) {
+				
+				// Add the item to the player's inventory
+				playerInventory.push(items[data.itemId]);
+				addItemToInventory(items[data.itemId]);
+			}
+			delete items[data.itemId];	
+            break;
+		case 'potion_used':
+            if(data.playerId === currentId) { // Assuming playerId is the current player's ID
+				let player = players[currentId];
+                player.stats.health = data.newHealth; // Update the player's health on the UI
+				removeItemFromInventory(data.potionId);
+            }
+			break;
+		case 'combat_log_update':
+			if( data.playerId === currentId) {
+				// Update the combat log with the new entries
+				updateCombatLog(data.combatLog);
+			}
+			break;
+    }
+    drawGame(); // Redraw the game to reflect the changes
+};
+
+function displayChatMessage(sender, message) {
+    const messageElement = document.createElement('div');
+    messageElement.textContent = sender + ": " + message;
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+function updateCombatLog(logMessages) {
+  combatLogElement.innerHTML = logMessages.join('<br>');
+}
+chatInput.addEventListener('keypress', function(event) {
+    if (event.key === 'Enter') {
+        const message = chatInput.value;
+        chatInput.value = '';
+		var data = {type: "chat", message: message};
+        socket.send(JSON.stringify(data));
+		chat.push(data);
+		displayChatMessage(currentId, data.message);
+    }
+});
+
+
+function drawGame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawTerrain();
+    drawTargetCircle();
+    drawPlayers();
+    drawEnemies();
+    drawPlayerStats();
+    drawTargetInfo();
+	drawItems();
+}
+
+function drawTerrain() {
+    for (let y = 0; y < terrain.length; y++) {
+        for (let x = 0; x < terrain[y].length; x++) {
+            const terrainType = terrain[y][x];
+            const img = terrainImages[terrainType];
+            if (img.complete) { // Check if the image is loaded
+                ctx.drawImage(img, x * tileSize + offsetX, y * tileSize + offsetY, tileSize, tileSize);
+            } else {
+                // Optionally draw a placeholder or load the image if it's not done yet
+                img.onload = () => {
+                    ctx.drawImage(img, x * tileSize + offsetX, y * tileSize + offsetY, tileSize, tileSize);
+                };
+            }
+        }
+    }
+}
+
+function drawPlayers() {
+    for (const id in players) {
+        const player = players[id];
+        const img = unitImages['hero'];
+        // Adjust the position to center the larger unit image on the tile
+        ctx.drawImage(img, player.position.x * tileSize + offsetX - (unitSize - tileSize) / 2, player.position.y * tileSize + offsetY - (unitSize - tileSize) / 2, unitSize, unitSize);
+    }
+}
+
+function drawEnemies() {
+    for (const id in enemies) {
+        const enemy = enemies[id];
+        const img = unitImages[enemy.stats.type];
+        // Adjust the position to center the larger unit image on the tile
+        ctx.drawImage(img, enemy.position.x * tileSize + offsetX - (unitSize - tileSize) / 2, enemy.position.y * tileSize + offsetY - (unitSize - tileSize) / 2, unitSize, unitSize);
+    }
+}
+
+document.addEventListener('keydown', function(event) {
+    const key = event.key;
+    if (key === 'w' || key === 's' || key === 'a' || key === 'd') {
+        const move = {x: 0, y: 0};
+        if (key === 'w') move.y = -1;
+        if (key === 's') move.y = 1;
+        if (key === 'a') move.x = -1;
+        if (key === 'd') move.x = 1;
+
+        const player = players[currentId];
+        player.position.x += move.x;
+        player.position.y += move.y;
+        offsetX -= move.x * tileSize;
+        offsetY -= move.y * tileSize;
+
+        drawGame();
+        socket.send(JSON.stringify({type: "move", position: player.position}));
+    }
+	if (event.key === 'e') {
+        // Assuming you have a function to get the current tile
+        const currentPosition = players[currentId].position;
+        socket.send(JSON.stringify({type: "pickup", playerId: currentId, position: currentPosition}));
+    }
+	if (event.key === 'i') {
+        toggleInventory();
+    }
+	if (event.code === "Space") {
+        // Send a message to the server to use a potion
+        socket.send(JSON.stringify({
+            type: "use_potion",
+            playerId: currentId  // Make sure you have the player's ID available here
+        }));
+    }
+});
+
+
+// Function to draw the health bar
+function drawHealthBar(x, y, width, height, healthPercentage) {
+    ctx.fillStyle = 'grey';  // Background color
+    ctx.fillRect(x, y, width, height);
+    ctx.fillStyle = 'red';  // Foreground color
+    ctx.fillRect(x, y, width * healthPercentage, height);
+}
+
+function drawExperienceBar(x, y, width, height, expPercentage) {
+    ctx.fillStyle = 'grey';  // Background color
+    ctx.fillRect(x, y, width, height);
+    ctx.fillStyle = 'green';  // Foreground color
+    ctx.fillRect(x, y, width * expPercentage, height);
+}
+
+// Function to draw the level and health of the current player
+function drawPlayerStats() {
+    const player = players[currentId];
+    if (player) {
+        const healthPercentage = player.stats.health / player.stats.max_health;
+        drawHealthBar(10, canvas.height - 30, 200, 20, healthPercentage);
+        ctx.fillStyle = 'black';
+        ctx.fillText(`Level: ${player.stats.level} Health: ${player.stats.health}`, 10, canvas.height - 10);
+        const expPercentage = player.stats.experience / player.stats.next_level_exp;
+        drawExperienceBar(10, canvas.height - 50, 200, 10, expPercentage);    
+    }
+}
+
+// Function to draw the selected target's information
+function drawTargetInfo() {
+    if (selectedTarget) {
+        const target = selectedTarget.type === 'player' ? players[selectedTarget.id] : enemies[selectedTarget.id];
+        if(target && target.stats) {
+            const healthPercentage = target.stats.health / target.stats.max_health;  // Max health depends on type
+            drawHealthBar(220, canvas.height - 30, 200, 20, healthPercentage);
+            ctx.fillStyle = 'black';
+            ctx.fillText(`${target.stats.name} - Level: ${target.stats.level} Health: ${target.stats.health}`, 220, canvas.height - 10);
+        }
+    }
+}
+function drawTargetCircle() {
+        if (selectedTarget) {
+        let target;
+        if (selectedTarget.type === 'player') {
+            target = players[selectedTarget.id];
+        } else if (selectedTarget.type === 'enemy') {
+            target = enemies[selectedTarget.id];
+        }
+        
+        if (target) {
+            ctx.strokeStyle = 'yellow';
+            ctx.lineWidth = 3; // Width of the circle outline
+            ctx.beginPath();
+            // Calculate the center x position
+            const centerX = target.position.x * tileSize + offsetX + tileSize / 2;
+            // Calculate the bottom y position, adjusted by the line width
+            const bottomY = target.position.y * tileSize + offsetY + tileSize - ctx.lineWidth / 2;
+            // Draw the circle at the bottom center of the tile
+            // The radius is now set to half of tileSize plus an extra 5 pixels
+            ctx.arc(centerX, bottomY, tileSize / 2 + 5, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+}
+function drawItems() {
+	for (const id in items) {
+        const item = items[id];
+        const potionX = item.position.x * tileSize + offsetX;
+        const potionY = item.position.y * tileSize + offsetY;
+
+        // Check if the potion's position is within the canvas bounds
+        if (potionX >= 0 && potionX <= canvas.width && potionY >= 0 && potionY <= canvas.height) {
+            ctx.drawImage(itemImages[item.type], potionX, potionY, tileSize, tileSize);
+        } else {
+            console.log(`Item with ID ${id} is out of bounds: ${potionX}, ${potionY}`);
+        }
+    }
+}
+function addItemToInventory(item) {
+    for (let i = 0; i < 25; i++) { // Loop through slots
+        const slotId = `slot-${i}`;
+        const slotElement = document.getElementById(slotId);
+        if (!slotElement.firstChild) { // Find the first empty slot
+            addItemToSlot(item, slotId);
+            break;
+        }
+    }
+}
+function removeItemFromInventory(itemId) {
+    // Remove the potion element from the inventory UI
+    let potionElement = document.getElementById(`item-${itemId}`);
+    if (potionElement) {
+        potionElement.remove();
+    }
+    // Additionally, you might need to update the inventory array or object in your JavaScript
+    // Assuming you have an inventory array or object
+    playerInventory = playerInventory.filter(item => item.id !== itemId);
+	
+}
+function makeItemDraggable(itemElement) {
+    itemElement.draggable = true;
+    itemElement.addEventListener('dragstart', (event) => {
+        event.dataTransfer.setData('text/plain', itemElement.id);
+    });
+}
+function createInventorySlots(numberOfSlots) {
+    const inventoryElement = document.getElementById('inventory');
+    for (let i = 0; i < numberOfSlots; i++) {
+        const slotElement = document.createElement('div');
+        slotElement.className = 'slot';
+        slotElement.id = `slot-${i}`;
+        inventoryElement.appendChild(slotElement);
+    }
+}
+// Function to initialize drop zones
+function setupDropZones() {
+    const slots = document.querySelectorAll('.slot'); // Select all slot elements
+    slots.forEach(slot => {
+        slot.addEventListener('dragover', (event) => {
+            event.preventDefault(); // Allow the drop by preventing the default handling of the element
+        });
+
+        slot.addEventListener('drop', (event) => {
+            event.preventDefault();
+            const itemId = event.dataTransfer.getData('text/plain');
+            const itemElement = document.getElementById(itemId);
+            if (slot.childElementCount === 0) { // Only allow drop if the slot is empty
+                slot.appendChild(itemElement); // Move the item to the slot
+                // Send a message to the server about the item drop
+                socket.send(JSON.stringify({
+                    type: 'item_dropped',
+                    playerId: currentId,
+                    itemId: itemId.replace('item-', ''), // Assuming the ID is prefixed with 'item-'
+                    slot: slot.id // Send the slot ID to the server as well
+                }));
+            }
+        });
+    });
+}
+
+
+function addItemToSlot(item, slotId) {
+	const slotElement = document.getElementById(slotId);
+    if (slotElement && !slotElement.firstChild) { // Check if the slot is empty
+        const itemElement = document.createElement('div');
+        itemElement.className = 'item';
+        itemElement.id = `item-${item.id}`;
+
+        // Set the background image to the sprite for the item
+        // You will need to have the sprites available as URLs or paths
+        const itemSpriteUrl = `./images/${item.type}.png`; // Replace with the actual path to your sprite images
+        itemElement.style.backgroundImage = `url('${itemSpriteUrl}')`;
+        itemElement.style.backgroundSize = 'cover'; // Ensure the sprite covers the whole item element
+        itemElement.style.width = '32px'; // Set the width of the item element
+        itemElement.style.height = '32px'; // Set the height of the item element
+
+        itemElement.onclick = () => useItem(item.id); // Set up the click to use the item
+        makeItemDraggable(itemElement);
+        slotElement.appendChild(itemElement);
+    } else {
+        console.error('Slot is not empty or does not exist');
+    }
+}
+
+function useItem(itemId) {
+    // Send a message to the server that the item is used
+    socket.send(JSON.stringify({
+        type: 'item_used',
+        playerId: currentId,
+        itemId: itemId
+    }));
+}
+// Function to handle mouse clicks for selecting targets
+canvas.addEventListener('click', function(event) {
+    const rect = canvas.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const clickY = event.clientY - rect.top;
+
+    // Check if a player is clicked
+    for (const id in players) {
+        const player = players[id];
+        // Calculate the center of the player's position
+        const playerCenterX = player.position.x * tileSize + offsetX + tileSize / 2;
+        const playerCenterY = player.position.y * tileSize + offsetY + tileSize / 2;
+        // Check if the click is within the circle's radius
+        if (Math.pow(clickX - playerCenterX, 2) + Math.pow(clickY - playerCenterY, 2) <= Math.pow(tileSize / 2, 2)) {
+            selectedTarget = { type: 'player', id: id, stats: player.stats };
+            drawGame();
+            return;
+        }
+    }
+
+    // Check if an enemy is clicked
+    for (const id in enemies) {
+        const enemy = enemies[id];
+        const enemyX = enemy.position.x * tileSize + offsetX + tileSize / 2
+        const enemyY = enemy.position.y * tileSize + offsetY + tileSize / 2
+        if (Math.pow(clickX - enemyX, 2) + Math.pow(clickY - enemyY, 2) <= Math.pow(tileSize / 2, 2)) {
+            selectedTarget = { type: 'enemy', id: id, stats: enemy.stats };
+            drawGame();
+            return;
+        }
+    }
+
+    // If nothing is clicked, clear the selection
+    selectedTarget = null;
+    drawGame();
+});
+function toggleInventory() {
+    const inventoryElement = document.getElementById('inventory');
+    inventoryElement.style.display = inventoryElement.style.display === 'none' ? 'block' : 'none';
+}
+
+createInventorySlots(25);
+setupDropZones();
+</script>
+</body>
+</html>
