@@ -18,10 +18,9 @@ async def game_server(websocket, path, game_manager:GameManager):
             "terrain": game_manager.world.terrain.terrain,
             "players": [{"id": pid, "color": p.color, "position": p.position, "stats": p.stats} for pid, p in game_manager.connected.items()],
             "chat": [],
-            "enemies": [{"id": enemy_id, "name": e.name, "position": e.position, "stats": e.stats} for enemy_id, e in game_manager.world.enemies.items()]
+            "enemies": [{"id": enemy_id, "position": e.position, "stats": e.stats} for enemy_id, e in game_manager.world.enemies.items()]
         }))
 
-        print( "sending new_player" )
         # Notify other players of the new player
         await broadcast({
             "type": "new_player",

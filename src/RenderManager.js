@@ -7,8 +7,6 @@ export default class RenderManager {
         this.inventoryElement = document.getElementById('inventory');
     }
     renderGame() {    
-        
-        console.log( 'Render Game' );
         this.gameState.context.clearRect(0, 0, this.gameState.canvas.width, this.gameState.canvas.height);
         this.renderTerrain();
         this.renderTargetCircle();
@@ -20,20 +18,14 @@ export default class RenderManager {
     }
 
     renderTerrain() {
-        for (let y = 0; y < this.gameState.terrain.length; y++) {
-            for (let x = 0; x < this.gameState.terrain[y].length; x++) {
-                const terrainType = this.gameState.terrain[y][x];
+        for (let y = 0; y < this.gameState.terrain.map.length; y++) {
+            for (let x = 0; x < this.gameState.terrain.map[y].length; x++) {
+                const terrainType = this.gameState.terrain.getTerrainTypeAt(x, y);
                 const img = this.assetManager.assets[terrainType];
                 if( !img ) {
                     console.error(`${terrainType} image not loaded`);
-                } else if (img.complete) { // Check if the image is loaded
-                    this.gameState.context.drawImage(img, x * CONFIG.tileSize + this.gameState.offsetX, y * CONFIG.tileSize + this.gameState.offsetY, CONFIG.tileSize, CONFIG.tileSize);
-                } else {
-                    // Optionally draw a placeholder or load the image if it's not done yet
-                    img.onload = () => {
-                        this.gameState.context.drawImage(img, x * CONFIG.tileSize + this.gameState.offsetX, y * CONFIG.tileSize + this.gameState.offsetY, CONFIG.tileSize, CONFIG.tileSize);
-                    };
                 }
+                this.gameState.context.drawImage(img, x * CONFIG.tileSize + this.gameState.offsetX, y * CONFIG.tileSize + this.gameState.offsetY, CONFIG.tileSize, CONFIG.tileSize);             
             }
         }
     }

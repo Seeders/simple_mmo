@@ -1,6 +1,7 @@
 import { CONFIG } from './config';
 import Player from './Player';
 import Enemy from './Enemy';
+import Terrain from './Terrain';
 import RenderManager from './RenderManager';
 // GameState.js
 export default class GameState {
@@ -10,7 +11,7 @@ export default class GameState {
         this.players = {};
         this.enemies = {};
         this.items = {};
-        this.terrain = [];
+        this.terrain = null;
         this.combatLog = [];
         this.chats = [];
         this.selectedTarget = null;
@@ -23,7 +24,7 @@ export default class GameState {
     // Initialize the game state with data from the server
     init(data) {
         this.currentPlayerId = data.id;
-        this.terrain = data.terrain;
+        this.terrain = new Terrain(data.terrain);
         for (const player of data.players) {
             this.addPlayer({id: player.id, position: player.position, stats: player.stats});
         }
