@@ -6,7 +6,7 @@ export default class Enemy {
         this.position = data.position;
         this.stats = {
             health: data.stats.health,
-            maxHealth: data.stats.maxHealth,
+            max_health: data.stats.max_health,
             attackPower: data.stats.attackPower,
             defense: data.stats.defense,
             // ... other stats like speed, experience value, etc.
@@ -18,7 +18,7 @@ export default class Enemy {
     update(data) {
         this.position = data.position || this.position;
         this.stats.health = data.stats.health || this.stats.health;
-        this.stats.maxHealth = data.stats.maxHealth || this.stats.maxHealth;
+        this.stats.max_health = data.stats.max_health || this.stats.max_health;
         this.stats.attackPower = data.stats.attackPower || this.stats.attackPower;
         this.stats.defense = data.stats.defense || this.stats.defense;
         // ... update other stats as necessary
@@ -48,7 +48,7 @@ export default class Enemy {
 
     // Method to respawn the enemy with full health
     respawn() {
-        this.stats.health = this.stats.maxHealth;
+        this.stats.health = this.stats.max_health;
         this.alive = true;
     }
 

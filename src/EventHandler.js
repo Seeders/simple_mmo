@@ -11,6 +11,46 @@ export default class EventHandler {
     setupEventListeners() {
         // Set up user input event listeners
         document.addEventListener('keydown', this.handleKeyDown.bind(this));
+
+        // Function to handle mouse clicks for selecting targets
+        this.gameState.canvas.addEventListener('click', this.handleClick.bind(this));
+        
+    }
+
+    handleClick(event) {
+        const rect = this.gameState.canvas.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const clickY = event.clientY - rect.top;
+
+        // Check if a player is clicked
+        for (const id in this.gameState.players) {
+            const player = this.gameState.players[id];
+            // Calculate the center of the player's position
+            const playerCenterX = player.position.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2;
+            const playerCenterY = player.position.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2;
+            // Check if the click is within the circle's radius
+            if (Math.pow(clickX - playerCenterX, 2) + Math.pow(clickY - playerCenterY, 2) <= Math.pow(CONFIG.unitSize / 2, 2)) {
+                this.gameState.selectedTarget = { type: 'player', id: id, stats: player.stats };
+                this.gameState.drawGame();
+                return;
+            }
+        }
+
+        // Check if an enemy is clicked
+        for (const id in this.gameState.enemies) {
+            const enemy = this.gameState.enemies[id];
+            const enemyX = enemy.position.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2
+            const enemyY = enemy.position.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2
+            if (Math.pow(clickX - enemyX, 2) + Math.pow(clickY - enemyY, 2) <= Math.pow(CONFIG.unitSize / 2, 2)) {
+                this.gameState.selectedTarget = { type: 'enemy', id: id, stats: enemy.stats };
+                this.gameState.drawGame();
+                return;
+            }
+        }
+
+        // If nothing is clicked, clear the selection
+        this.gameState.selectedTarget = null;
+        this.gameState.drawGame();
     }
 
     handleKeyDown(event) {

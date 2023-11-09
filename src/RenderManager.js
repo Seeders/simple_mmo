@@ -59,7 +59,7 @@ export default class RenderManager {
 
     // Function to draw the level and health of the current player
     renderPlayerStats() {
-        const player = this.gameState.players[this.currentPlayerId];
+        const player = this.gameState.getCurrentPlayer();
         if (player) {
             const healthPercentage = player.stats.health / player.stats.max_health;
             this.renderHealthBar(10, this.gameState.canvas.height - 30, 200, 20, healthPercentage);
@@ -91,7 +91,7 @@ export default class RenderManager {
             const target = this.gameState.selectedTarget.type === 'player' ? this.gameState.players[this.gameState.selectedTarget.id] : this.gameState.enemies[this.gameState.selectedTarget.id];
             if(target && target.stats) {
                 const healthPercentage = target.stats.health / target.stats.max_health;  // Max health depends on type
-                drawHealthBar(220, this.gameState.canvas.height - 30, 200, 20, healthPercentage);
+                this.renderHealthBar(220, this.gameState.canvas.height - 30, 200, 20, healthPercentage);
                 this.gameState.context.fillStyle = 'black';
                 this.gameState.context.fillText(`${target.stats.name} - Level: ${target.stats.level} Health: ${target.stats.health}`, 220, this.gameState.canvas.height - 10);
             }

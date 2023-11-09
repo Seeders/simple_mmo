@@ -7,10 +7,11 @@ export default class Player {
         this.position = data.position;
         this.stats = {
             health: data.stats.health,
-            maxHealth: data.stats.maxHealth,
+            max_health: data.stats.max_health,
             attackPower: data.stats.attackPower,
             defense: data.stats.defense,
             experience: data.stats.experience,
+            next_level_exp: data.stats.next_level_exp,
             level: data.stats.level,
             // ... other stats like mana, speed, etc.
         };
@@ -21,10 +22,11 @@ export default class Player {
     update(data) {
         this.position = data.position || this.position;
         this.stats.health = data.stats.health || this.stats.health;
-        this.stats.maxHealth = data.stats.maxHealth || this.stats.maxHealth;
+        this.stats.max_health = data.stats.max_health || this.stats.max_health;
         this.stats.attackPower = data.stats.attackPower || this.stats.attackPower;
         this.stats.defense = data.stats.defense || this.stats.defense;
         this.stats.experience = data.stats.experience || this.stats.experience;
+        this.stats.next_level_exp = data.stats.next_level_exp || this.stats.next_level_exp;
         this.stats.level = data.stats.level || this.stats.level;
         // ... update other stats and inventory as necessary
     }
@@ -82,7 +84,7 @@ export default class Player {
     levelUp() {
         this.stats.level++;
         this.stats.experience = 0;
-        this.stats.maxHealth += 10; // Example increment, adjust as needed
+        this.stats.max_health += 10; // Example increment, adjust as needed
         this.stats.attackPower += 2; // Example increment, adjust as needed
         // ... additional stats increases and level up logic ...
         console.log(`${this.name} has reached level ${this.stats.level}!`);
@@ -108,7 +110,7 @@ export default class Player {
     applyItemEffect(item) {
         // Example: if the item is a health potion, restore health
         if (item.type === 'health_potion') {
-            this.stats.health = Math.min(this.stats.health + item.effect, this.stats.maxHealth);
+            this.stats.health = Math.min(this.stats.health + item.effect, this.stats.max_health);
             console.log(`${this.name} used a Health Potion. Health is now ${this.stats.health}.`);
         }
         // ... handle other item types and effects ...
