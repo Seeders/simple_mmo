@@ -18,7 +18,16 @@ To start the game server, run the following command in the project directory:
 
 `python ./server/server.py`
 
-Then load up game_client.html in a browser.
+then build the front end
+
+`npm install`
+
+`npm run build`
+
+`npm run start`
+
+Visit the site in a browser:
+http://localhost:8080/
 
 ## Game Mechanics
 # Terrain
