@@ -16,7 +16,7 @@ To run this game server, you will need Python 3.7 or higher. Clone the repositor
 ## Usage
 To start the game server, run the following command in the project directory:
 
-`python game_server.py`
+`python ./server/server.py`
 
 Then load up game_client.html in a browser.
 
