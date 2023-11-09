@@ -1,0 +1,92 @@
+/* General body styling */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #eaeaea;
+}
+
+/* Styling for the game canvas */
+canvas {
+    display: block;
+    margin: 0 auto;
+    background-color: #000;
+    border: 1px solid #000;
+}
+
+/* Chat container styling */
+#chat {
+    width: 300px;
+    margin: 10px;
+    float: left;
+}
+
+/* Chat messages styling */
+#chatMessages {
+    height: 200px;
+    overflow-y: auto;
+    background-color: #fff;
+    padding: 5px;
+    border: 1px solid #ddd;
+}
+
+/* Chat input styling */
+#chatInput {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    margin-top: 5px;
+    border: 1px solid #ddd;
+}
+
+/* Inventory grid styling */
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 50px); /* Adjust the number of columns as needed */
+    grid-gap: 5px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    margin: 10px;
+}
+
+/* Individual inventory slots */
+.slot {
+    width: 50px;
+    height: 50px;
+    border: 1px solid #ccc;
+    background-color: #f8f8f8;
+    position: relative;
+}
+
+/* Styling for items within slots */
+.item {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-size: cover;
+    background-position: center;
+}
+
+/* Combat log styling */
+#combat-log {
+    clear: both;
+    padding: 10px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    margin: 10px;
+    height: 200px;
+    overflow-y: auto;
+}
+
+/* Player stats styling */
+#playerStats {
+    padding: 10px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    margin: 10px;
+}
+
+/* Add more styles as needed for other UI elements */

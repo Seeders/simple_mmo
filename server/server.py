@@ -21,6 +21,7 @@ async def game_server(websocket, path, game_manager:GameManager):
             "enemies": [{"id": enemy_id, "position": e.position, "stats": e.stats} for enemy_id, e in game_manager.world.enemies.items()]
         }))
 
+        print( "sending new_player" )
         # Notify other players of the new player
         await broadcast({
             "type": "new_player",

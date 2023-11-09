@@ -19,7 +19,7 @@ class Terrain:
                 elif 0.4 <= noise_value < 0.6:
                     tile = 'forest'
                 else:
-                    tile = 'mountains'
+                    tile = 'mountain'
                 row.append(tile)
             terrain.append(row)
         return terrain

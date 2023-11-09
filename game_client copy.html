@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Simple MMORPG</title>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<div id="chat">
+  <div id="chatMessages"></div>
+  <input type="text" id="chatInput" placeholder="Type a message..." />
+</div>
+<div id="inventory"  class="inventory-grid">
+    <!-- Inventory items will be dynamically added here -->
+</div>
+<div id="combat-log"></div>
+<script>
+
+
+function displayChatMessage(sender, message) {
+    const messageElement = document.createElement('div');
+    messageElement.textContent = sender + ": " + message;
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+function updateCombatLog(logMessages) {
+  combatLogElement.innerHTML = logMessages.join('<br>');
+}
+chatInput.addEventListener('keypress', function(event) {
+    if (event.key === 'Enter') {
+        const message = chatInput.value;
+        chatInput.value = '';
+		var data = {type: "chat", message: message};
+        socket.send(JSON.stringify(data));
+		chat.push(data);
+		displayChatMessage(currentId, data.message);
+    }
+});
+
+
+function drawGame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawTerrain();
+    drawTargetCircle();
+    drawPlayers();
+    drawEnemies();
+    drawPlayerStats();
+    drawTargetInfo();
+	drawItems();
+}
+
+function drawTerrain() {
+    for (let y = 0; y < terrain.length; y++) {
+        for (let x = 0; x < terrain[y].length; x++) {
+            const terrainType = terrain[y][x];
+            const img = terrainImages[terrainType];
+            if (img.complete) { // Check if the image is loaded
+                ctx.drawImage(img, x * tileSize + offsetX, y * tileSize + offsetY, tileSize, tileSize);
+            } else {
+                // Optionally draw a placeholder or load the image if it's not done yet
+                img.onload = () => {
+                    ctx.drawImage(img, x * tileSize + offsetX, y * tileSize + offsetY, tileSize, tileSize);
+                };
+            }
+        }
+    }
+}
+
+function drawPlayers() {
+    for (const id in players) {
+        const player = players[id];
+        const img = unitImages['hero'];
+        // Adjust the position to center the larger unit image on the tile
+        ctx.drawImage(img, player.position.x * tileSize + offsetX - (unitSize - tileSize) / 2, player.position.y * tileSize + offsetY - (unitSize - tileSize) / 2, unitSize, unitSize);
+    }
+}
+
+function drawEnemies() {
+    for (const id in enemies) {
+        const enemy = enemies[id];
+        const img = unitImages[enemy.stats.type];
+        // Adjust the position to center the larger unit image on the tile
+        ctx.drawImage(img, enemy.position.x * tileSize + offsetX - (unitSize - tileSize) / 2, enemy.position.y * tileSize + offsetY - (unitSize - tileSize) / 2, unitSize, unitSize);
+    }
+}
+
+document.addEventListener('keydown', function(event) {
+    const key = event.key;
+    if (key === 'w' || key === 's' || key === 'a' || key === 'd') {
+        const move = {x: 0, y: 0};
+        if (key === 'w') move.y = -1;
+        if (key === 's') move.y = 1;
+        if (key === 'a') move.x = -1;
+        if (key === 'd') move.x = 1;
+
+        const player = players[currentId];
+        player.position.x += move.x;
+        player.position.y += move.y;
+        offsetX -= move.x * tileSize;
+        offsetY -= move.y * tileSize;
+
+        drawGame();
+        socket.send(JSON.stringify({type: "move", playerId: currentId, position: player.position}));
+    }
+	if (event.key === 'e') {
+        // Assuming you have a function to get the current tile
+        const currentPosition = players[currentId].position;
+        socket.send(JSON.stringify({type: "pickup", playerId: currentId, position: currentPosition}));
+    }
+	if (event.key === 'i') {
+        toggleInventory();
+    }
+	if (event.code === "Space") {
+        // Send a message to the server to use a potion
+        socket.send(JSON.stringify({
+            type: "use_potion",
+            playerId: currentId  // Make sure you have the player's ID available here
+        }));
+    }
+});
+
+
+// Function to draw the health bar
+function drawHealthBar(x, y, width, height, healthPercentage) {
+    ctx.fillStyle = 'grey';  // Background color
+    ctx.fillRect(x, y, width, height);
+    ctx.fillStyle = 'red';  // Foreground color
+    ctx.fillRect(x, y, width * healthPercentage, height);
+}
+
+function drawExperienceBar(x, y, width, height, expPercentage) {
+    ctx.fillStyle = 'grey';  // Background color
+    ctx.fillRect(x, y, width, height);
+    ctx.fillStyle = 'green';  // Foreground color
+    ctx.fillRect(x, y, width * expPercentage, height);
+}
+
+// Function to draw the level and health of the current player
+function drawPlayerStats() {
+    const player = players[currentId];
+    if (player) {
+        const healthPercentage = player.stats.health / player.stats.max_health;
+        drawHealthBar(10, canvas.height - 30, 200, 20, healthPercentage);
+        ctx.fillStyle = 'black';
+        ctx.fillText(`Level: ${player.stats.level} Health: ${player.stats.health}`, 10, canvas.height - 10);
+        const expPercentage = player.stats.experience / player.stats.next_level_exp;
+        drawExperienceBar(10, canvas.height - 50, 200, 10, expPercentage);    
+    }
+}
+
+// Function to draw the selected target's information
+function drawTargetInfo() {
+    if (selectedTarget) {
+        const target = selectedTarget.type === 'player' ? players[selectedTarget.id] : enemies[selectedTarget.id];
+        if(target && target.stats) {
+            const healthPercentage = target.stats.health / target.stats.max_health;  // Max health depends on type
+            drawHealthBar(220, canvas.height - 30, 200, 20, healthPercentage);
+            ctx.fillStyle = 'black';
+            ctx.fillText(`${target.stats.name} - Level: ${target.stats.level} Health: ${target.stats.health}`, 220, canvas.height - 10);
+        }
+    }
+}
+function drawTargetCircle() {
+        if (selectedTarget) {
+        let target;
+        if (selectedTarget.type === 'player') {
+            target = players[selectedTarget.id];
+        } else if (selectedTarget.type === 'enemy') {
+            target = enemies[selectedTarget.id];
+        }
+        
+        if (target) {
+            ctx.strokeStyle = 'yellow';
+            ctx.lineWidth = 3; // Width of the circle outline
+            ctx.beginPath();
+            // Calculate the center x position
+            const centerX = target.position.x * tileSize + offsetX + tileSize / 2;
+            // Calculate the bottom y position, adjusted by the line width
+            const bottomY = target.position.y * tileSize + offsetY + tileSize - ctx.lineWidth / 2;
+            // Draw the circle at the bottom center of the tile
+            // The radius is now set to half of tileSize plus an extra 5 pixels
+            ctx.arc(centerX, bottomY, tileSize / 2 + 5, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+}
+function drawItems() {
+	for (const id in items) {
+        const item = items[id];
+        const potionX = item.position.x * tileSize + offsetX;
+        const potionY = item.position.y * tileSize + offsetY;
+
+        // Check if the potion's position is within the canvas bounds
+        if (potionX >= 0 && potionX <= canvas.width && potionY >= 0 && potionY <= canvas.height) {
+            ctx.drawImage(itemImages[item.type], potionX, potionY, tileSize, tileSize);
+        } else {
+            console.log(`Item with ID ${id} is out of bounds: ${potionX}, ${potionY}`);
+        }
+    }
+}
+function addItemToInventory(item) {
+    for (let i = 0; i < 25; i++) { // Loop through slots
+        const slotId = `slot-${i}`;
+        const slotElement = document.getElementById(slotId);
+        if (!slotElement.firstChild) { // Find the first empty slot
+            addItemToSlot(item, slotId);
+            break;
+        }
+    }
+}
+function removeItemFromInventory(itemId) {
+    // Remove the potion element from the inventory UI
+    let potionElement = document.getElementById(`item-${itemId}`);
+    if (potionElement) {
+        potionElement.remove();
+    }
+    // Additionally, you might need to update the inventory array or object in your JavaScript
+    // Assuming you have an inventory array or object
+    playerInventory = playerInventory.filter(item => item.id !== itemId);
+	
+}
+function makeItemDraggable(itemElement) {
+    itemElement.draggable = true;
+    itemElement.addEventListener('dragstart', (event) => {
+        event.dataTransfer.setData('text/plain', itemElement.id);
+    });
+}
+function createInventorySlots(numberOfSlots) {
+    const inventoryElement = document.getElementById('inventory');
+    for (let i = 0; i < numberOfSlots; i++) {
+        const slotElement = document.createElement('div');
+        slotElement.className = 'slot';
+        slotElement.id = `slot-${i}`;
+        inventoryElement.appendChild(slotElement);
+    }
+}
+// Function to initialize drop zones
+function setupDropZones() {
+    const slots = document.querySelectorAll('.slot'); // Select all slot elements
+    slots.forEach(slot => {
+        slot.addEventListener('dragover', (event) => {
+            event.preventDefault(); // Allow the drop by preventing the default handling of the element
+        });
+
+        slot.addEventListener('drop', (event) => {
+            event.preventDefault();
+            const itemId = event.dataTransfer.getData('text/plain');
+            const itemElement = document.getElementById(itemId);
+            if (slot.childElementCount === 0) { // Only allow drop if the slot is empty
+                slot.appendChild(itemElement); // Move the item to the slot
+                // Send a message to the server about the item drop
+                socket.send(JSON.stringify({
+                    type: 'item_dropped',
+                    playerId: currentId,
+                    itemId: itemId.replace('item-', ''), // Assuming the ID is prefixed with 'item-'
+                    slot: slot.id // Send the slot ID to the server as well
+                }));
+            }
+        });
+    });
+}
+
+
+function addItemToSlot(item, slotId) {
+	const slotElement = document.getElementById(slotId);
+    if (slotElement && !slotElement.firstChild) { // Check if the slot is empty
+        const itemElement = document.createElement('div');
+        itemElement.className = 'item';
+        itemElement.id = `item-${item.id}`;
+
+        // Set the background image to the sprite for the item
+        // You will need to have the sprites available as URLs or paths
+        const itemSpriteUrl = `./images/${item.type}.png`; // Replace with the actual path to your sprite images
+        itemElement.style.backgroundImage = `url('${itemSpriteUrl}')`;
+        itemElement.style.backgroundSize = 'cover'; // Ensure the sprite covers the whole item element
+        itemElement.style.width = '32px'; // Set the width of the item element
+        itemElement.style.height = '32px'; // Set the height of the item element
+
+        itemElement.onclick = () => useItem(item.id); // Set up the click to use the item
+        makeItemDraggable(itemElement);
+        slotElement.appendChild(itemElement);
+    } else {
+        console.error('Slot is not empty or does not exist');
+    }
+}
+
+function useItem(itemId) {
+    // Send a message to the server that the item is used
+    socket.send(JSON.stringify({
+        type: 'item_used',
+        playerId: currentId,
+        itemId: itemId
+    }));
+}
+// Function to handle mouse clicks for selecting targets
+canvas.addEventListener('click', function(event) {
+    const rect = canvas.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const clickY = event.clientY - rect.top;
+
+    // Check if a player is clicked
+    for (const id in players) {
+        const player = players[id];
+        // Calculate the center of the player's position
+        const playerCenterX = player.position.x * tileSize + offsetX + tileSize / 2;
+        const playerCenterY = player.position.y * tileSize + offsetY + tileSize / 2;
+        // Check if the click is within the circle's radius
+        if (Math.pow(clickX - playerCenterX, 2) + Math.pow(clickY - playerCenterY, 2) <= Math.pow(tileSize / 2, 2)) {
+            selectedTarget = { type: 'player', id: id, stats: player.stats };
+            drawGame();
+            return;
+        }
+    }
+
+    // Check if an enemy is clicked
+    for (const id in enemies) {
+        const enemy = enemies[id];
+        const enemyX = enemy.position.x * tileSize + offsetX + tileSize / 2
+        const enemyY = enemy.position.y * tileSize + offsetY + tileSize / 2
+        if (Math.pow(clickX - enemyX, 2) + Math.pow(clickY - enemyY, 2) <= Math.pow(tileSize / 2, 2)) {
+            selectedTarget = { type: 'enemy', id: id, stats: enemy.stats };
+            drawGame();
+            return;
+        }
+    }
+
+    // If nothing is clicked, clear the selection
+    selectedTarget = null;
+    drawGame();
+});
+function toggleInventory() {
+    const inventoryElement = document.getElementById('inventory');
+    inventoryElement.style.display = inventoryElement.style.display === 'none' ? 'block' : 'none';
+}
+
+createInventorySlots(25);
+setupDropZones();
+</script>
+</body>
+</html>

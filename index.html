@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Simple MMORPG</title>
+<link rel="stylesheet" href="styles.css">
+<script src="dist/bundle.js"></script>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="uiContainer">
+        <div id="chat">
+            <div id="chatMessages"></div>
+            <input type="text" id="chatInput" placeholder="Type a message..." />
+        </div>
+        <div id="inventory" class="inventory-grid">
+            <!-- Inventory items will be dynamically added here -->
+        </div>
+        <div id="combat-log"></div>
+        <div id="playerStats"></div>
+        <!-- Add more UI elements as needed -->
+    </div>
+    <!-- The scripts are deferred to ensure they load after the HTML content -->
+</body>
+</html>
