@@ -352,7 +352,7 @@ document.addEventListener('keydown', function(event) {
         offsetY -= move.y * tileSize;
 
         drawGame();
-        socket.send(JSON.stringify({type: "move", position: player.position}));
+        socket.send(JSON.stringify({type: "move", playerId: currentId, position: player.position}));
     }
 	if (event.key === 'e') {
         // Assuming you have a function to get the current tile
