@@ -50,7 +50,7 @@ export default class RenderManager {
     renderEnemies() {
         for (const id in this.gameState.enemies) {
             const enemy = this.gameState.enemies[id];
-            const img = this.assetManager.assets[enemy.stats.type];
+            const img = this.assetManager.assets[enemy.type];
             // Adjust the position to center the larger unit image on the tile
             this.gameState.context.drawImage(img, enemy.position.x * CONFIG.tileSize + this.gameState.offsetX - (CONFIG.unitSize - CONFIG.tileSize) / 2, enemy.position.y * CONFIG.tileSize + this.gameState.offsetY - (CONFIG.unitSize - CONFIG.tileSize) / 2, CONFIG.unitSize, CONFIG.unitSize);
         }
@@ -93,7 +93,7 @@ export default class RenderManager {
                 const healthPercentage = target.stats.health / target.stats.max_health;  // Max health depends on type
                 this.renderHealthBar(220, this.gameState.canvas.height - 30, 200, 20, healthPercentage);
                 this.gameState.context.fillStyle = 'black';
-                this.gameState.context.fillText(`${target.stats.name} - Level: ${target.stats.level} Health: ${target.stats.health}`, 220, this.gameState.canvas.height - 10);
+                this.gameState.context.fillText(`${target.name} - Level: ${target.stats.level} Health: ${target.stats.health}`, 220, this.gameState.canvas.height - 10);
             }
         }
     }

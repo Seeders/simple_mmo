@@ -1,5 +1,6 @@
 import { CONFIG } from './config';
 import Player from './Player';
+import Enemy from './Enemy';
 import RenderManager from './RenderManager';
 // GameState.js
 export default class GameState {
@@ -24,10 +25,10 @@ export default class GameState {
         this.currentPlayerId = data.id;
         this.terrain = data.terrain;
         for (const player of data.players) {
-            this.addPlayer({id: player.id, color: player.color, position: player.position, stats: player.stats});
+            this.addPlayer({id: player.id, position: player.position, stats: player.stats});
         }
         for (const enemy of data.enemies) {
-            this.enemies[enemy.id] = {color: 'red', position: enemy.position, stats: enemy.stats};
+            this.addEnemy({id: enemy.id, position: enemy.position, stats: enemy.stats});
         }
         let player = this.getCurrentPlayer();
         if( player ) {
@@ -63,6 +64,11 @@ export default class GameState {
     // Add a new player to the game state
     addPlayer(playerData) {
         this.players[playerData.id] = new Player(playerData);
+    }    
+    
+    // Add a new player to the game state
+    addEnemy(enemyData) {
+        this.enemies[enemyData.id] = new Enemy(enemyData);
     }
 
     levelUp(data){

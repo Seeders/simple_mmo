@@ -3,7 +3,7 @@ export default class Player {
     constructor(data) {
         console.log(`Creating player with ${data}`);
         this.id = data.id;
-        this.name = data.name;
+        this.name = data.id;
         this.position = data.position;
         this.stats = {
             health: data.stats.health,
