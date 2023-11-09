@@ -151,15 +151,17 @@ class GameManager:
             current_time = asyncio.get_event_loop().time()
             # Check if at least one second has passed since the last regeneration tick
             if current_time - last_regeneration_time >= 1:
+                
                 for player_id, player in self.connected.items():  # Ensure this is iterating over Player objects
                     if player.stats['health'] < player.stats['max_health'] and not player.in_combat:
+                        print('health regen ' + player_id)
                         player.stats['health'] += 1  # Regenerate 1 health
                         player.stats['health'] = min(player.stats['health'], player.stats['max_health'])  # Cap at max health
                         await broadcast({
                             "type": "health_regeneration",
                             "playerId": player_id,
                             "newHealth": player.stats['health']
-                        }, self.connected, self.connections, self.connections[player_id])  # Pass the player's websocket for exclusion
+                        }, self.connected, self.connections) 
                 last_regeneration_time = current_time  # Update the last regeneration time
 
             # Calculate how much time to sleep until the next second ticks over
