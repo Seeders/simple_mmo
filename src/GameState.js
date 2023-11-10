@@ -38,11 +38,6 @@ export default class GameState {
         }
     }
 
-    drawGame() {
-        this.renderManager.renderGame(this);
-    }
-
-
     healthRegeneration(data) {
         let player = this.getPlayer(data.playerId)
         if (player) {
@@ -64,12 +59,12 @@ export default class GameState {
 
     // Add a new player to the game state
     addPlayer(playerData) {
-        this.players[playerData.id] = new Player(playerData);
+        this.players[playerData.id] = new Player(this, playerData);
     }    
     
     // Add a new player to the game state
     addEnemy(enemyData) {
-        this.enemies[enemyData.id] = new Enemy(enemyData);
+        this.enemies[enemyData.id] = new Enemy(this, enemyData);
     }
 
     levelUp(data){
@@ -176,6 +171,9 @@ export default class GameState {
             this.getPlayer(data.playerId).stats.health = data.playerHealth;
         }
         if (data.enemyId && this.enemies[data.enemyId]) {
+            if(this.enemies[data.enemyId].stats.health != data.enemyHealth){
+                this.getPlayer(data.playerId).attack();
+            }
             this.enemies[data.enemyId].stats.health = data.enemyHealth;
             if (data.enemyHealth <= 0) {
                 delete this.enemies[data.enemyId];

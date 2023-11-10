@@ -5,9 +5,15 @@ export default class RenderManager {
         this.gameState = gameState;
         this.assetManager = assetManager;
         this.inventoryElement = document.getElementById('inventory');
+        this.terrainCanvas = document.createElement('canvas');
+        this.terrainCtx = this.terrainCanvas.getContext('2d');
+        this.terrainCanvas.width = CONFIG.worldSize * CONFIG.tileSize;
+        this.terrainCanvas.height = CONFIG.worldSize * CONFIG.tileSize;
+        this.terrainRendered = false;
     }
     renderGame() {    
         this.gameState.context.clearRect(0, 0, this.gameState.canvas.width, this.gameState.canvas.height);
+            // Draw the static terrain canvas onto the main canvas
         this.renderTerrain();
         this.renderTargetCircle();
         this.renderPlayers();
@@ -17,25 +23,65 @@ export default class RenderManager {
         this.renderItems();
     }
 
+    renderSprite(context, img, dx, dy, sx = 0, sy = 0, size = CONFIG.tileSize ){ 
+        // Draw the image on the canvas
+        context.drawImage(img, sx, sy, size, size, dx, dy, size, size);
+    }
+
     renderTerrain() {
-        for (let y = 0; y < this.gameState.terrain.map.length; y++) {
-            for (let x = 0; x < this.gameState.terrain.map[y].length; x++) {
-                const terrainType = this.gameState.terrain.getTerrainTypeAt(x, y);
-                const img = this.assetManager.assets[terrainType];
-                if( !img ) {
-                    console.error(`${terrainType} image not loaded`);
+        // Calculate the offset based on the player's position to center the player on the screen
+        const player = this.gameState.getCurrentPlayer();
+        if (player) {
+            const halfCanvasWidth = this.gameState.canvas.width / 2;
+            const halfCanvasHeight = this.gameState.canvas.height / 2;
+            const worldPixelWidth = this.gameState.terrain.map[0].length * CONFIG.tileSize;
+            const worldPixelHeight = this.gameState.terrain.map.length * CONFIG.tileSize;
+    
+            // Calculate the desired center position
+            let desiredCenterX = player.position.x * CONFIG.tileSize + CONFIG.tileSize / 2;
+            let desiredCenterY = player.position.y * CONFIG.tileSize + CONFIG.tileSize / 2;
+    
+            // Clamp the center position to prevent the viewport from showing out-of-bounds areas
+            desiredCenterX = Math.max(halfCanvasWidth, Math.min(desiredCenterX, worldPixelWidth - halfCanvasWidth));
+            desiredCenterY = Math.max(halfCanvasHeight, Math.min(desiredCenterY, worldPixelHeight - halfCanvasHeight));
+    
+            // Calculate the top-left corner of the viewport
+            this.gameState.offsetX = halfCanvasWidth - desiredCenterX;
+            this.gameState.offsetY = halfCanvasHeight - desiredCenterY;
+    
+            // Render the terrain onto the off-screen canvas if it hasn't been rendered yet
+            if (!this.terrainRendered) {
+                this.terrainCtx.clearRect(0, 0, this.terrainCanvas.width, this.terrainCanvas.height);
+                for (let y = 0; y < this.gameState.terrain.map.length; y++) {
+                    for (let x = 0; x < this.gameState.terrain.map[y].length; x++) {
+                        const terrainType = this.gameState.terrain.getTerrainTypeAt(x, y);
+                        const spritePosition = this.gameState.terrain.getSpriteLocation(terrainType);
+                        const img = this.assetManager.assets[this.gameState.terrain.spriteSheetKey];
+                        if (!img) {
+                            console.error(`${terrainType} image not loaded`);
+                        } else {
+                            this.renderSprite(this.terrainCtx, img, x * CONFIG.tileSize, y * CONFIG.tileSize, spritePosition.x, spritePosition.y);
+                        }
+                    }
                 }
-                this.gameState.context.drawImage(img, x * CONFIG.tileSize + this.gameState.offsetX, y * CONFIG.tileSize + this.gameState.offsetY, CONFIG.tileSize, CONFIG.tileSize);             
+                this.terrainRendered = true;
             }
+    
+            // Draw the off-screen canvas onto the main canvas with the offset
+            this.gameState.context.drawImage(this.terrainCanvas, this.gameState.offsetX, this.gameState.offsetY);
         }
     }
+    
+    
 
     renderPlayers() {
         for (const id in this.gameState.players) {
             const player = this.gameState.players[id];
-            const img = this.assetManager.assets['hero'];
+            player.render();
+            const img = this.assetManager.assets[player.spriteSheetKey];            
+            const spritePosition = player.currentSprite;  
             // Adjust the position to center the larger unit image on the tile
-            this.gameState.context.drawImage(img, player.position.x * CONFIG.tileSize + this.gameState.offsetX - (CONFIG.unitSize - CONFIG.tileSize) / 2, player.position.y * CONFIG.tileSize + this.gameState.offsetY - (CONFIG.unitSize - CONFIG.tileSize) / 2, CONFIG.unitSize, CONFIG.unitSize);
+            this.renderSprite(this.gameState.context, img, player.position.x * CONFIG.tileSize + this.gameState.offsetX, player.position.y * CONFIG.tileSize + this.gameState.offsetY, spritePosition.x, spritePosition.y);                         
         }
     }
 

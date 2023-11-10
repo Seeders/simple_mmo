@@ -31,7 +31,6 @@ export default class EventHandler {
             // Check if the click is within the circle's radius
             if (Math.pow(clickX - playerCenterX, 2) + Math.pow(clickY - playerCenterY, 2) <= Math.pow(CONFIG.unitSize / 2, 2)) {
                 this.gameState.selectedTarget = { type: 'player', id: id, stats: player.stats };
-                this.gameState.drawGame();
                 return;
             }
         }
@@ -43,14 +42,12 @@ export default class EventHandler {
             const enemyY = enemy.position.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2
             if (Math.pow(clickX - enemyX, 2) + Math.pow(clickY - enemyY, 2) <= Math.pow(CONFIG.unitSize / 2, 2)) {
                 this.gameState.selectedTarget = { type: 'enemy', id: id, stats: enemy.stats };
-                this.gameState.drawGame();
                 return;
             }
         }
 
         // If nothing is clicked, clear the selection
         this.gameState.selectedTarget = null;
-        this.gameState.drawGame();
     }
 
     handleKeyDown(event) {
@@ -61,17 +58,28 @@ export default class EventHandler {
             // Handle key down events for player movement or actions
             if (key === 'w' || key === 's' || key === 'a' || key === 'd') {
                 const move = {x: 0, y: 0};
-                if (key === 'w') move.y = -1;
-                if (key === 's') move.y = 1;
-                if (key === 'a') move.x = -1;
-                if (key === 'd') move.x = 1;
+                if (key === 'w'){
+                    player.move('up');
+                    move.y = -1;
+                }
+                if (key === 's') {
+                    player.move('down');
+                    move.y = 1;
+                }
+                if (key === 'a') {
+                    player.move('left');
+                    move.x = -1;
+                }
+                if (key === 'd'){
+                    player.move('right');
+                    move.x = 1;
+                }
         
                 player.position.x += move.x;
                 player.position.y += move.y;
                 this.gameState.offsetX -= move.x * CONFIG.tileSize;
                 this.gameState.offsetY -= move.y * CONFIG.tileSize;
         
-                this.gameState.drawGame();
                 this.networkManager.socket.send(JSON.stringify({type: "move", playerId: this.gameState.currentPlayerId, position: player.position}));
             }
             if (event.key === 'e') {

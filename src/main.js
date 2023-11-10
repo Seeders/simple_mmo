@@ -16,7 +16,7 @@ async function loadAssets(assetManager) {
   // Queue assets for download
   // Define an object with all the assets
   const assetsToLoad = {
-    'hero': 'images/hero.png',
+    'champ_okomo': 'images/Characters/Champions/Okomo.png',
     'lava_beast': 'images/lava_beast.png',
     'forest_sprite': 'images/forest_sprite.png',
     'rock_troll': 'images/rock_troll.png',
@@ -28,11 +28,7 @@ async function loadAssets(assetManager) {
     'thunder_djinn': 'images/thunder_djinn.png',
     'bone_warrior': 'images/bone_warrior.png',
 
-    'water': 'images/water.png',
-    'sand': 'images/sand.png',
-    'grass': 'images/grass.png',
-    'forest': 'images/forest.png',
-    'mountain': 'images/mountain.png',
+    'terrain': './images/Ground/Grass.png',
     
     'health_potion': 'images/health_potion.png',
     // ... add other assets here
@@ -64,13 +60,8 @@ function setupGame(assetManager) {
 }
 
 function gameLoop(gameState) {
-  function loop() {
-    // ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // gameState.update();
-    // gameState.render();
-    requestAnimationFrame(loop);
-  }
-  loop();
+  gameState.renderManager.renderGame();
+  requestAnimationFrame(() => gameLoop(gameState));
 }
 
 async function main() {
@@ -78,7 +69,7 @@ async function main() {
   await loadAssets(assetManager);
 
   const { gameState, networkManager, combatLogUI, chatUI, inventoryUI } = setupGame(assetManager);
-  //gameLoop(gameState);
+  gameLoop(gameState);
 
   // If you need to expose some components globally or to other modules you can attach them to window or export them.
   window.game = {

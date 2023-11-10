@@ -1,6 +1,7 @@
 // Enemy.js
 export default class Enemy {
-    constructor(data) {
+    constructor(gameState, data) {
+        this.gameState = gameState;
         this.id = data.id;
         this.type = data.stats.type;
         this.name = data.stats.name;

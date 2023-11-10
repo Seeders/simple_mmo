@@ -92,7 +92,7 @@ export default class NetworkManager {
                 this.gameState.combatLogUpdate(data);
                 break;
         }
-        this.gameState.drawGame(); // Redraw the game to reflect the changes
+      
     }
 
    
