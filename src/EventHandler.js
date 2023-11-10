@@ -75,12 +75,10 @@ export default class EventHandler {
                     move.x = 1;
                 }
         
-                player.position.x += move.x;
-                player.position.y += move.y;
-                this.gameState.offsetX -= move.x * CONFIG.tileSize;
-                this.gameState.offsetY -= move.y * CONFIG.tileSize;
+                let newPositionX = player.position.x + move.x;
+                let newPositionY = player.position.y + move.y;
         
-                this.networkManager.socket.send(JSON.stringify({type: "move", playerId: this.gameState.currentPlayerId, position: player.position}));
+                this.networkManager.socket.send(JSON.stringify({type: "move", playerId: this.gameState.currentPlayerId, move: move, position: {x: newPositionX, y: newPositionY}}));
             }
             if (event.key === 'e') {
                 // Assuming you have a function to get the current tile

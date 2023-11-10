@@ -88,9 +88,11 @@ export default class RenderManager {
     renderEnemies() {
         for (const id in this.gameState.enemies) {
             const enemy = this.gameState.enemies[id];
-            const img = this.assetManager.assets[enemy.type];
+            enemy.render();
+            const img = this.assetManager.assets[enemy.spriteSheetKey];     
+            const spritePosition = enemy.currentSprite;  
             // Adjust the position to center the larger unit image on the tile
-            this.gameState.context.drawImage(img, enemy.position.x * CONFIG.tileSize + this.gameState.offsetX - (CONFIG.unitSize - CONFIG.tileSize) / 2, enemy.position.y * CONFIG.tileSize + this.gameState.offsetY - (CONFIG.unitSize - CONFIG.tileSize) / 2, CONFIG.unitSize, CONFIG.unitSize);
+            this.renderSprite(this.gameState.context, img, enemy.position.x * CONFIG.tileSize + this.gameState.offsetX, enemy.position.y * CONFIG.tileSize + this.gameState.offsetY, spritePosition.x, spritePosition.y);                         
         }
     }
 

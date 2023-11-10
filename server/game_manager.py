@@ -21,7 +21,7 @@ class GameManager:
         player_id = f"Player{self.player_id_counter}"
         player_position = {"x": 50, "y": 50}
         # Create a new Player object without the websocket
-        new_player = Player(player_id, player_position)
+        new_player = Player(self, player_id, player_position)
         # Store the Player object in the connected dictionary
         self.connected[player_id] = new_player
         # Store the websocket connection in a separate dictionary
@@ -53,15 +53,22 @@ class GameManager:
     async def combat_handler(self):
         while True:
             current_time = asyncio.get_event_loop().time()
+
             for player_id, player in list(self.connected.items()):
                 player.in_combat = False
                 for enemy_id, enemy in list(self.world.enemies.items()):
                     if player.is_in_combat(enemy.position):
                         player.in_combat = True
-                        if current_time - player.last_attack_time >= 1 / player.stats['attack_speed']:
+                        if player.attacking == False:
+                            player.attacking = True
+                            await broadcast({
+                                "type": "start_attack",
+                                "playerId": player_id
+                            }, self.connected, self.connections)
+                        elif current_time - player.last_attack_time >= 1 / player.stats['attack_speed']:
                             # Update combat log for player
                             await broadcastCombatLog(self.combat_logs, player_id, f"{player_id} attacked {enemy.stats['name']} for {player.stats['damage']} damage.", self.connected, self.connections )
-
+                            player.attacking = False
                             enemy.stats['health'] -= player.stats['damage']
                             player.last_attack_time = current_time
                             await broadcast({
@@ -71,11 +78,19 @@ class GameManager:
                                 "playerHealth": player.stats['health'],
                                 "enemyHealth": enemy.stats['health']
                             }, self.connected, self.connections)
+                        
 
-                        if current_time - enemy.last_attack_time >= 1 / enemy.stats['attack_speed']:
+                        if enemy.attacking == False:
+                            print('start attack')
+                            enemy.attacking = True
+                            await broadcast({
+                                "type": "start_attack",
+                                "enemyId": enemy_id
+                            }, self.connected, self.connections)
+                        elif current_time - enemy.last_attack_time >= 1 / enemy.stats['attack_speed']:
                             # Update combat log for enemy attack
                             await broadcastCombatLog(self.combat_logs, player_id, f"{enemy.stats['name']} attacked {player_id} for {enemy.stats['damage']} damage.", self.connected, self.connections)
-
+                            enemy.attacking = False
                             player.stats['health'] -= enemy.stats['damage']
                             enemy.last_attack_time = current_time
                             await broadcast({

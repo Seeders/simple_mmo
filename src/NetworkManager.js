@@ -1,3 +1,4 @@
+import { CONFIG } from "./config";
 // Network.js
 export default class NetworkManager {
     constructor(serverUrl, gameState) {
@@ -46,6 +47,7 @@ export default class NetworkManager {
 
     // Handle incoming messages
     handleMessage(data) {
+        let player;
         console.log( data );
         switch(data.type) {
             case "init":                
@@ -55,7 +57,13 @@ export default class NetworkManager {
                 this.gameState.addPlayer({ id: data.id, color: data.color, position: data.position, stats: data.stats});
                 break;
             case "player_move":
-                this.gameState.getPlayer(data.id).position = data.position;
+                player = this.gameState.getPlayer(data.id);
+                if( player ) {
+                    this.gameState.offsetX -= data.move.x * CONFIG.tileSize;
+                    this.gameState.offsetY -= data.move.y * CONFIG.tileSize;
+            
+                    player.position = data.position;
+                }
                 break;
             case "player_disconnect":
                 this.gameState.removePlayer(data.id);
@@ -68,6 +76,19 @@ export default class NetworkManager {
                 break;
             case "combat_update":
                 this.gameState.combatUpdate(data);
+                break;
+            case "start_attack":
+                let id, unit;
+                if( data.playerId ) {
+                    id = data.playerId;
+                    unit = this.gameState.getPlayer(id);
+                } else if( data.enemyId ) {
+                    id = data.enemyId;
+                    unit = this.gameState.enemies[id];
+                }                    
+                if( unit ) {
+                    unit.attack();
+                }                
                 break;
             case "enemy_death":
                 this.gameState.enemyDeath(data);

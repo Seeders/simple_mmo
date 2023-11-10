@@ -6,10 +6,12 @@ HEALTH_INCREMENT = 20  # Additional health per level
 
 class Player:
 
-    def __init__(self, player_id, position, stats=None):
+    def __init__(self, game_manager, player_id, position, stats=None):
         self.id = player_id
+        self.game_manager = game_manager;
         self.position = position
         self.in_combat = False
+        self.attacking = False
         self.inventory = []
         self.color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
         self.last_attack_time = asyncio.get_event_loop().time()
@@ -33,8 +35,20 @@ class Player:
         return dx <= 1 and dy <= 1
 
     def move(self, new_position):
-        self.position = new_position
+        if self.is_position_valid(new_position):
+            self.position = new_position
+            return True
+        return False
 
+    def is_position_valid(self, position):
+        x = int(position['x'])
+        y = int(position['y'])
+        index = x + y * self.game_manager.world.terrain.width
+        length = len(self.game_manager.world.terrain.terrain)
+        if 0 <= index < (length * length):
+            return True
+        return False
+    
     @staticmethod
     def calculate_next_level_exp(level):
         # This is a simple formula, you might want to create a more complex one

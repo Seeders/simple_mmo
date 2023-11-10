@@ -5,6 +5,7 @@ class Enemy:
     def __init__(self, enemy_id, enemy_type, position):
         self.id = enemy_id
         self.position = position
+        self.attacking = False
         self.last_attack_time = asyncio.get_event_loop().time()
         self.stats = copy.deepcopy(get_enemy_stats(enemy_type))
 

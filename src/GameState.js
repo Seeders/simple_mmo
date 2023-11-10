@@ -171,10 +171,9 @@ export default class GameState {
             this.getPlayer(data.playerId).stats.health = data.playerHealth;
         }
         if (data.enemyId && this.enemies[data.enemyId]) {
-            if(this.enemies[data.enemyId].stats.health != data.enemyHealth){
-                this.getPlayer(data.playerId).attack();
-            }
-            this.enemies[data.enemyId].stats.health = data.enemyHealth;
+            let enemy = this.enemies[data.enemyId];
+            enemy.stats.health = data.enemyHealth;
+            this.selectedTarget = { type: 'enemy', id: data.enemyId, stats: enemy.stats };
             if (data.enemyHealth <= 0) {
                 delete this.enemies[data.enemyId];
             }
