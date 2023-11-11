@@ -5,7 +5,7 @@ class Terrain:
         self.width = width
         self.terrain = self.generate_terrain(width, height)
 
-    def generate_terrain(self, width, height, scale=0.1):
+    def generate_terrain(self, width, height, scale=0.05):
         terrain = []
         for y in range(height):
             row = []

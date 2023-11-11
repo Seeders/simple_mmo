@@ -17,22 +17,44 @@ async function loadAssets(assetManager) {
   // Define an object with all the assets
   const assetsToLoad = {
     'champ_okomo': 'images/Characters/Champions/Okomo.png',
-    'lava_beast': 'images/lava_beast.png',
-    'forest_sprite': 'images/forest_sprite.png',
-    'rock_troll': 'images/rock_troll.png',
-    'ghost_wraith': 'images/ghost_wraith.png',
-    'desert_scorpion': 'images/desert_scorpion.png',
-    'sky_serpent': 'images/sky_serpent.png',
-    'crystal_giant': 'images/crystal_giant.png',
-    'swamp_hag': 'images/swamp_hag.png',
-    'thunder_djinn': 'images/thunder_djinn.png',
-    'bone_warrior': 'images/bone_warrior.png',
-
-    'terrain': './images/Ground/Grass.png',
-    
+    'demon': 'images/Characters/Monsters/Demons/ArmouredRedDemon.png',
+    'flame_guardian': 'images/Characters/Monsters/Demons/RedDemon.png',
+    'imp': 'images/Characters/Monsters/Demons/PurpleDemon.png',
+    'black_dragon': 'images/Characters/Monsters/Dragons/BlackDragon.png',
+    'blue_dragon': 'images/Characters/Monsters/Dragons/BlueDragon.png',
+    'red_dragon': 'images/Characters/Monsters/Dragons/RedDragon.png',
+    'white_dragon': 'images/Characters/Monsters/Dragons/WhiteDragon.png',
+    'yellow_dragon': 'images/Characters/Monsters/Dragons/YellowDragon.png',
+    'giant_crab': 'images/Characters/Monsters/GiantAnimals/GiantCrab.png',
+    'mammoth': 'images/Characters/Monsters/Frostborn/Mammoth.png',
+    'wendigo': 'images/Characters/Monsters/Frostborn/Wendigo.png',
+    'yeti': 'images/Characters/Monsters/Frostborn/Yeti.png',
+    'archer_goblin': 'images/Characters/Monsters/Orcs/ArcherGoblin.png',
+    'club_goblin': 'images/Characters/Monsters/Orcs/ClubGoblin.png',
+    'farmer_goblin': 'images/Characters/Monsters/Orcs/FarmerGoblin.png',
+    'kamikaze_goblin': 'images/Characters/Monsters/Orcs/KamikazeGoblin.png',
+    'minotaur': 'images/Characters/Monsters/Orcs/Minotaur.png',
+    'orc': 'images/Characters/Monsters/Orcs/Orc.png',
+    'orc_mage': 'images/Characters/Monsters/Orcs/OrcMage.png',
+    'orc_shaman': 'images/Characters/Monsters/Orcs/OrcShaman.png',
+    'spear_goblin': 'images/Characters/Monsters/Orcs/SpearGoblin.png',
+    'pirate_captain': 'images/Characters/Monsters/Pirates/PirateCaptain.png',
+    'pirate_grunt': 'images/Characters/Monsters/Pirates/PirateGrunt.png',
+    'pirate_gunner': 'images/Characters/Monsters/Pirates/PirateGunner.png',
+    'blue_slime': 'images/Characters/Monsters/Slimes/SlimeBlue.png',
+    'green_slime': 'images/Characters/Monsters/Slimes/Slime.png',
+    'king_blue_slime': 'images/Characters/Monsters/Slimes/KingSlimeBlue.png',
+    'king_green_slime': 'images/Characters/Monsters/Slimes/KingSlimeGreen.png',
+    'mega_blue_slime': 'images/Characters/Monsters/Slimes/MegaSlimeBlue.png',
+    'mega_green_slime': 'images/Characters/Monsters/Slimes/MegaSlimeGreen.png',
+    'necromancer': 'images/Characters/Monsters/Undead/Necromancer.png',
+    'skeleton': 'images/Characters/Monsters/Undead/Skeleton-Soldier.png',
     'health_potion': 'images/health_potion.png',
-    // ... add other assets here
-  };
+    'terrain': './images/Ground/Grass.png',
+    'townSprite': './images/Buildings/Wood/Chapels.png',
+    'pine_tree': './images/Nature/PineTrees.png'
+};
+
 
   // Queue all assets for download
   Object.entries(assetsToLoad).forEach(([key, path]) => {

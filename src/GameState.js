@@ -1,198 +1,88 @@
-import { CONFIG } from './config';
-import Player from './Player';
-import Enemy from './Enemy';
+import PlayerManager from './PlayerManager';
+import EnemyManager from './EnemyManager';
 import Terrain from './Terrain';
 import RenderManager from './RenderManager';
-// GameState.js
+import { CONFIG } from './config';
+
 export default class GameState {
     constructor(context, assetManager) {
         this.context = context;
         this.canvas = context.canvas;
-        this.players = {};
-        this.enemies = {};
-        this.items = {};
+        this.assetManager = assetManager;
+        this.playerManager = new PlayerManager(this);
+        this.enemyManager = new EnemyManager(this);
         this.terrain = null;
         this.combatLog = [];
+        this.roads = [];
+        this.towns = [];
+        this.trees = [];
         this.chats = [];
         this.selectedTarget = null;
         this.currentPlayerId = null;
         this.offsetX = 0;
-        this.offsetY = 0;      
-        this.renderManager = new RenderManager(this, assetManager);  
+        this.offsetY = 0;
+        this.renderManager = new RenderManager(this, assetManager);
     }
 
-    // Initialize the game state with data from the server
     init(data) {
         this.currentPlayerId = data.id;
         this.terrain = new Terrain(data.terrain);
-        for (const player of data.players) {
-            this.addPlayer({id: player.id, position: player.position, stats: player.stats});
-        }
-        for (const enemy of data.enemies) {
-            this.addEnemy({id: enemy.id, position: enemy.position, stats: enemy.stats});
-        }
+        this.towns = data.towns;
+        this.roads = data.roads;
+        this.trees = data.trees;
+        this.playerManager.initPlayers(data.players);
+        this.enemyManager.initEnemies(data.enemies);
+        this.adjustViewToCurrentPlayer();
+    }
+
+    adjustViewToCurrentPlayer() {
         let player = this.getCurrentPlayer();
-        if( player ) {
+        if (player) {
             this.offsetX = this.canvas.width / 2 - player.position.x * CONFIG.tileSize;
             this.offsetY = this.canvas.height / 2 - player.position.y * CONFIG.tileSize;
         }
     }
 
-    healthRegeneration(data) {
-        let player = this.getPlayer(data.playerId)
-        if (player) {
-            player.stats.health = data.newHealth;
-        }
-    }
-
-    // Update the position of a player
-    updatePlayerPosition(playerId, newPosition) {
-        if (this.players[playerId]) {
-            this.players[playerId].position = newPosition;
-        }
-    }
-
-    // Remove a player from the game state
-    removePlayer(playerId) {
-        delete this.players[playerId];
-    }
-
-    // Add a new player to the game state
-    addPlayer(playerData) {
-        this.players[playerData.id] = new Player(this, playerData);
-    }    
-    
-    // Add a new player to the game state
-    addEnemy(enemyData) {
-        this.enemies[enemyData.id] = new Enemy(this, enemyData);
-    }
-
-    levelUp(data){
-        if (data.playerId === this.currentPlayerId) {
-            let player = this.getCurrentPlayer();
-            if (player) {
-                player.stats.level = data.level;
-                player.stats.max_health = data.max_health;
-                player.stats.health = data.health;
-                player.stats.next_level_exp = data.next_level_exp;
-            }
-        }
-    }
-
-    enemyDeath(data){
-        if (data.playerId === this.currentPlayerId) {
-            // Update player's experience and level
-            let player = this.getCurrentPlayer();
-            player.stats.experience = data.experience;
-            player.stats.level = data.level;
-            player.stats.next_level_exp = data.next_level_exp;
-        }
-        // Remove the enemy from the game
-        delete this.enemies[data.enemyId];
-    }
-    // Update the state of an enemy
-    updateEnemy(enemyId, enemyData) {
-        if (this.enemies[enemyId]) {
-            this.enemies[enemyId].update(enemyData);
-        } else {
-            this.enemies[enemyId] = new Enemy(enemyData);
-        }
-    }
-
-    // Remove an enemy from the game state
-    removeEnemy(enemyId) {
-        delete this.enemies[enemyId];
-    }
-
-    // Add an item to the game state
-    addItem(itemData) {
-        this.items[itemData.itemId] = itemData.item;
-    }
-
-    // Remove an item from the game state
-    removeItem(itemId) {
-        delete this.items[itemId];
-    }
-
-    itemPickup(data){
-        if (data.playerId === this.currentPlayerId) {
-            let player = this.getCurrentPlayer();
-            if(player){    
-            // Add the item to the player's inventory
-                player.addItemToInventory(this.items[data.itemId]);
-            }
-        }
-        this.removeItem(data.itemId);	
-    }
-
-    potionUsed(data) {
-        if(data.playerId === this.currentPlayerId) { // Assuming playerId is the current player's ID
-            let player = this.getCurrentPlayer();
-            if( player ) {
-                player.stats['health'] = data.newHealth; // Update the player's health on the UI
-                player.removeItemFromInventory(data.potionId);
-            }
-        }
-    }
-
-    // Get the current player's state
     getCurrentPlayer() {
-        return this.players[this.currentPlayerId];
+        return this.playerManager.getPlayer(this.currentPlayerId);
     }
 
-    // Get a player by ID
-    getPlayer(playerId) {
-        return this.players[playerId];
-    }
-
-    // Get an enemy by ID
-    getEnemy(enemyId) {
-        return this.enemies[enemyId];
-    }
-
-    // Get an item by ID
-    getItem(itemId) {
-        return this.items[itemId];
-    }
-
-    // Get the terrain data
-    getTerrain() {
-        return this.terrain;
-    }
-
-    receiveChat(data){        
+    receiveChat(data) {
         this.chats.push(data);
         window.game.chatUI.addChatMessage(data);
     }
 
-    combatUpdate(data){
-        // Handle combat updates
+    combatUpdate(data) {
         if (data.playerId) {
-            this.getPlayer(data.playerId).stats.health = data.playerHealth;
+            let player = this.playerManager.getPlayer(data.playerId);
+            if (player) {
+                player.stats.health = data.playerHealth;
+            }
         }
-        if (data.enemyId && this.enemies[data.enemyId]) {
-            let enemy = this.enemies[data.enemyId];
-            enemy.stats.health = data.enemyHealth;
-            this.selectedTarget = { type: 'enemy', id: data.enemyId, stats: enemy.stats };
-            if (data.enemyHealth <= 0) {
-                delete this.enemies[data.enemyId];
+        if (data.enemyId) {
+            let enemy = this.enemyManager.getEnemy(data.enemyId);
+            if (enemy) {
+                enemy.stats.health = data.enemyHealth;
+                this.selectedTarget = { type: 'enemy', id: data.enemyId, stats: enemy.stats };
+                if (data.enemyHealth <= 0) {
+                    this.enemyManager.removeEnemy(data.enemyId);
+                }
             }
         }
     }
 
     combatLogUpdate(data) {
-        if( data.playerId === this.currentPlayerId) {
-            // Update the combat log with the new entries
+        if (data.playerId === this.currentPlayerId) {
             this.combatLog = data.combatLog;
             window.game.combatLogUI.updateCombatLog(data.combatLog);
         }
     }
 
-    playerRespawn(data){
+    playerRespawn(data) {
         if (data.playerId === this.currentPlayerId) {
             // If the current player has respawned, update their position and health
-            let player = this.getCurrentPlayer()
-            if(player){
+            let player = this.getCurrentPlayer();
+            if (player) {
                 player.position = data.position;
                 player.stats.health = data.health;
                 // Adjust the offset to center the view on the player's new position
@@ -201,13 +91,57 @@ export default class GameState {
             }
         } else {
             // If another player has respawned, just update their position and health
-            let player = this.getPlayer(data.playerId);
+            let player = this.playerManager.getPlayer(data.playerId);
             if (player) {
                 player.position = data.position;
                 player.stats.health = data.health;
             }
         }
     }
+    
 
-    // ... Additional methods to manage and query the game state ...
+    levelUp(data) {
+        this.playerManager.playerLevelUp(data.playerId, data);
+    }
+
+    enemyDeath(data) {
+        this.enemyManager.removeEnemy(data.enemyId);
+        if (data.playerId === this.currentPlayerId) {
+            let player = this.getCurrentPlayer();
+            if (player) {
+                player.stats.experience = data.experience;
+                player.stats.level = data.level;
+                player.stats.next_level_exp = data.next_level_exp;
+            }
+        }
+    }
+
+    itemPickup(data) {
+        if (data.playerId === this.currentPlayerId) {
+            let player = this.getCurrentPlayer();
+            if (player) {
+                player.addItemToInventory(data.item);
+            }
+        }
+        // Assuming there is a method to remove the item from the game world
+        // this.removeItemFromWorld(data.itemId);
+    }
+
+    potionUsed(data) {
+        if (data.playerId === this.currentPlayerId) {
+            let player = this.getCurrentPlayer();
+            if (player) {
+                player.stats.health = data.newHealth;
+                player.removeItemFromInventory(data.potionId);
+            }
+        }
+    }
+
+    healthRegeneration(data) {
+        let player = this.playerManager.getPlayer(data.playerId);
+        if (player) {
+            player.stats.health = data.newHealth;
+        }
+    }
+    // Additional methods for managing and querying the game state can be added here
 }

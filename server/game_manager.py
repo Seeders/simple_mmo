@@ -53,6 +53,12 @@ class GameManager:
     async def combat_handler(self):
         while True:
             current_time = asyncio.get_event_loop().time()
+            spawnedEnemy = self.world.maintain_enemy_count(50)
+            if spawnedEnemy:
+                await broadcast({
+                    "type": "spawn_enemy",
+                    "enemy": {"id": enemy_id, "position": spawnedEnemy.position, "stats": spawnedEnemy.stats}
+                }, self.connected, self.connections)
 
             for player_id, player in list(self.connected.items()):
                 player.in_combat = False
@@ -63,7 +69,8 @@ class GameManager:
                             player.attacking = True
                             await broadcast({
                                 "type": "start_attack",
-                                "playerId": player_id
+                                "playerId": player_id,
+                                "targetId": enemy_id
                             }, self.connected, self.connections)
                         elif current_time - player.last_attack_time >= 1 / player.stats['attack_speed']:
                             # Update combat log for player
@@ -81,11 +88,11 @@ class GameManager:
                         
 
                         if enemy.attacking == False:
-                            print('start attack')
                             enemy.attacking = True
                             await broadcast({
                                 "type": "start_attack",
-                                "enemyId": enemy_id
+                                "enemyId": enemy_id,
+                                "targetId": player_id
                             }, self.connected, self.connections)
                         elif current_time - enemy.last_attack_time >= 1 / enemy.stats['attack_speed']:
                             # Update combat log for enemy attack

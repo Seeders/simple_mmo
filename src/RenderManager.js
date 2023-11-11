@@ -15,7 +15,9 @@ export default class RenderManager {
         this.gameState.context.clearRect(0, 0, this.gameState.canvas.width, this.gameState.canvas.height);
             // Draw the static terrain canvas onto the main canvas
         this.renderTerrain();
+        this.renderTowns();
         this.renderTargetCircle();
+        
         this.renderPlayers();
         this.renderEnemies();
         this.renderPlayerStats();
@@ -24,6 +26,11 @@ export default class RenderManager {
     }
 
     renderSprite(context, img, dx, dy, sx = 0, sy = 0, size = CONFIG.tileSize ){ 
+        if( size != CONFIG.tileSize ) {
+            let difference = size - CONFIG.tileSize;
+            dx -= difference / 2;
+            dy -= difference / 2;
+        }
         // Draw the image on the canvas
         context.drawImage(img, sx, sy, size, size, dx, dy, size, size);
     }
@@ -64,6 +71,8 @@ export default class RenderManager {
                         }
                     }
                 }
+                this.renderRoads(this.terrainCtx);
+                this.renderTrees(this.terrainCtx);
                 this.terrainRendered = true;
             }
     
@@ -75,8 +84,8 @@ export default class RenderManager {
     
 
     renderPlayers() {
-        for (const id in this.gameState.players) {
-            const player = this.gameState.players[id];
+        for (const id in this.gameState.playerManager.players) {
+            const player = this.gameState.playerManager.players[id];
             player.render();
             const img = this.assetManager.assets[player.spriteSheetKey];            
             const spritePosition = player.currentSprite;  
@@ -86,17 +95,62 @@ export default class RenderManager {
     }
 
     renderEnemies() {
-        for (const id in this.gameState.enemies) {
-            const enemy = this.gameState.enemies[id];
+        for (const id in this.gameState.enemyManager.enemies) {
+            const enemy = this.gameState.enemyManager.enemies[id];
             enemy.render();
             const img = this.assetManager.assets[enemy.spriteSheetKey];     
             const spritePosition = enemy.currentSprite;  
+            let tileSize = CONFIG.tileSize;
+            if( enemy.stats.size ) {
+                tileSize = enemy.stats.size;
+            }
+            if(!spritePosition){
+                debugger;
+            }
             // Adjust the position to center the larger unit image on the tile
-            this.renderSprite(this.gameState.context, img, enemy.position.x * CONFIG.tileSize + this.gameState.offsetX, enemy.position.y * CONFIG.tileSize + this.gameState.offsetY, spritePosition.x, spritePosition.y);                         
+            this.renderSprite(this.gameState.context, img, enemy.position.x * CONFIG.tileSize + this.gameState.offsetX, enemy.position.y * CONFIG.tileSize + this.gameState.offsetY, spritePosition.x, spritePosition.y, tileSize);                         
         }
     }
 
+    renderTowns() {
+        const townImg = this.assetManager.assets['townSprite']; // Replace with your town sprite key
+        this.gameState.towns.forEach(town => {
+            const townX = town.x * CONFIG.tileSize + this.gameState.offsetX;
+            const townY = town.y * CONFIG.tileSize + this.gameState.offsetY;
+            this.gameState.context.drawImage(townImg, townX, townY, CONFIG.tileSize, CONFIG.tileSize);
+        });
+    }
 
+    renderTrees(ctx) {
+        this.gameState.trees.forEach(tree => {
+            // Check if the tree's position overlaps with a road
+            if (!this.roadCoordinates.has(`${tree.position.x},${tree.position.y}`)) {
+                const treeImg = this.assetManager.assets[`${tree.type}_tree`]; // Replace with your tree sprite key
+                const treeX = tree.position.x * CONFIG.tileSize;
+                const treeY = tree.position.y * CONFIG.tileSize;
+                this.renderSprite(ctx, treeImg, treeX, treeY, CONFIG.tileSize, 0, CONFIG.tileSize);
+            }
+        });
+    }
+
+    renderRoads(ctx) {
+        this.roadCoordinates = new Set(); // Initialize the set to store road coordinates
+    
+        this.gameState.roads.forEach(roadSegment => {
+            roadSegment.forEach(point => {
+                const roadImg = this.assetManager.assets[`terrain`]; // Replace with your road sprite key
+                const x = point.x * CONFIG.tileSize;
+                const y = point.y * CONFIG.tileSize;
+                
+                this.renderSprite(ctx, roadImg, x, y, CONFIG.tileSize * 3, 0, CONFIG.tileSize);
+    
+                // Store the road tile coordinates in the set
+                this.roadCoordinates.add(`${point.x},${point.y}`);
+            });
+        });
+    }
+    
+    
     // Function to draw the level and health of the current player
     renderPlayerStats() {
         const player = this.gameState.getCurrentPlayer();
@@ -128,7 +182,7 @@ export default class RenderManager {
     // Function to draw the selected target's information
     renderTargetInfo() {
         if (this.gameState.selectedTarget) {
-            const target = this.gameState.selectedTarget.type === 'player' ? this.gameState.players[this.gameState.selectedTarget.id] : this.gameState.enemies[this.gameState.selectedTarget.id];
+            const target = this.gameState.selectedTarget.type === 'player' ? this.gameState.playerManager.players[this.gameState.selectedTarget.id] : this.gameState.enemyManager.enemies[this.gameState.selectedTarget.id];
             if(target && target.stats) {
                 const healthPercentage = target.stats.health / target.stats.max_health;  // Max health depends on type
                 this.renderHealthBar(220, this.gameState.canvas.height - 30, 200, 20, healthPercentage);
@@ -141,9 +195,9 @@ export default class RenderManager {
         if (this.gameState.selectedTarget) {
             let target;
             if (this.gameState.selectedTarget.type === 'player') {
-                target = this.gameState.players[this.gameState.selectedTarget.id];
+                target = this.gameState.playerManager.players[this.gameState.selectedTarget.id];
             } else if (this.gameState.selectedTarget.type === 'enemy') {
-                target = this.gameState.enemies[this.gameState.selectedTarget.id];
+                target = this.gameState.enemyManager.enemies[this.gameState.selectedTarget.id];
             }
             
             if (target) {

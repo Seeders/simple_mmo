@@ -59,19 +59,19 @@ export default class EventHandler {
             if (key === 'w' || key === 's' || key === 'a' || key === 'd') {
                 const move = {x: 0, y: 0};
                 if (key === 'w'){
-                    player.move('up');
+                    player.faceDirection('move', 'up');
                     move.y = -1;
                 }
                 if (key === 's') {
-                    player.move('down');
+                    player.faceDirection('move', 'down');
                     move.y = 1;
                 }
                 if (key === 'a') {
-                    player.move('left');
+                    player.faceDirection('move', 'left');
                     move.x = -1;
                 }
                 if (key === 'd'){
-                    player.move('right');
+                    player.faceDirection('move', 'right');
                     move.x = 1;
                 }
         

@@ -3,10 +3,43 @@
 import asyncio
 import websockets
 import json
+import re
+import time
 from utils.broadcast import broadcast
 from game_manager import GameManager
 
+
+def sanitize_chat_message(message):
+    # Remove potentially dangerous characters
+    message = re.sub(r'[<>]', '', message)
+    # Limit message length
+    return message[:200]
+
+# Dictionary to store the count of requests per IP address
+request_counts = {}
+
+def is_rate_limited(ip_address):
+    current_time = time.time()
+    window_size = 60  # 60 seconds
+    request_limit = 1000  # 100 requests per minute
+
+    if ip_address not in request_counts:
+        request_counts[ip_address] = []
+
+    # Remove old requests
+    request_counts[ip_address] = [t for t in request_counts[ip_address] if current_time - t < window_size]
+
+    # Check if rate limit exceeded
+    if len(request_counts[ip_address]) >= request_limit:
+        return True
+
+    print(len(request_counts[ip_address]))
+    # Log current request
+    request_counts[ip_address].append(current_time)
+    return False
+
 async def game_server(websocket, path, game_manager:GameManager):
+
     player = await game_manager.new_player(websocket)
 
     try:
@@ -16,7 +49,10 @@ async def game_server(websocket, path, game_manager:GameManager):
             "id": player.id,
             "color": player.color,
             "terrain": game_manager.world.terrain.terrain,
-            "players": [{"id": pid, "color": p.color, "position": p.position, "stats": p.stats} for pid, p in game_manager.connected.items()],
+            "trees": game_manager.world.trees,
+            "towns": [{"x": town[0], "y": town[1]} for town in game_manager.world.towns],
+            "roads": [[{"x": point[0], "y": point[1]} for point in road] for road in game_manager.world.roads],  # Adjusted for new road structure
+            "players": [{"id": pid, "color": p.color, "position": {"x": game_manager.world.towns[0][0], "y": game_manager.world.towns[0][1]}, "stats": p.stats} for pid, p in game_manager.connected.items()],
             "chat": [],
             "enemies": [{"id": enemy_id, "position": e.position, "stats": e.stats} for enemy_id, e in game_manager.world.enemies.items()]
         }))
@@ -32,12 +68,15 @@ async def game_server(websocket, path, game_manager:GameManager):
 
         # Main message handling loop
         async for message in websocket:
+            ip_address = websocket.remote_address[0]
+            if is_rate_limited(ip_address):
+                print(f"Rate limit exceeded for {ip_address}")
+                return  # Close connection or send error message
             data = json.loads(message)
             player_id = data["playerId"]
             # Handle different message types with appropriate game_manager methods
             if data["type"] == "move":
-                if game_manager.connected[player_id].move(data["position"]):    
-                    print('player_move')     
+                if game_manager.connected[player_id].move(data["position"]):       
                     await broadcast({
                         "type": "player_move",
                         "id": player_id,
@@ -45,10 +84,13 @@ async def game_server(websocket, path, game_manager:GameManager):
                         "position": data["position"]
                     }, game_manager.connected, game_manager.connections)       
             elif data["type"] == "chat":                
+                # Sanitize chat message
+                sanitized_message = sanitize_chat_message(data["message"])
+                # Broadcast sanitized message
                 await broadcast({
                     "type": "chat",
-                    "sender": player_id,
-                    "message": data["message"]
+                    "sender": data["playerId"],
+                    "message": sanitized_message
                 }, game_manager.connected, game_manager.connections, websocket)
             elif data["type"] == "pickup":
                 player = game_manager.connected[player_id]

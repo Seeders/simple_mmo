@@ -25,7 +25,7 @@ export default class Unit {
             lastAttackFrameTime: 0, // Last time the attack frame was updated
         };
 
-        this.move(this.animationState.direction);
+        this.faceDirection('move', this.animationState.direction);
 
     }
 
@@ -44,14 +44,19 @@ export default class Unit {
 
         let prefix = 'move';
         // Define the names of the sprites
-        let names = ["down", "up", "left", "right"];
+        let names = this.stats.walk_animation_order;
 
+        let tileSize = CONFIG.tileSize;
+        if( this.stats.size ) {
+            tileSize = this.stats.size;
+        }
+        
         // Loop through the rows and columns
         for (let i = 0; i < rows; i++) {
             for (let j = 0; j < cols; j++) {
                 // Calculate the x and y coordinates of the sprite
-                let x = j * CONFIG.tileSize;
-                let y = i * CONFIG.tileSize;
+                let x = j * tileSize;
+                let y = i * tileSize;
 
                 // Create a name for the sprite based on its row and column
                 let name = names[i] + (j + 1);
@@ -65,18 +70,25 @@ export default class Unit {
         // Define the number of rows and columns in the sprite sheet
         let startRow = 4;
         let rows = 4;
-        let cols = 4;
+        let cols = this.stats.attack_frames;
         let prefix = 'attack';
         // Define the names of the sprites
-        let names = ["down", "up", "left", "right"];
-
+        let names = this.stats.attack_animation_order;
+        let tileSize = CONFIG.tileSize;
+        if( this.stats.size ) {
+            tileSize = this.stats.size;
+        }
+        if( cols == 0 ) {
+            startRow = 0;
+            cols = this.stats.walk_frames;
+        }
             // Loop through the rows and columns
         for (let i = 0; i < rows; i++) { // Start i at 0 to use with the names array
             for (let j = 0; j < cols; j++) {
                 // Calculate the x and y coordinates of the sprite
-                let x = j * CONFIG.tileSize;
+                let x = j * tileSize;
                 // Use startRow + i to offset to the correct row on the sprite sheet
-                let y = (startRow + i) * CONFIG.tileSize;
+                let y = (startRow + i) * tileSize;
 
                 // Create a name for the sprite based on its row and column
                 let name = names[i] + (j + 1);
@@ -88,13 +100,16 @@ export default class Unit {
     }
 
     // Call this method whenever the player moves
-    move(direction) {
-        let frameCount = 5;
+    faceDirection(type, direction) {
+        let frameCount = this.stats.walk_frames;
+        if( type == 'attack' && this.stats.attack_frames != 0 ) {
+            frameCount = this.stats.attack_frames;            
+        }
         // Set the current direction of the player
         this.animationState.direction = direction;
 
         // Update the current sprite based on the direction and frame index
-        this.currentSprite = this.sprites[`move_${direction}${this.animationState.frameIndex + 1}`];
+        this.currentSprite = this.sprites[`${type}_${direction}${this.animationState.frameIndex + 1}`];
 
         // Increment the frame index and loop back if it exceeds the number of frames
         this.animationState.frameIndex = (this.animationState.frameIndex + 1) % frameCount;
@@ -102,6 +117,9 @@ export default class Unit {
     // Method to handle the player's attack
     attack() {
         let frameCount = 4;
+        if( this.stats.attack_frames ) {
+            frameCount = this.stats.attack_frames;
+        }
         let currentTime = Date.now();
 
         // If the animation is not already playing, start it
@@ -111,7 +129,6 @@ export default class Unit {
             this.animationState.lastAttackFrameTime = currentTime; // Set the last frame time to now
             this.animationState.attackFrameDelay = (1000 / this.stats.attack_speed) / frameCount;
 
-            console.log(`${this.name} - ${this.stats.attack_speed}`);
         }
 
         // If the animation is playing, update the sprite and frame index
@@ -134,6 +151,9 @@ export default class Unit {
                 // Update the last frame time
                 this.animationState.lastAttackFrameTime = currentTime;
             }
+        }
+        if( !this.currentSprite ) {
+            debugger;
         }
     }
 

@@ -67,5 +67,9 @@ class Player:
             "move_speed": 3,
             "abilities": [],
             "damage": 15,  # Removed the duplicate 'damage' key
-            "defense": 10
+            "defense": 10,
+            "walk_frames": 4,
+            "attack_frames": 4,
+            "attack_animation_order": ["down", "up", "left", "right"],
+            "walk_animation_order": ["down", "up", "left", "right"]
         }

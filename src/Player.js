@@ -1,12 +1,12 @@
 import Unit from './Unit';
-
+import { CONFIG } from './config';
 export default class Player extends Unit {
-    constructor(gameState, data) {
+    constructor(gameState, data) {        
         super(gameState, data);
         this.spriteSheetKey = 'champ_okomo';      
         this.inventory = data.inventory || [];
     } 
- 
+   
 
     addItemToInventory(itemData){
         this.inventory.push(itemData);

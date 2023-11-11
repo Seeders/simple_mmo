@@ -48,16 +48,15 @@ export default class NetworkManager {
     // Handle incoming messages
     handleMessage(data) {
         let player;
-        console.log( data );
         switch(data.type) {
             case "init":                
                 this.gameState.init(data); 
                 break;
             case "new_player":
-                this.gameState.addPlayer({ id: data.id, color: data.color, position: data.position, stats: data.stats});
+                this.gameState.playerManager.addPlayer({ id: data.id, color: data.color, position: data.position, stats: data.stats});
                 break;
             case "player_move":
-                player = this.gameState.getPlayer(data.id);
+                player = this.gameState.playerManager.getPlayer(data.id);
                 if( player ) {
                     this.gameState.offsetX -= data.move.x * CONFIG.tileSize;
                     this.gameState.offsetY -= data.move.y * CONFIG.tileSize;
@@ -74,19 +73,40 @@ export default class NetworkManager {
             case "player_respawn":
                 this.gameState.playerRespawn(data);
                 break;
+            case "spawn_enemy":
+                this.gameState.enemyManager.addEnemy({id: data.enemy.id, position: data.enemy.position, stats: data.enemy.stats});
+                break;
             case "combat_update":
                 this.gameState.combatUpdate(data);
                 break;
             case "start_attack":
-                let id, unit;
+                let id, unit, target;
                 if( data.playerId ) {
                     id = data.playerId;
-                    unit = this.gameState.getPlayer(id);
+                    unit = this.gameState.playerManager.getPlayer(id);
+                    if( data.targetId ) {
+                        target = this.gameState.enemyManager.enemies[data.targetId];
+                    }
                 } else if( data.enemyId ) {
                     id = data.enemyId;
-                    unit = this.gameState.enemies[id];
-                }                    
+                    unit = this.gameState.enemyManager.enemies[id];       
+                    if( data.targetId ) {
+                        target = this.gameState.playerManager.getPlayer(data.targetId);
+                    }
+                }   
+                
                 if( unit ) {
+                    if( target ) {
+                        if (target.position.x < unit.position.x) {
+                            unit.faceDirection('attack', 'left');
+                        } else if (target.position.x > unit.position.x) {
+                            unit.faceDirection('attack', 'right');
+                        } else if (target.position.y < unit.position.y) {
+                            unit.faceDirection('attack', 'up');
+                        } else if (target.position.y > unit.position.y) {
+                            unit.faceDirection('attack', 'down');
+                        }                        
+                    }
                     unit.attack();
                 }                
                 break;
