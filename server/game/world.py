@@ -14,11 +14,86 @@ class World:
         self.trees = self.spawn_trees(self.terrain.terrain, 'pine')
         self.enemy_counter = len(self.enemies)
 
-    def is_land(self, x, y, world_map):
-        print(world_map[y][x])
-        # Assuming 'land' is the value for land tiles in your world_map
-        return world_map[y][x] != 'water'
+    def a_star(self, start, end):
+        # Helper functions
+        def heuristic(a, b):
+            return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
+        def get_neighbors(node):
+            directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # Four directions: up, right, down, left
+            neighbors = []
+            for dx, dy in directions:
+                x, y = node[0] + dx, node[1] + dy
+                if 0 <= x < len(self.terrain.terrain[0]) and 0 <= y < len(self.terrain.terrain):
+                    neighbors.append((x, y))
+            return neighbors
+
+        # A* algorithm
+        open_set = set([start])
+        came_from = {}
+        g_score = {start: 0}
+        f_score = {start: heuristic(start, end)}
+
+        while open_set:
+            current = min(open_set, key=lambda x: f_score.get(x, float('inf')))
+            if current == end:
+                path = []
+                while current in came_from:
+                    path.append(current)
+                    current = came_from[current]
+                return path[::-1]
+
+            open_set.remove(current)
+            for neighbor in get_neighbors(current):
+                tentative_g_score = g_score[current] + 1  # Assuming uniform cost for simplicity
+                if tentative_g_score < g_score.get(neighbor, float('inf')):
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_g_score
+                    f_score[neighbor] = tentative_g_score + heuristic(neighbor, end)
+                    open_set.add(neighbor)
+
+        return []  # No path found
+    
+    def is_land(self, x, y, world_map):
+        if 0 <= y < len(world_map) and 0 <= x < len(world_map[0]):
+            return world_map[y][x] != 'water'
+        else:
+            return False  # Out of bounds, treat as non-land
+
+    
+    def generate_patrol_route(self, start_position, num_waypoints=2, max_distance=10, max_attempts=10):
+        route = [start_position]  # start_position should be a tuple (x, y)
+        for _ in range(num_waypoints - 1):
+            for attempt in range(max_attempts):
+                print(start_position)
+                x = start_position['x'] - max_distance + random.randint(0, max_distance * 2)
+                y = start_position['y'] - max_distance + random.randint(0, max_distance * 2)
+                if( x < 0 ): 
+                    x = 0
+                if( y < 0 ):
+                    y = 0
+                if( x > self.terrain.width ):
+                    x = self.terrain.width - 1
+                if( y > self.terrain.height ):
+                    y = self.terrain.height - 1
+
+                
+                if self.is_land(x, y, self.terrain.terrain):
+                    waypoint = {"x": x, "y": y}  # Create waypoint as a dictionary
+                    route.append(waypoint)
+                    break
+                if attempt == max_attempts - 1:
+                    print(f"Failed to find a land waypoint after {max_attempts} attempts.")
+        return route
+
+    def generate_full_path(self, patrol_route):
+        full_path = []
+        for i in range(len(patrol_route) - 1):
+            start = (patrol_route[i]["x"], patrol_route[i]["y"])  # Convert to tuple for A* algorithm
+            end = (patrol_route[i + 1]["x"], patrol_route[i + 1]["y"])  # Convert to tuple
+            path_segment = self.a_star(start, end)
+            full_path.extend(path_segment)
+        return full_path
 
     def spawn_enemies(self, num_enemies, world_width, world_height, world_map):
         enemies = {}
@@ -30,9 +105,15 @@ class World:
                     enemy_id = f"Enemy{i}"
                     enemy_position = {"x": x, "y": y}
                     random_enemy_type = random.choice(list(enemy_types.keys()))
-                    enemies[enemy_id] = Enemy(enemy_id, random_enemy_type, enemy_position)
+                    patrol_route = self.generate_patrol_route(enemy_position)  # Pass dictionary directly
+                    full_path = self.generate_full_path(patrol_route)
+                    full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
+                    enemies[enemy_id] = Enemy(enemy_id, random_enemy_type, enemy_position, full_path_coords)
+                    enemies[enemy_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
                     break
         return enemies
+
+
     
     def spawn_trees(self, world_map, tree_type):
         trees = []
@@ -142,7 +223,13 @@ class World:
                 enemy_id = f"Enemy{self.enemy_counter}"
                 self.enemy_counter += 1  # Increment the counter for each new enemy
                 random_enemy_type = random.choice(list(enemy_types.keys()))
-                self.enemies[enemy_id] = Enemy(enemy_id, random_enemy_type, {"x": x, "y": y})
+                enemy_position = {"x": x, "y": y}
+                random_enemy_type = random.choice(list(enemy_types.keys()))
+                patrol_route = self.generate_patrol_route(enemy_position)  # Pass dictionary directly
+                full_path = self.generate_full_path(patrol_route)
+                full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
+                self.enemies[enemy_id] = Enemy(enemy_id, random_enemy_type, enemy_position, full_path_coords)
+                self.enemies[enemy_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
                 print(f"Spawned enemy {enemy_id} at ({x}, {y})")  
                 return self.enemies[enemy_id]
             attempts += 1

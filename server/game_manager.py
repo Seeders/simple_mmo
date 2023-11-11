@@ -54,6 +54,7 @@ class GameManager:
         while True:
             current_time = asyncio.get_event_loop().time()
             spawnedEnemy = self.world.maintain_enemy_count(50)
+            await self.update_enemy_patrols(current_time)
             if spawnedEnemy:
                 await broadcast({
                     "type": "spawn_enemy",
@@ -189,3 +190,13 @@ class GameManager:
             # Calculate how much time to sleep until the next second ticks over
             time_to_next_tick = 1 - (current_time - last_regeneration_time)
             await asyncio.sleep(time_to_next_tick if time_to_next_tick > 0 else 0)
+
+    async def update_enemy_patrols(self, current_time):
+        for enemy_id, enemy in self.world.enemies.items():
+            enemy.update_patrol(current_time)
+            # Broadcast enemy movement to all connected players
+            await broadcast({
+                "type": "enemy_move",
+                "enemyId": enemy_id,
+                "position": enemy.position
+            }, self.connected, self.connections)

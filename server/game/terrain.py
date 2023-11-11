@@ -3,6 +3,7 @@ from noise import pnoise2
 class Terrain:
     def __init__(self, width, height):
         self.width = width
+        self.height = height
         self.terrain = self.generate_terrain(width, height)
 
     def generate_terrain(self, width, height, scale=0.05):

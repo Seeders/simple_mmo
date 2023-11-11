@@ -113,6 +113,9 @@ export default class NetworkManager {
             case "enemy_death":
                 this.gameState.enemyDeath(data);
                 break;
+            case "enemy_move":
+                this.gameState.enemyMove(data);
+                break;
             case "level_up":
                 this.gameState.levelUp(data);
                 break;

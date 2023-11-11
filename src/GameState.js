@@ -14,6 +14,7 @@ export default class GameState {
         this.terrain = null;
         this.combatLog = [];
         this.roads = [];
+        this.items = {};
         this.towns = [];
         this.trees = [];
         this.chats = [];
@@ -114,13 +115,33 @@ export default class GameState {
                 player.stats.next_level_exp = data.next_level_exp;
             }
         }
+    }    
+    
+    enemyMove(data) {
+        let enemy = this.enemyManager.getEnemy(data.enemyId);
+        if (enemy) {
+            enemy.position = data.position
+        }
     }
-
+    // Add an item to the game state
+    addItem(itemData) {
+        this.items[itemData.itemId] = itemData.item;
+    }
+    
+    // Remove an item from the game state
+    removeItem(itemId) {
+        delete this.items[itemId];
+    }
+    
     itemPickup(data) {
         if (data.playerId === this.currentPlayerId) {
             let player = this.getCurrentPlayer();
             if (player) {
-                player.addItemToInventory(data.item);
+                let item = this.items[data.itemId];
+                if(item){
+                    player.addItemToInventory(item);
+                    delete this.items[data.itemId];
+                }
             }
         }
         // Assuming there is a method to remove the item from the game world

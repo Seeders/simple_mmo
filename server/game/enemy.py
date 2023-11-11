@@ -1,15 +1,43 @@
 import random
 import copy
 import asyncio
+
 class Enemy:
-    def __init__(self, enemy_id, enemy_type, position):
+    def __init__(self, enemy_id, enemy_type, position, full_path):
         self.id = enemy_id
         self.position = position
         self.attacking = False
         self.last_attack_time = asyncio.get_event_loop().time()
         self.stats = copy.deepcopy(get_enemy_stats(enemy_type))
+        self.paths = full_path
+        self.path_index = 0
+        self.last_patrol_update = 0  # Time of the last patrol update
+        self.patrol_delay = 5 / self.stats["move_speed"]  # Delay in seconds
+        self.current_waypoint_index = 0
+        self.moving_to_waypoint = False
+        self.patrol_direction = 1  # 1 for forward, -1 for reverse
 
+    def move_along_path(self):
+        # Check if at the end of the path and reverse direction if needed
+        if self.path_index >= len(self.paths) - 1:
+            self.patrol_direction = -1  # Reverse direction
+        elif self.path_index <= 0:
+            self.patrol_direction = 1  # Change direction to forward
 
+        # Update the path index
+        self.path_index += self.patrol_direction
+
+        # Ensure path_index stays within bounds
+        self.path_index = max(0, min(self.path_index, len(self.paths) - 1))
+
+        # Update position
+        self.position = self.paths[self.path_index]
+
+    def update_patrol(self, current_time):
+        if current_time - self.last_patrol_update >= self.patrol_delay:
+            self.move_along_path()
+            self.last_patrol_update = current_time
+            
 
 def get_enemy_stats(enemy_type):
     if enemy_type in enemy_types:
