@@ -157,40 +157,86 @@ export default class RenderManager {
         if (player) {
             const healthPercentage = player.stats.health / player.stats.max_health;
             this.renderHealthBar(10, this.gameState.canvas.height - 30, 200, 20, healthPercentage);
-            this.gameState.context.fillStyle = 'black';
-            this.gameState.context.fillText(`Level: ${player.stats.level} Health: ${player.stats.health}`, 10, this.gameState.canvas.height - 10);
+            // this.gameState.context.fillStyle = 'black';
+            // this.gameState.context.fillText(`Level: ${player.stats.level} Health: ${player.stats.health}`, 10, this.gameState.canvas.height - 10);
             const expPercentage = player.stats.experience / player.stats.next_level_exp;
             this.renderExperienceBar(10, this.gameState.canvas.height - 50, 200, 10, expPercentage);    
         }
     }
-    
+
     // Function to draw the health bar
-    renderHealthBar(x, y, width, height, healthPercentage) {
-        this.gameState.context.fillStyle = 'grey';  // Background color
+    renderHealthBar(x, y, width, height, healthPercentage, showNumber = true) {
+        // Background of the health bar
+        this.gameState.context.fillStyle = '#555';  // Dark grey background
         this.gameState.context.fillRect(x, y, width, height);
-        this.gameState.context.fillStyle = 'red';  // Foreground color
+
+        // Health bar foreground
+        this.gameState.context.fillStyle = '#4CAF50';  // Nice looking green color
         this.gameState.context.fillRect(x, y, width * healthPercentage, height);
+
+        // Text for health bar
+        const player = this.gameState.getCurrentPlayer();
+        if (player && showNumber) {
+            this.gameState.context.fillStyle = 'white';
+            this.gameState.context.font = 'bold 12px Arial';
+            this.gameState.context.textAlign = 'center';
+            this.gameState.context.textBaseline = 'middle';
+            this.gameState.context.fillText(`${player.stats.health}`, x + width / 2, y + height / 2);
+        }
     }
 
+    // Function to draw the experience bar
     renderExperienceBar(x, y, width, height, expPercentage) {
-        this.gameState.context.fillStyle = 'grey';  // Background color
+        // Background of the experience bar
+        this.gameState.context.fillStyle = '#333';  // Darker grey background
         this.gameState.context.fillRect(x, y, width, height);
-        this.gameState.context.fillStyle = 'green';  // Foreground color
+
+        // Experience bar foreground
+        this.gameState.context.fillStyle = '#FFD700';  // Fitting yellow color
         this.gameState.context.fillRect(x, y, width * expPercentage, height);
+        // Text for experience bar
+        this.gameState.context.fillStyle = 'white';
+        this.gameState.context.font = 'bold 12px Arial';
+        this.gameState.context.textAlign = 'center';
+        this.gameState.context.textBaseline = 'middle';
+        this.gameState.context.fillText(`EXP: ${(expPercentage * 100).toFixed(0)}%`, x + width / 2, y + height / 2);
     }
 
-    // Function to draw the selected target's information
+
+
+    // Function to draw the selected target's information with background
     renderTargetInfo() {
         if (this.gameState.selectedTarget) {
-            const target = this.gameState.selectedTarget.type === 'player' ? this.gameState.playerManager.players[this.gameState.selectedTarget.id] : this.gameState.enemyManager.enemies[this.gameState.selectedTarget.id];
-            if(target && target.stats) {
-                const healthPercentage = target.stats.health / target.stats.max_health;  // Max health depends on type
-                this.renderHealthBar(220, this.gameState.canvas.height - 30, 200, 20, healthPercentage);
-                this.gameState.context.fillStyle = 'black';
-                this.gameState.context.fillText(`${target.name} - Level: ${target.stats.level} Health: ${target.stats.health}`, 220, this.gameState.canvas.height - 10);
+            const target = this.gameState.selectedTarget.type === 'player' ? 
+                        this.gameState.playerManager.players[this.gameState.selectedTarget.id] : 
+                        this.gameState.enemyManager.enemies[this.gameState.selectedTarget.id];
+
+            if (target && target.stats) {
+                const healthPercentage = target.stats.health / target.stats.max_health;
+                const barX = 220;
+                const barY = this.gameState.canvas.height - 30;
+                const barWidth = 200;
+                const barHeight = 20;
+
+                this.renderHealthBar(barX, barY, barWidth, barHeight, healthPercentage, false);
+
+                // Set text style
+                this.gameState.context.fillStyle = 'white';
+                this.gameState.context.font = '12px Arial';
+                this.gameState.context.textAlign = 'left';
+                this.gameState.context.textBaseline = 'middle';
+
+                // Calculate text position
+                const textX = barX + 5; // Slight padding from the left edge
+                const textY = barY + 10; // Centered vertically in the background rectangle
+
+                // Render the text
+                this.gameState.context.fillText(`${target.name} [${target.stats.level}] - ${target.stats.health}`, textX, textY);
             }
         }
     }
+
+
     renderTargetCircle() {
         if (this.gameState.selectedTarget) {
             let target;

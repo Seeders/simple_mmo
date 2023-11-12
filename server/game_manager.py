@@ -58,7 +58,7 @@ class GameManager:
             if spawnedEnemy:
                 await broadcast({
                     "type": "spawn_enemy",
-                    "enemy": {"id": enemy_id, "position": spawnedEnemy.position, "stats": spawnedEnemy.stats}
+                    "enemy": {"id": spawnedEnemy.id, "position": spawnedEnemy.position, "stats": spawnedEnemy.stats}
                 }, self.connected, self.connections)
 
             for player_id, player in list(self.connected.items()):
@@ -78,6 +78,7 @@ class GameManager:
                             await broadcastCombatLog(self.combat_logs, player_id, f"{player_id} attacked {enemy.stats['name']} for {player.stats['damage']} damage.", self.connected, self.connections )
                             player.attacking = False
                             enemy.stats['health'] -= player.stats['damage']
+                            print(f"{enemy.id} [{enemy.type}] - health - {enemy.stats['health']} / {enemy.stats['max_health']}")                               
                             player.last_attack_time = current_time
                             await broadcast({
                                 "type": "combat_update",
@@ -177,7 +178,6 @@ class GameManager:
                 
                 for player_id, player in self.connected.items():  # Ensure this is iterating over Player objects
                     if player.stats['health'] < player.stats['max_health'] and not player.in_combat:
-                        print('health regen ' + player_id)
                         player.stats['health'] += 1  # Regenerate 1 health
                         player.stats['health'] = min(player.stats['health'], player.stats['max_health'])  # Cap at max health
                         await broadcast({
@@ -193,7 +193,7 @@ class GameManager:
 
     async def update_enemy_patrols(self, current_time):
         for enemy_id, enemy in self.world.enemies.items():
-            enemy.update_patrol(current_time)
+            enemy.update(current_time)
             # Broadcast enemy movement to all connected players
             await broadcast({
                 "type": "enemy_move",

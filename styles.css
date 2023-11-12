@@ -1,17 +1,47 @@
 /* General body styling */
 body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* Full viewport height */
     margin: 0;
     padding: 0;
-    font-family: Arial, sans-serif;
-    background-color: #eaeaea;
+    overflow: hidden; /* Prevents scrolling */
+    background-color: #1a1a1a; /* Darker background */
+    font-family: 'Press Start 2P', cursive;    
+    color: #ddd; /* Light grey text */
+    font-size: .666em;
+    line-height: 1.666em;
+}
+h1, h2, h3 {
+    font-family: 'Orbitron', sans-serif; /* A different font for headings if needed */
+}
+button {
+    font-family: 'Press Start 2P', cursive !important;
+    font-size: 1em;
+    /* Other styling */
+}
+#game-container {
+    flex-grow: 1; /* Takes up all available space */
+    position: relative; /* For absolute positioning of the canvas */
+    overflow: hidden;
 }
 
-/* Styling for the game canvas */
 canvas {
-    display: block;
-    margin: 0 auto;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 100%;
     background-color: #000;
-    border: 1px solid #000;
+    width: 100%;
+}
+#ui-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    padding: 10px;
+    max-width: 1200px; /* Optional: Limit the max width for larger screens */
+    margin: 0 auto; /* Center the UI row if max-width is set */
 }
 
 /* Chat container styling */
@@ -23,11 +53,9 @@ canvas {
 
 /* Chat messages styling */
 #chatMessages {
-    height: 200px;
+    height: 208px;
     overflow-y: auto;
-    background-color: #fff;
-    padding: 5px;
-    border: 1px solid #ddd;
+    padding: 1em;
 }
 
 /* Chat input styling */
@@ -36,7 +64,9 @@ canvas {
     padding: 10px;
     box-sizing: border-box;
     margin-top: 5px;
-    border: 1px solid #ddd;
+    border: 0px;
+    background-color: #333;
+    color: #ddd; /* Light grey text */
 }
 
 /* Inventory grid styling */
@@ -45,18 +75,17 @@ canvas {
     grid-template-columns: repeat(5, 50px); /* Adjust the number of columns as needed */
     grid-gap: 5px;
     padding: 10px;
-    border: 1px solid #ddd;
     background-color: #fff;
-    margin: 10px;
+    margin-right: 10px;
 }
 
 /* Individual inventory slots */
 .slot {
     width: 50px;
     height: 50px;
-    border: 1px solid #ccc;
-    background-color: #f8f8f8;
     position: relative;
+    border: 1px solid #444;
+    background-color: #222; /* Darker slot background */
 }
 
 /* Styling for items within slots */
@@ -64,29 +93,86 @@ canvas {
     width: 100%;
     height: 100%;
     position: absolute;
+    background-size: contain; /* Ensures the icon fits within the slot */
+    background-position: center; /* Centers the icon in the slot */
+    background-repeat: no-repeat; /* Prevents the icon from repeating */
     top: 0;
     left: 0;
-    background-size: cover;
-    background-position: center;
+    right: 0;
+    bottom: 0;
+    margin: auto;
 }
 
 /* Combat log styling */
 #combat-log {
     clear: both;
     padding: 10px;
-    border: 1px solid #ddd;
-    background-color: #fff;
-    margin: 10px;
-    height: 200px;
+    height: 249px;
     overflow-y: auto;
 }
 
 /* Player stats styling */
 #playerStats {
     padding: 10px;
-    border: 1px solid #ddd;
-    background-color: #fff;
     margin: 10px;
 }
 
-/* Add more styles as needed for other UI elements */
+#chat, #inventory, #combat-log, #playerStats {
+    background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent black */
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+/* Custom cursor
+body, button, input {
+    cursor: url('path/to/your/cursor.png'), auto;
+}
+ */
+/* Subtle animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#uiContainer {
+    animation: fadeIn 1s ease-in-out;
+}
+
+#chat-combat-container {
+    /* If needed, adjust width to fit your design */
+    flex-grow: 1;
+}
+/* Style the tab */
+.tab {
+    overflow: hidden;
+    background-color: #000;
+}
+
+/* Style the buttons inside the tab */
+.tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 10px 16px;
+    transition: 0.3s;
+    color: #ddd;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+    background-color: #333;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+    background-color: #555;
+}
+
+/* Style the tab content */
+.tabcontent {
+    display: none;
+    border-top: none;
+    background-color: #000;
+    color: #ddd;
+}

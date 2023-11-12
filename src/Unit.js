@@ -110,7 +110,9 @@ export default class Unit {
 
         // Update the current sprite based on the direction and frame index
         this.currentSprite = this.sprites[`${type}_${direction}${this.animationState.frameIndex + 1}`];
-
+        if( !this.currentSprite ) {
+            this.currentSprite = this.sprites[`move_${this.animationState.direction}${this.animationState.frameIndex + 1}`];
+        }
         // Increment the frame index and loop back if it exceeds the number of frames
         this.animationState.frameIndex = (this.animationState.frameIndex + 1) % frameCount;
     }
@@ -137,7 +139,9 @@ export default class Unit {
             if (currentTime - this.animationState.lastAttackFrameTime >= this.animationState.attackFrameDelay) {
                 // Update the current sprite based on the direction and frame index
                 this.currentSprite = this.sprites[`attack_${this.animationState.direction}${this.animationState.frameIndex + 1}`];
-
+                if( !this.currentSprite ) {
+                    this.currentSprite = this.sprites[`move_${this.animationState.direction}1`];
+                }
                 // Increment the frame index
                 this.animationState.frameIndex++;
                 // If the last frame is reached, end the animation

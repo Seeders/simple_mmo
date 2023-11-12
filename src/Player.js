@@ -36,11 +36,11 @@ export default class Player extends Unit {
     }
 
     // Method to handle leveling up
-    levelUp() {
-        this.stats.level++;
+    levelUp(data) {
+        this.stats.level = data.level;
         this.stats.experience = 0;
-        this.stats.max_health += 10; // Example increment, adjust as needed
-        this.stats.attackPower += 2; // Example increment, adjust as needed
+        this.stats.max_health = data.max_health; // Example increment, adjust as needed
+        this.stats.health = data.health;        
         // ... additional stats increases and level up logic ...
         console.log(`${this.name} has reached level ${this.stats.level}!`);
     }

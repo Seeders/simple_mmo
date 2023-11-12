@@ -105,5 +105,4 @@ async function main() {
 
 main().catch(console.error);
 
-// Optionally, if you need to export anything from this module:
-//export { gameState, networkManager, assetManager, inventoryUI, chatUI };
+// Optionally, if you need to export anything from this module

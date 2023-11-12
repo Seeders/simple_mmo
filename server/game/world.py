@@ -65,7 +65,6 @@ class World:
         route = [start_position]  # start_position should be a tuple (x, y)
         for _ in range(num_waypoints - 1):
             for attempt in range(max_attempts):
-                print(start_position)
                 x = start_position['x'] - max_distance + random.randint(0, max_distance * 2)
                 y = start_position['y'] - max_distance + random.randint(0, max_distance * 2)
                 if( x < 0 ): 
@@ -230,7 +229,7 @@ class World:
                 full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
                 self.enemies[enemy_id] = Enemy(enemy_id, random_enemy_type, enemy_position, full_path_coords)
                 self.enemies[enemy_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
-                print(f"Spawned enemy {enemy_id} at ({x}, {y})")  
+                print(f"Spawned enemy {enemy_id}[{random_enemy_type}] at ({x}, {y}) with {self.enemies[enemy_id].stats['health']}/{self.enemies[enemy_id].stats['max_health']} hp")  
                 return self.enemies[enemy_id]
             attempts += 1
             print(f"Attempt {attempts}: Failed to find land for enemy")

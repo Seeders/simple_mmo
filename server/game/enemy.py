@@ -11,11 +11,21 @@ class Enemy:
         self.stats = copy.deepcopy(get_enemy_stats(enemy_type))
         self.paths = full_path
         self.path_index = 0
+        self.type = enemy_type
         self.last_patrol_update = 0  # Time of the last patrol update
         self.patrol_delay = 5 / self.stats["move_speed"]  # Delay in seconds
         self.current_waypoint_index = 0
         self.moving_to_waypoint = False
         self.patrol_direction = 1  # 1 for forward, -1 for reverse
+
+    def update(self, current_time):
+        # Select movement behavior based on enemy type
+        if self.stats["behavior"] == "patrol":
+            self.patrol_movement(current_time)
+        elif self.stats["behavior"] == "wander":
+            self.wander_movement(current_time)
+        else:
+            self.wander_movement(current_time)
 
     def move_along_path(self):
         # Check if at the end of the path and reverse direction if needed
@@ -33,11 +43,18 @@ class Enemy:
         # Update position
         self.position = self.paths[self.path_index]
 
-    def update_patrol(self, current_time):
-        if current_time - self.last_patrol_update >= self.patrol_delay:
+    def patrol_movement(self, current_time):
+        if current_time - self.last_patrol_update >= self.patrol_delay and len(self.paths) > 0:
             self.move_along_path()
             self.last_patrol_update = current_time
             
+    def wander_movement(self, current_time):
+        # Example of a simple wander behavior
+        if current_time - self.last_patrol_update >= self.patrol_delay:
+            x = self.position["x"] + random.randint(-1, 1)
+            y = self.position["y"] + random.randint(-1, 1)
+            self.position = {"x": x, "y": y}   # Random new position
+            self.last_patrol_update = current_time
 
 def get_enemy_stats(enemy_type):
     if enemy_type in enemy_types:
@@ -57,7 +74,7 @@ enemy_types = {
     "attack_speed": 1.5,
     "move_speed": 3,
     "abilities": ["fireball"],
-    "behavior": "tricky",
+    "behavior": "patrol",
     "damage": 6,
     "defense": 2,
     "walk_frames": 5,
@@ -72,7 +89,7 @@ enemy_types = {
     "attack_speed": 0.8,
     "move_speed": 1.5,
     "abilities": ["flame_wave", "heat_shield"],
-    "behavior": "defensive",
+    "behavior": "patrol",
     "damage": 20,
     "defense": 12,
     "walk_frames": 5,
@@ -87,7 +104,7 @@ enemy_types = {
     "attack_speed": 1.0,
     "move_speed": 2,
     "abilities": ["dark_blast", "fear"],
-    "behavior": "aggressive",
+    "behavior": "patrol",
     "damage": 22,
     "defense": 10,
     "walk_frames": 5,
@@ -102,7 +119,7 @@ enemy_types = {
     "attack_speed": 0.6,
     "move_speed": 2.5,
     "abilities": ["acid_breath", "wing_gust"],
-    "behavior": "dominant",
+    "behavior": "patrol",
     "damage": 30,
     "defense": 18,
     "size": 32,
@@ -118,7 +135,7 @@ enemy_types = {
     "attack_speed": 0.7,
     "move_speed": 2.5,
     "abilities": ["lightning_breath", "thunder_roar"],
-    "behavior": "cunning",
+    "behavior": "patrol",
     "damage": 28,
     "defense": 16,
     "size": 32,
@@ -134,7 +151,7 @@ enemy_types = {
     "attack_speed": 0.5,
     "move_speed": 2.5,
     "abilities": ["fire_breath", "smoke_screen"],
-    "behavior": "fierce",
+    "behavior": "patrol",
     "damage": 32,
     "defense": 20,
     "size": 32,
@@ -150,7 +167,7 @@ enemy_types = {
     "attack_speed": 0.75,
     "move_speed": 2.5,
     "abilities": ["frost_breath", "blizzard"],
-    "behavior": "calculating",
+    "behavior": "patrol",
     "damage": 26,
     "defense": 14,
     "size": 32,
@@ -166,7 +183,7 @@ enemy_types = {
     "attack_speed": 0.65,
     "move_speed": 2.5,
     "abilities": ["lightning_breath", "sandstorm"],
-    "behavior": "wise",
+    "behavior": "patrol",
     "damage": 29,
     "defense": 17,
     "size": 32,
@@ -182,7 +199,7 @@ enemy_types = {
     "attack_speed": 0.4,
     "move_speed": 1.2,
     "abilities": ["trample", "tusk_swipe"],
-    "behavior": "mighty",
+    "behavior": "wander",
     "damage": 35,
     "defense": 25,
     "walk_frames": 4,
@@ -197,7 +214,7 @@ enemy_types = {
     "attack_speed": 1.2,
     "move_speed": 3,
     "abilities": ["frost_bite", "howl"],
-    "behavior": "feral",
+    "behavior": "patrol",
     "damage": 24,
     "defense": 10,
     "walk_frames": 4,
@@ -212,7 +229,7 @@ enemy_types = {
     "attack_speed": 0.9,
     "move_speed": 2.5,
     "abilities": ["snowball_throw", "icy_roar"],
-    "behavior": "solitary",
+    "behavior": "patrol",
     "damage": 26,
     "defense": 12,
     "walk_frames": 5,
@@ -227,7 +244,7 @@ enemy_types = {
     "attack_speed": 0.7,
     "move_speed": 1.5,
     "abilities": ["claw_snap", "shell_shield"],
-    "behavior": "defensive",
+    "behavior": "wander",
     "damage": 20,
     "defense": 15,
     "walk_frames": 0,
@@ -242,7 +259,7 @@ enemy_types = {
     "attack_speed": 2.0,
     "move_speed": 3,
     "abilities": ["arrow_shot"],
-    "behavior": "ranged",
+    "behavior": "patrol",
     "damage": 8,
     "defense": 3,
     "walk_frames": 5,
@@ -257,7 +274,7 @@ enemy_types = {
     "attack_speed": 1.5,
     "move_speed": 2.5,
     "abilities": ["club_smash"],
-    "behavior": "aggressive",
+    "behavior": "patrol",
     "damage": 10,
     "defense": 4,
     "walk_frames": 5,
@@ -272,7 +289,7 @@ enemy_types = {
     "attack_speed": 1.8,
     "move_speed": 3,
     "abilities": ["pitchfork_poke"],
-    "behavior": "defensive",
+    "behavior": "patrol",
     "damage": 6,
     "defense": 2,
     "walk_frames": 5,
@@ -287,7 +304,7 @@ enemy_types = {
     "attack_speed": 3.0,
     "move_speed": 4,
     "abilities": ["explosive_charge"],
-    "behavior": "suicidal",
+    "behavior": "patrol",
     "damage": 30,
     "defense": 1,
     "walk_frames": 5,
@@ -302,7 +319,7 @@ enemy_types = {
     "attack_speed": 0.8,
     "move_speed": 2,
     "abilities": ["axe_swing", "charge"],
-    "behavior": "brutal",
+    "behavior": "patrol",
     "damage": 28,
     "defense": 18,
     "walk_frames": 4,
@@ -317,7 +334,7 @@ enemy_types = {
     "attack_speed": 1.1,
     "move_speed": 2.2,
     "abilities": ["sword_slash"],
-    "behavior": "warlike",
+    "behavior": "patrol",
     "damage": 16,
     "defense": 8,
     "walk_frames": 5,
@@ -332,7 +349,7 @@ enemy_types = {
     "attack_speed": 1.5,
     "move_speed": 2,
     "abilities": ["fireball", "magic_barrier"],
-    "behavior": "mystical",
+    "behavior": "patrol",
     "damage": 14,
     "defense": 6,
     "walk_frames": 5,
@@ -347,7 +364,7 @@ enemy_types = {
     "attack_speed": 1.4,
     "move_speed": 2,
     "abilities": ["healing_ritual", "poison_cloud"],
-    "behavior": "supportive",
+    "behavior": "patrol",
     "damage": 12,
     "defense": 7,
     "walk_frames": 5,
@@ -362,7 +379,7 @@ enemy_types = {
     "attack_speed": 1.7,
     "move_speed": 3,
     "abilities": ["spear_thrust"],
-    "behavior": "skirmisher",
+    "behavior": "patrol",
     "damage": 9,
     "defense": 3,
     "walk_frames": 5,
@@ -377,7 +394,7 @@ enemy_types = {
     "attack_speed": 1.3,
     "move_speed": 2,
     "abilities": ["dark_magic", "summon_skeleton"],
-    "behavior": "cunning",
+    "behavior": "wander",
     "damage": 18,
     "defense": 10,
     "walk_frames": 5,
@@ -392,7 +409,7 @@ enemy_types = {
     "attack_speed": 1.5,
     "move_speed": 2.5,
     "abilities": ["bone_clash"],
-    "behavior": "undead",
+    "behavior": "wander",
     "damage": 12,
     "defense": 5,
     "walk_frames": 5,
@@ -407,7 +424,7 @@ enemy_types = {
     "attack_speed": 2.0,
     "move_speed": 1,
     "abilities": ["split"],
-    "behavior": "amorphous",
+    "behavior": "wander",
     "damage": 5,
     "defense": 2,
     "walk_frames": 6,
@@ -422,7 +439,7 @@ enemy_types = {
     "attack_speed": 2.0,
     "move_speed": 1,
     "abilities": ["split", "freeze"],
-    "behavior": "amorphous",
+    "behavior": "wander",
     "damage": 6,
     "defense": 3,
     "walk_frames": 6,
@@ -437,7 +454,7 @@ enemy_types = {
     "attack_speed": 1.5,
     "move_speed": 1.2,
     "abilities": ["split", "acidic_touch"],
-    "behavior": "amorphous",
+    "behavior": "wander",
     "damage": 15,
     "defense": 8,
     "walk_frames": 6,
@@ -452,7 +469,7 @@ enemy_types = {
     "attack_speed": 1.5,
     "move_speed": 1.2,
     "abilities": ["split", "freeze", "icy_touch"],
-    "behavior": "amorphous",
+    "behavior": "wander",
     "damage": 17,
     "defense": 10,
     "walk_frames": 6,
@@ -467,7 +484,7 @@ enemy_types = {
     "attack_speed": 1.2,
     "move_speed": 1.5,
     "abilities": ["split", "acidic_touch", "regenerate"],
-    "behavior": "amorphous",
+    "behavior": "wander",
     "damage": 25,
     "defense": 15,
     "walk_frames": 6,
@@ -482,7 +499,7 @@ enemy_types = {
     "attack_speed": 1.2,
     "move_speed": 1.5,
     "abilities": ["split", "freeze", "icy_touch", "regenerate"],
-    "behavior": "amorphous",
+    "behavior": "wander",
     "damage": 28,
     "defense": 18,
     "walk_frames": 6,
@@ -497,7 +514,7 @@ enemy_types = {
     "attack_speed": 1.4,
     "move_speed": 2.3,
     "abilities": ["sword_swipe"],
-    "behavior": "aggressive",
+    "behavior": "wander",
     "damage": 14,
     "defense": 7,
     "walk_frames": 5,
@@ -512,7 +529,7 @@ enemy_types = {
     "attack_speed": 1.8,
     "move_speed": 2,
     "abilities": ["shoot"],
-    "behavior": "ranged",
+    "behavior": "wander",
     "damage": 16,
     "defense": 6,
     "walk_frames": 5,
@@ -527,7 +544,7 @@ enemy_types = {
     "attack_speed": 1.2,
     "move_speed": 2.5,
     "abilities": ["command", "cutlass_slash"],
-    "behavior": "leader",
+    "behavior": "wander",
     "damage": 20,
     "defense": 12,
     "walk_frames": 5,

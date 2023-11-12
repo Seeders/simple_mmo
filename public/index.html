@@ -3,22 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <title>Simple MMORPG</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+    
     <div id="uiContainer">
-        <div id="chat">
-            <div id="chatMessages"></div>
-            <input type="text" id="chatInput" placeholder="Type a message..." />
+        <div id="ui-row">
+            <div id="inventory" class="inventory-grid">
+                <!-- Inventory items will be dynamically added here -->
+            </div>
+        
+            <div id="chat-combat-container">
+                <div class="tab">
+                    <button class="tablinks" onclick="openTab(event, 'Chat')">Chat</button>
+                    <button class="tablinks" onclick="openTab(event, 'CombatLog')">Combat Log</button>
+                </div>
+            
+                <div id="Chat" class="tabcontent" style="display: block">
+                    <div id="chatMessages"></div>
+                    <input type="text" id="chatInput" placeholder="Type a message..." />
+                </div>
+            
+                <div id="CombatLog" class="tabcontent">
+                    <div id="combat-log"></div>
+                </div>
+            </div>
         </div>
-        <div id="inventory" class="inventory-grid">
-            <!-- Inventory items will be dynamically added here -->
-        </div>
-        <div id="combat-log"></div>
-        <div id="playerStats"></div>
+        
         <!-- Add more UI elements as needed -->
     </div>
     <!-- The scripts are deferred to ensure they load after the HTML content -->
 <script src="./bundle.js"></script>
+<script>
+function openTab(evt, tabName) {
+    var i, tabcontent, tablinks;
+
+    // Get all elements with class="tabcontent" and hide them
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+
+    // Get all elements with class="tablinks" and remove the class "active"
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+
+    // Show the current tab, and add an "active" class to the button that opened the tab
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+}
+
+</script>
 </body>
 </html>
