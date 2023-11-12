@@ -135,6 +135,9 @@ export default class NetworkManager {
             case 'combat_log_update':
                 this.gameState.combatLogUpdate(data);
                 break;
+            case 'update_trees':
+                this.gameState.updateTrees(data);
+                break;
         }
       
     }

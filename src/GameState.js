@@ -100,6 +100,10 @@ export default class GameState {
         }
     }
     
+    updateTrees(data) {
+        this.trees = data.trees;
+        this.renderManager.terrainRendered = false;
+    }
 
     levelUp(data) {
         this.playerManager.playerLevelUp(data.playerId, data);

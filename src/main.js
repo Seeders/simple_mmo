@@ -52,7 +52,8 @@ async function loadAssets(assetManager) {
     'health_potion': 'images/health_potion.png',
     'terrain': './images/Ground/Grass.png',
     'townSprite': './images/Buildings/Wood/Chapels.png',
-    'pine_tree': './images/Nature/PineTrees.png'
+    'pine_tree': './images/Nature/PineTrees.png',
+    'stump_tree': './images/Nature/PineTrees.png'
 };
 
 

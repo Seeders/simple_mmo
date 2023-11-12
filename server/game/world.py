@@ -12,6 +12,7 @@ class World:
         self.towns = self.place_towns()
         self.roads = self.generate_roads()
         self.trees = self.spawn_trees(self.terrain.terrain, 'pine')
+        self.remove_trees_on_roads() 
         self.enemy_counter = len(self.enemies)
 
     def a_star(self, start, end):
@@ -75,7 +76,6 @@ class World:
                     x = self.terrain.width - 1
                 if( y > self.terrain.height ):
                     y = self.terrain.height - 1
-
                 
                 if self.is_land(x, y, self.terrain.terrain):
                     waypoint = {"x": x, "y": y}  # Create waypoint as a dictionary
@@ -112,6 +112,13 @@ class World:
                     break
         return enemies
 
+    def remove_trees_on_roads(self):
+        road_tiles = set()
+        for road in self.roads:
+            for tile in road:
+                road_tiles.add((tile[0], tile[1]))  # Add road tile coordinates to the set
+
+        self.trees = [tree for tree in self.trees if (tree["position"]["x"], tree["position"]["y"]) not in road_tiles]
 
     
     def spawn_trees(self, world_map, tree_type):

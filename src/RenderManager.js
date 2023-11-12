@@ -128,7 +128,7 @@ export default class RenderManager {
                 const treeImg = this.assetManager.assets[`${tree.type}_tree`]; // Replace with your tree sprite key
                 const treeX = tree.position.x * CONFIG.tileSize;
                 const treeY = tree.position.y * CONFIG.tileSize;
-                this.renderSprite(ctx, treeImg, treeX, treeY, CONFIG.tileSize, 0, CONFIG.tileSize);
+                this.renderSprite(ctx, treeImg, treeX, treeY, tree.type == 'stump' ? 0 : CONFIG.tileSize, 0, CONFIG.tileSize);
             }
         });
     }

@@ -36,14 +36,33 @@ class Player:
 
     def move(self, new_position):
         if self.is_position_valid(new_position):
+            if self.is_tree_at_position(new_position):
+                self.attack_tree(new_position)
+                return False  # Player does not move, but attacks the tree
             self.position = new_position
             return True
         return False
+
+    def is_tree_at_position(self, position):
+        for tree in self.game_manager.world.trees:
+            if tree["type"] != "stump" and tree["position"]["x"] == position["x"] and tree["position"]["y"] == position["y"]:
+                return True
+        return False
+
+    def attack_tree(self, position):
+        # Remove the tree from the game world
+         for tree in self.game_manager.world.trees:
+            if tree["position"] == position:
+                tree["type"] = "stump"  # Change tree type to 'stump'
+                self.game_manager.update_trees = True
 
     def is_position_valid(self, position):
         x = int(position['x'])
         y = int(position['y'])
         index = x + y * self.game_manager.world.terrain.width
+        terrain = self.game_manager.world.terrain.terrain[y][x]
+        if terrain == 'water':
+            return False
         length = len(self.game_manager.world.terrain.terrain)
         if 0 <= index < (length * length):
             return True

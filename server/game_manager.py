@@ -15,6 +15,7 @@ class GameManager:
         self.next_item_id = 0
         self.world = World()
         self.combat_logs = {}
+        self.update_trees = False
 
     async def new_player(self, websocket):
         self.player_id_counter += 1
@@ -54,6 +55,12 @@ class GameManager:
         while True:
             current_time = asyncio.get_event_loop().time()
             spawnedEnemy = self.world.maintain_enemy_count(50)
+            if self.update_trees:
+                self.update_trees = False
+                await broadcast({
+                    "type": "update_trees",                
+                    "trees": self.world.trees
+                }, self.connected, self.connections)
             await self.update_enemy_patrols(current_time)
             if spawnedEnemy:
                 await broadcast({
@@ -78,7 +85,6 @@ class GameManager:
                             await broadcastCombatLog(self.combat_logs, player_id, f"{player_id} attacked {enemy.stats['name']} for {player.stats['damage']} damage.", self.connected, self.connections )
                             player.attacking = False
                             enemy.stats['health'] -= player.stats['damage']
-                            print(f"{enemy.id} [{enemy.type}] - health - {enemy.stats['health']} / {enemy.stats['max_health']}")                               
                             player.last_attack_time = current_time
                             await broadcast({
                                 "type": "combat_update",
@@ -113,7 +119,7 @@ class GameManager:
                         if player.stats['health'] <= 0:
                             # Handle player death and respawn
                             await broadcastCombatLog(self.combat_logs, player_id, f"{player_id} was killed by {enemy.stats['name']}.", self.connected, self.connections)
-                            player.position = {"x": 50, "y": 50}  # Respawn position
+                            player.position = {"x": self.world.towns[0][0], "y": self.world.towns[0][1]}  # Respawn position
                             player.stats['health'] = player.stats['max_health']  # Reset health
                             player.last_attack_time = current_time
                             await broadcast({
