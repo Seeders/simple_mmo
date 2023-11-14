@@ -25,7 +25,9 @@ button {
     position: relative; /* For absolute positioning of the canvas */
     overflow: hidden;
 }
-
+#debugCanvas {
+    position: absolute;
+}
 canvas {
     background-color: transparent;
     height: 100%;

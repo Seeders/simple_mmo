@@ -5,9 +5,10 @@ import RenderManager from './RenderManager';
 import { CONFIG } from './config';
 
 export default class GameState {
-    constructor(context, assetManager) {
+    constructor(context, debugCanvas, assetManager) {
         this.context = context;
         this.canvas = context.canvas;
+        this.debugCanvas = debugCanvas;
         this.assetManager = assetManager;
         this.playerManager = new PlayerManager(this);
         this.enemyManager = new EnemyManager(this);

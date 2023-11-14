@@ -265,12 +265,12 @@ class GameManager:
                 
                 for player_id, player in self.connected.items():  # Ensure this is iterating over Player objects
                     if player.stats['health'] < player.stats['max_health'] and not player.in_combat:
-                        player.stats['health'] += 1  # Regenerate 1 health
+                        player.stats['health'] += player.stats['max_health'] * .01  # Regenerate 1% health
                         player.stats['health'] = min(player.stats['health'], player.stats['max_health'])  # Cap at max health
                         await broadcast({
                             "type": "health_regeneration",
                             "playerId": player_id,
-                            "newHealth": player.stats['health']
+                            "newHealth": int(player.stats['health'])
                         }, self.connected, self.connections) 
                 last_regeneration_time = current_time  # Update the last regeneration time
 

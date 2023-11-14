@@ -10,6 +10,7 @@ import { CONFIG } from './config';
 import '../styles.css';
 
 const canvas = document.getElementById('gameCanvas');
+const debugCanvas = document.getElementById('debugCanvas');
 const ctx = canvas.getContext('2d');
 
 async function loadAssets(assetManager) {
@@ -71,7 +72,7 @@ async function loadAssets(assetManager) {
 }
 
 function setupGame(assetManager) {
-  const gameState = new GameState(ctx, assetManager);
+  const gameState = new GameState(ctx, debugCanvas, assetManager);
   const networkManager = new NetworkManager(CONFIG.serverUrl, gameState);
   const chatUI = new ChatUI(gameState);
   const combatLogUI = new CombatLogUI(gameState);

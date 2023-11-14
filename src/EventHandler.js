@@ -13,18 +13,34 @@ export default class EventHandler {
         document.addEventListener('keydown', this.handleKeyDown.bind(this));
 
         // Function to handle mouse clicks for selecting targets
-        this.gameState.canvas.addEventListener('click', this.handleClick.bind(this));
+        this.gameState.debugCanvas.addEventListener('click', this.handleClick.bind(this));
         
     }
-
-    handleClick(event) {
+    getCanvasCoordinates(event) {
         const rect = this.gameState.canvas.getBoundingClientRect();
-        const clickX = event.clientX - rect.left;
-        const clickY = event.clientY - rect.top;
-
+        const scaleX = this.gameState.canvas.width / rect.width;  // ratio of actual width to CSS width
+        const scaleY = this.gameState.canvas.height / rect.height; // ratio of actual height to CSS height
+    
+        const canvasX = (event.clientX - rect.left) * scaleX;
+        const canvasY = (event.clientY - rect.top) * scaleY;
+    
+        return { x: canvasX, y: canvasY };
+    }
+    drawDebugClick(ctx, x, y, color='red') {
+        ctx.save(); // Save the current state of the canvas
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2); // Draw a small circle
+        ctx.fillStyle = 'red';
+        ctx.fill();
+        ctx.restore(); // Restore the state of the canvas
+    }
+    handleClick(event) {
+        const coords = this.getCanvasCoordinates(event);
+        const clickX = coords.x;
+        const clickY = coords.y;
         // Check if a player is clicked
-        for (const id in this.gameState.players) {
-            const player = this.gameState.players[id];
+        for (const id in this.gameState.playerManager.players) {
+            const player = this.gameState.playerManager.players[id];
             // Calculate the center of the player's position
             const playerCenterX = player.position.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2;
             const playerCenterY = player.position.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2;
@@ -36,16 +52,15 @@ export default class EventHandler {
         }
 
         // Check if an enemy is clicked
-        for (const id in this.gameState.enemies) {
-            const enemy = this.gameState.enemies[id];
-            const enemyX = enemy.position.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2
-            const enemyY = enemy.position.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2
+        for (const id in this.gameState.enemyManager.enemies) {
+            const enemy = this.gameState.enemyManager.enemies[id];
+            const enemyX = enemy.position.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2;
+            const enemyY = enemy.position.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2;
             if (Math.pow(clickX - enemyX, 2) + Math.pow(clickY - enemyY, 2) <= Math.pow(CONFIG.unitSize / 2, 2)) {
                 this.gameState.selectedTarget = { type: 'enemy', id: id, stats: enemy.stats };
                 return;
             }
         }
-
         // If nothing is clicked, clear the selection
         this.gameState.selectedTarget = null;
     }

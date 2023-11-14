@@ -1,6 +1,7 @@
 import asyncio
 import json
 import websockets
+from websockets.exceptions import ConnectionClosedOK, ConnectionClosedError
 
 async def broadcast(message, connected, websockets_map, sender_websocket=None):
     # Convert the message to a JSON string
@@ -11,7 +12,19 @@ async def broadcast(message, connected, websockets_map, sender_websocket=None):
     for player_id, player in connected.items():
         player_websocket = websockets_map.get(player_id)  # Get the websocket from the map using player_id
         if player_websocket and player_websocket is not sender_websocket:
-            awaitables.append(player_websocket.send(message_json))
+            # Wrap the send operation in a try-except block
+            async def safe_send(ws):
+                try:
+                    await ws.send(message_json)
+                except (ConnectionClosedOK, ConnectionClosedError) as e:
+                    pass
+                    # Handle the closed connection, e.g., by logging or removing from the connected list
+                    # print(f"Connection closed for player {player_id}: {e}")
+                    # You might want to remove the disconnected player from the maps
+                    # Be cautious about modifying the map while iterating over it
+                    # It might be better to mark them for removal and delete them after the loop
+
+            awaitables.append(safe_send(player_websocket))
 
     # Use asyncio.gather to send all messages concurrently
     await asyncio.gather(*awaitables)

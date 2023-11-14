@@ -41,7 +41,8 @@
         <button onclick="showModal('registrationModal')">Register</button>
     </div>
     <div id="game-container">
-        <canvas id="gameCanvas" height="600"></canvas>
+        <canvas id="debugCanvas" class="gameCanvas" height="600"></canvas>
+        <canvas id="gameCanvas" class="gameCanvas" height="600"></canvas>
     </div>
     
     <div id="uiContainer">
@@ -74,7 +75,8 @@
         <!-- Add more UI elements as needed -->
     </div>
 <script>
-      document.getElementById('gameCanvas').setAttribute('width', window.document.body.clientWidth);
+    document.getElementById('gameCanvas').setAttribute('width', window.document.body.clientWidth);
+      document.getElementById('debugCanvas').setAttribute('width', window.document.body.clientWidth);
  </script>
     <!-- The scripts are deferred to ensure they load after the HTML content -->
 <script src="./bundle.js"></script>
