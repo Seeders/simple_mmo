@@ -15,7 +15,6 @@ class GameManager:
         self.next_item_id = 0
         self.world = World()
         self.combat_logs = {}
-        self.update_trees = False
 
     async def new_player(self, websocket):
         self.player_id_counter += 1
@@ -54,13 +53,7 @@ class GameManager:
     async def combat_handler(self):
         while True:
             current_time = asyncio.get_event_loop().time()
-            spawnedEnemy = self.world.maintain_enemy_count(50)
-            if self.update_trees:
-                self.update_trees = False
-                await broadcast({
-                    "type": "update_trees",                
-                    "trees": self.world.trees
-                }, self.connected, self.connections)
+            spawnedEnemy = self.world.maintain_enemy_count(50)            
             await self.update_enemy_patrols(current_time)
             if spawnedEnemy:
                 await broadcast({

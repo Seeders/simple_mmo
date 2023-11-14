@@ -26,15 +26,28 @@ export default class Unit {
         };
 
         this.faceDirection('move', this.animationState.direction);
-
+        
+        this.previousPosition = this.position;
     }
 
 
     // Called every frame from the main game loop
     render() {
+      
         if (this.animationState.isAttacking) {
             this.attack();
+        } else {
+            if(this.position.x > this.previousPosition.x){
+                this.faceDirection( 'move', 'right' );
+            } else if(this.position.x < this.previousPosition.x){
+                this.faceDirection( 'move', 'left' );
+            } else if(this.position.y > this.previousPosition.y){
+                this.faceDirection( 'move', 'down' );
+            } else if(this.position.y < this.previousPosition.y){
+                this.faceDirection( 'move', 'up' );
+            }
         }
+        this.previousPosition = this.position;
     }
 
     mapWalkAnimations(){

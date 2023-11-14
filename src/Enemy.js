@@ -7,5 +7,4 @@ export default class Enemy extends Unit {
         this.spriteSheetKey = this.type;
         delete this.stats.type;
     }
-
 }

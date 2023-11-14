@@ -33,7 +33,6 @@ def is_rate_limited(ip_address):
     if len(request_counts[ip_address]) >= request_limit:
         return True
 
-    print(len(request_counts[ip_address]))
     # Log current request
     request_counts[ip_address].append(current_time)
     return False

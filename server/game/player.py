@@ -3,12 +3,13 @@ import random
 
 BASE_HEALTH = 100
 HEALTH_INCREMENT = 20  # Additional health per level
+from utils.broadcast import broadcast, broadcastCombatLog
 
 class Player:
 
     def __init__(self, game_manager, player_id, position, stats=None):
         self.id = player_id
-        self.game_manager = game_manager;
+        self.game_manager = game_manager
         self.position = position
         self.in_combat = False
         self.attacking = False
@@ -35,7 +36,7 @@ class Player:
         return dx <= 1 and dy <= 1
 
     def move(self, new_position):
-        if self.is_position_valid(new_position):
+        if self.game_manager.world.is_position_valid(new_position):
             if self.is_tree_at_position(new_position):
                 self.attack_tree(new_position)
                 return False  # Player does not move, but attacks the tree
@@ -50,24 +51,32 @@ class Player:
         return False
 
     def attack_tree(self, position):
-        # Remove the tree from the game world
-         for tree in self.game_manager.world.trees:
-            if tree["position"] == position:
-                tree["type"] = "stump"  # Change tree type to 'stump'
-                self.game_manager.update_trees = True
+        # Reduce the health of the tree
+        for tree in self.game_manager.world.trees:
+            if tree["position"] == position and tree["type"] != "stump":
+                tree["health"] -= self.stats["damage"]
+                if tree["health"] <= 0:
+                    tree["type"] = "stump"  # Change tree type to 'stump' when health is depleted
+                    tree["health"] = 0  # Optional: Set health to 0 to avoid negative values
+                    # Broadcast combat log update for destroying the tree
+                    asyncio.create_task(broadcastCombatLog(
+                        self.game_manager.combat_logs, self.id, 
+                        f"{self.id} destroyed a tree at {position}.", 
+                        self.game_manager.connected, self.game_manager.connections))
+                else:
+                    # Broadcast combat log update for attacking the tree
+                    asyncio.create_task(broadcastCombatLog(
+                        self.game_manager.combat_logs, self.id, 
+                        f"{self.id} attacked a tree for {self.stats['damage']} damage, {tree['health']} remaining.", 
+                        self.game_manager.connected, self.game_manager.connections))
 
-    def is_position_valid(self, position):
-        x = int(position['x'])
-        y = int(position['y'])
-        index = x + y * self.game_manager.world.terrain.width
-        terrain = self.game_manager.world.terrain.terrain[y][x]
-        if terrain == 'water':
-            return False
-        length = len(self.game_manager.world.terrain.terrain)
-        if 0 <= index < (length * length):
-            return True
-        return False
-    
+                # Broadcast tree update
+                asyncio.create_task(broadcast({
+                    "type": "update_trees",                
+                    "trees": self.game_manager.world.trees
+                }, self.game_manager.connected, self.game_manager.connections))
+                break  # Exit the loop once the tree is found and processed
+
     @staticmethod
     def calculate_next_level_exp(level):
         # This is a simple formula, you might want to create a more complex one

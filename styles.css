@@ -27,13 +27,8 @@ button {
 }
 
 canvas {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    max-width: 100%;
-    background-color: #000;
-    width: 100%;
+    background-color: transparent;
+    height: 100%;
 }
 #ui-row {
     display: flex;
@@ -120,6 +115,32 @@ canvas {
 #chat, #inventory, #combat-log, #playerStats {
     background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent black */
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+#minimap-container {
+    position: relative; /* Set the container to relative positioning */
+    width: 300px; /* Adjust size as needed */
+    height: 300px; /* Adjust size as needed */
+    border: 1px solid #000; /* Optional border */
+    margin-right: 10px; /* Spacing between minimap and inventory */
+}
+
+#minimapCanvas, #minimapTerrainCanvas {
+    position: absolute; /* Absolute positioning within the container */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%; /* Fill the container */
+    height: 100%; /* Fill the container */
+}
+
+#minimapCanvas {
+    z-index: 2; /* Ensures this canvas is on top */
+}
+
+#minimapTerrainCanvas {
+    z-index: 1; /* Lower z-index, sits behind the other canvas */
 }
 
 /* Custom cursor

@@ -1,7 +1,8 @@
 export const CONFIG = {
     tileSize: 16, // Size of each tile in pixels
-    unitSize: 32,
+    unitSize: 16,
     worldSize: 100,
+    miniMapSize: 300,
     serverUrl: "ws://localhost:6789/",    
     terrainColors: {
         'water': '#0000ff',

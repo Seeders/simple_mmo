@@ -10,6 +10,7 @@ class World:
         self.enemies = self.spawn_enemies(50, 100, 100, self.terrain.terrain)       
         self.items_on_ground = {}
         self.towns = self.place_towns()
+        self.roads = [] 
         self.roads = self.generate_roads()
         self.trees = self.spawn_trees(self.terrain.terrain, 'pine')
         self.remove_trees_on_roads() 
@@ -107,7 +108,7 @@ class World:
                     patrol_route = self.generate_patrol_route(enemy_position)  # Pass dictionary directly
                     full_path = self.generate_full_path(patrol_route)
                     full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
-                    enemies[enemy_id] = Enemy(enemy_id, random_enemy_type, enemy_position, full_path_coords)
+                    enemies[enemy_id] = Enemy(self, enemy_id, random_enemy_type, enemy_position, full_path_coords)
                     enemies[enemy_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
                     break
         return enemies
@@ -126,36 +127,81 @@ class World:
         for y, row in enumerate(world_map):
             for x, tile in enumerate(row):
                 if tile in ["forest", "grass"]:  # Assuming "forest" is the identifier for forest tiles
+                    if tile == "grass" and random.randint(0, 9) > 0:
+                        continue
                     tree = {
                         "type": tree_type,
-                        "position": {"x": x, "y": y}
+                        "position": {"x": x, "y": y},
+                        "health": 200
                     }
                     trees.append(tree)
         return trees
     
-    def place_towns(self):
+    def place_towns(self, num_towns=5):
         towns = []
-        for _ in range(10):  # Number of towns
-            while True:
-                x = random.randint(0, self.terrain.width - 1)
-                y = random.randint(0, self.terrain.width - 1)
-                # Place towns on grass or sand tiles
+        min_distance = 20  # Minimum distance between towns
+
+        while len(towns) < num_towns:
+            x = random.randint(0, self.terrain.width - 1)
+            y = random.randint(0, self.terrain.height - 1)
+
+            # Check distance from existing towns
+            if all(self.heuristic((x, y), town) >= min_distance for town in towns):
                 if self.terrain.terrain[y][x] in ['grass', 'sand']:
                     towns.append((x, y))
-                    break
-        return towns
 
+        return towns
+    
     def generate_roads(self):
         roads = []
-        for i in range(len(self.towns) - 1):
-            start = self.towns[i]
-            end = self.towns[i + 1]
-            road = self.connect_towns(start, end)
-            roads.append(road)
+        for town in self.towns:
+            nearest_neighbors = self.find_nearest_neighbors(town, 2)  # Find two nearest neighbors
+            for neighbor in nearest_neighbors:
+                if not self.is_road_exists(town, neighbor, roads):
+                    new_road = self.connect_towns(town, neighbor)
+                    roads.append(new_road)
         return roads
 
+    def find_nearest_neighbors(self, town, count):
+        distances = [(self.heuristic(town, other_town), other_town) for other_town in self.towns if other_town != town]
+        distances.sort()
+        return [town for _, town in distances[:count]]
+
+    def is_road_exists(self, town1, town2, roads):
+        for road in roads:
+            if (town1 in road and town2 in road):
+                return True
+        return False
+
+    def remove_extra_paths(self, town, roads):
+        for road in roads:
+            if self.is_road_near_town(town, road) and not self.is_road_connected_to_town(town, road):
+                for road2 in roads:
+                    if self.is_road_connected_to_town(town, road2):
+                        roads.remove(road2)
+                # Optionally, modify the road to stop before reaching the town
+                # road = self.shorten_road_before_town(town, road)
+        return roads
+
+    def is_road_near_town(self, town, road, threshold=5):
+        # Implement logic to check if the road is near the town
+        # This could involve checking the distance of road segments from the town
+        return any(self.heuristic(town, segment) < threshold for segment in road)
+
+    def is_road_connected_to_town(self, town, road):
+        # Check if the road is connected to the town
+        # This could be based on the endpoints of the road
+        return town in [road[0], road[-1]]
+
+    def shorten_road_before_town(self, town, road):
+        # Shorten the road so it stops before reaching the town
+        # Implement logic based on your game's requirements
+        # Example: return road[:-5] to remove the last 5 segments
+        pass
+
+
     def connect_towns(self, start, end):
-        # A* pathfinding
+        # A* pathfinding with modifications for more natural roads
         open_set = []
         heapq.heappush(open_set, (0, start))
         came_from = {}
@@ -169,7 +215,9 @@ class World:
                 return self.reconstruct_road(came_from, current)
 
             for neighbor in self.get_neighbors(current):
+                # Adjusted cost calculation with strong preference for existing roads
                 tentative_g_score = g_score[current] + self.terrain_cost(current, neighbor)
+
                 if tentative_g_score < g_score.get(neighbor, float('inf')):
                     came_from[neighbor] = current
                     g_score[neighbor] = tentative_g_score
@@ -194,12 +242,17 @@ class World:
     def terrain_cost(self, current, neighbor):
         # Define the cost of moving from current to neighbor based on terrain type
         terrain_type = self.terrain.terrain[neighbor[1]][neighbor[0]]
+        road_weight = .01  # Lower cost for road tiles
+
+        if self.is_road_at_position({'x': neighbor[0], 'y': neighbor[1]}):
+            return road_weight  # Prefer paths on existing roads
+
         if terrain_type == 'water':
-            return 10  # High cost for water
+            return 100  # High cost for water
         elif terrain_type == 'forest':
-            return 5   # Medium cost for forest
+            return 50   # Medium cost for forest
         else:
-            return 1   # Low cost for other types
+            return 10   # Low cost for other types
 
     def get_neighbors(self, node):
         # Get all valid neighboring tiles
@@ -234,7 +287,7 @@ class World:
                 patrol_route = self.generate_patrol_route(enemy_position)  # Pass dictionary directly
                 full_path = self.generate_full_path(patrol_route)
                 full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
-                self.enemies[enemy_id] = Enemy(enemy_id, random_enemy_type, enemy_position, full_path_coords)
+                self.enemies[enemy_id] = Enemy(self, enemy_id, random_enemy_type, enemy_position, full_path_coords)
                 self.enemies[enemy_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
                 print(f"Spawned enemy {enemy_id}[{random_enemy_type}] at ({x}, {y}) with {self.enemies[enemy_id].stats['health']}/{self.enemies[enemy_id].stats['max_health']} hp")  
                 return self.enemies[enemy_id]
@@ -259,3 +312,74 @@ class World:
         """ Check if the world has enough space to spawn new entities. """
         land_count = sum(1 for row in self.terrain.terrain for tile in row if tile != 'water')
         return land_count <= len(self.enemies)
+
+    def is_position_valid(self, position):
+        x = int(position['x'])
+        y = int(position['y'])
+        terrain = self.terrain.terrain
+
+        if x < 0 or y < 0 or x >= len(terrain[0]) or y >= len(terrain):
+            return False
+
+        terrain_type = terrain[y][x]
+        if terrain_type == 'water' and not self.is_road_at_position(position):
+            return False
+
+        return True
+
+    def is_road_at_position(self, position):
+        for road in self.roads:
+            if (position['x'], position['y']) in road:
+                return True
+        return False
+    
+    def merge_overlapping_segments(self, road1, road2, merge_threshold=2):
+        merged_road = []
+        i, j = 0, 0
+        merge_point = None
+
+        while i < len(road1) and j < len(road2):
+            if self.heuristic(road1[i], road2[j]) <= merge_threshold:
+                # Merge overlapping segments
+                merge_point = (i, j)
+                while i < len(road1) and j < len(road2) and self.heuristic(road1[i], road2[j]) <= merge_threshold:
+                    merged_segment = self.average_position(road1[i], road2[j])
+                    merged_road.append(merged_segment)
+                    i += 1
+                    j += 1
+            else:
+                # Add the non-overlapping segments
+                if i < len(road1):
+                    merged_road.append(road1[i])
+                    i += 1
+                if j < len(road2):
+                    merged_road.append(road2[j])
+                    j += 1
+
+        # Check if both roads lead to the same town and merge accordingly
+        if merge_point and self.leads_to_same_town(road1[merge_point[0]:], road2[merge_point[1]:]):
+            merged_road.extend(self.choose_one_path(road1[merge_point[0]:], road2[merge_point[1]:]))
+        else:
+            # Append remaining segments if any
+            while i < len(road1):
+                merged_road.append(road1[i])
+                i += 1
+            while j < len(road2):
+                merged_road.append(road2[j])
+                j += 1
+
+        return merged_road
+
+    def leads_to_same_town(self, path1, path2):
+        # Implement logic to check if both paths lead to the same town
+        # This could be based on the end coordinates of the paths
+        return path1[-1] == path2[-1]
+
+    def choose_one_path(self, path1, path2):
+        # Implement logic to choose one path over the other
+        # This could be based on the length of the path, terrain, etc.
+        return path1 if len(path1) < len(path2) else path2
+
+
+    def average_position(self, pos1, pos2):
+        return ((pos1[0] + pos2[0]) // 2, (pos1[1] + pos2[1]) // 2)

@@ -10,14 +10,42 @@ export default class RenderManager {
         this.terrainCanvas.width = CONFIG.worldSize * CONFIG.tileSize;
         this.terrainCanvas.height = CONFIG.worldSize * CONFIG.tileSize;
         this.terrainRendered = false;
+        this.minimapCanvas = document.getElementById('minimapCanvas');
+        this.minimapCtx = this.minimapCanvas.getContext('2d');
+        this.minimapCanvas.width = CONFIG.miniMapSize; // Match the CSS size
+        this.minimapCanvas.height = CONFIG.miniMapSize; // Match the CSS size
+        
+        this.minimapTerrainCanvas = document.getElementById('minimapTerrainCanvas');
+        this.minimapTerrainCtx = this.minimapTerrainCanvas.getContext('2d');
+        this.minimapTerrainCanvas.width = CONFIG.miniMapSize; // Match the CSS size
+        this.minimapTerrainCanvas.height = CONFIG.miniMapSize; // Match the CSS size
+
+    
+        this.cornerRadius = CONFIG.tileSize * 2; // Adjust the corner radius as needed
+        // Define terrain types and their associated colors
+        this.terrainTypes = {
+            "water": { "r": 127, "g": 212, "b": 255 },       // Light Blue
+            "sand": { "r": 255, "g": 245, "b": 186 },       // Pale Yellow
+            "grass": { "r": 139, "g": 195, "b": 74 },       // Bright Green
+            "forest": { "r": 34, "g": 139, "b": 34 },       // Forest Green
+            "mountain": { "r": 142, "g": 142, "b": 147 },   // Stone Gray
+            "road": { "r": 169, "g": 149, "b": 123 },
+        };
+
+        // Define the order in which to draw terrain types (adjust as needed)
+        this.drawOrder = ['water', 'sand', 'grass', 'forest', 'mountain'];
+
     }
     renderGame() {    
         this.gameState.context.clearRect(0, 0, this.gameState.canvas.width, this.gameState.canvas.height);
+        // Clear the minimap
+        this.minimapCtx.clearRect(0, 0, this.minimapCanvas.width, this.minimapCanvas.height);
             // Draw the static terrain canvas onto the main canvas
+
         this.renderTerrain();
         this.renderTowns();
         this.renderTargetCircle();
-        
+        this.renderMinimap();
         this.renderPlayers();
         this.renderEnemies();
         this.renderPlayerStats();
@@ -59,18 +87,9 @@ export default class RenderManager {
             // Render the terrain onto the off-screen canvas if it hasn't been rendered yet
             if (!this.terrainRendered) {
                 this.terrainCtx.clearRect(0, 0, this.terrainCanvas.width, this.terrainCanvas.height);
-                for (let y = 0; y < this.gameState.terrain.map.length; y++) {
-                    for (let x = 0; x < this.gameState.terrain.map[y].length; x++) {
-                        const terrainType = this.gameState.terrain.getTerrainTypeAt(x, y);
-                        const spritePosition = this.gameState.terrain.getSpriteLocation(terrainType);
-                        const img = this.assetManager.assets[this.gameState.terrain.spriteSheetKey];
-                        if (!img) {
-                            console.error(`${terrainType} image not loaded`);
-                        } else {
-                            this.renderSprite(this.terrainCtx, img, x * CONFIG.tileSize, y * CONFIG.tileSize, spritePosition.x, spritePosition.y);
-                        }
-                    }
-                }
+                this.minimapTerrainCtx.clearRect(0, 0, this.minimapTerrainCanvas.width, this.minimapTerrainCanvas.height);
+                //this.renderSpriteTerrain();
+                this.renderColorTerrain();
                 this.renderRoads(this.terrainCtx);
                 this.renderTrees(this.terrainCtx);
                 this.terrainRendered = true;
@@ -80,8 +99,43 @@ export default class RenderManager {
             this.gameState.context.drawImage(this.terrainCanvas, this.gameState.offsetX, this.gameState.offsetY);
         }
     }
+
+    renderMiniMapImg(canvas, x, y, size, spritePosition, img, _scale=2) {
+        const scale = this.minimapCanvas.width / (CONFIG.worldSize);
+        const scaledX = x * scale;
+        const scaledY = y * scale;
+        const scaledSize = scale * _scale;
+        canvas.getContext('2d').drawImage(img, spritePosition.x, spritePosition.y, size, size, scaledX, scaledY, scaledSize, scaledSize);
+    }    
+    renderMiniMapColor(ctx, x, y, color, _scale=2) {
+        const scale = this.minimapCanvas.width / (CONFIG.worldSize);
+        const scaledX = x * scale;
+        const scaledY = y * scale;
+        const scaledSize = scale * _scale;
+        ctx.fillStyle = color;
+        ctx.fillRect(scaledX, scaledY, scaledSize, scaledSize);
+    }
+    
+    renderMinimap() {
+        const scale = this.minimapCanvas.width / (CONFIG.worldSize);
     
     
+        // Render terrain, players, enemies, etc. on the minimap
+        // Scale down the positions and sizes according to the minimap scale
+        // Example: Render players
+   
+        const player = this.gameState.getCurrentPlayer();
+        if( player ) {
+            const playerSize = scale * 4; // Size of the player square on the minimap
+            const playerX = (player.position.x * scale) - (playerSize / 2); // Center the square on the player's X position
+            const playerY = (player.position.y * scale) - (playerSize / 2); // Center the square on the player's Y position
+            this.minimapCtx.fillStyle = 'blue'; // Player color
+            this.minimapCtx.fillRect(playerX, playerY, playerSize, playerSize);
+        }
+
+        // Add more rendering logic for other entities like enemies, items, etc.
+    }
+
 
     renderPlayers() {
         for (const id in this.gameState.playerManager.players) {
@@ -99,16 +153,17 @@ export default class RenderManager {
             const enemy = this.gameState.enemyManager.enemies[id];
             enemy.render();
             const img = this.assetManager.assets[enemy.spriteSheetKey];     
-            const spritePosition = enemy.currentSprite;  
+            let spritePosition = enemy.currentSprite;  
             let tileSize = CONFIG.tileSize;
             if( enemy.stats.size ) {
                 tileSize = enemy.stats.size;
             }
             if(!spritePosition){
-                debugger;
+                spritePosition = {x: 0, y: 0};
             }
             // Adjust the position to center the larger unit image on the tile
             this.renderSprite(this.gameState.context, img, enemy.position.x * CONFIG.tileSize + this.gameState.offsetX, enemy.position.y * CONFIG.tileSize + this.gameState.offsetY, spritePosition.x, spritePosition.y, tileSize);                         
+            this.renderMiniMapImg(this.minimapCanvas, enemy.position.x, enemy.position.y, tileSize, spritePosition, img, 4);
         }
     }
 
@@ -117,7 +172,9 @@ export default class RenderManager {
         this.gameState.towns.forEach(town => {
             const townX = town.x * CONFIG.tileSize + this.gameState.offsetX;
             const townY = town.y * CONFIG.tileSize + this.gameState.offsetY;
+            const spritePosition = { x: 0, y: 0};
             this.gameState.context.drawImage(townImg, townX, townY, CONFIG.tileSize, CONFIG.tileSize);
+            this.renderMiniMapImg(this.minimapCanvas, town.x, town.y, CONFIG.tileSize, spritePosition, townImg);
         });
     }
 
@@ -128,7 +185,9 @@ export default class RenderManager {
                 const treeImg = this.assetManager.assets[`${tree.type}_tree`]; // Replace with your tree sprite key
                 const treeX = tree.position.x * CONFIG.tileSize;
                 const treeY = tree.position.y * CONFIG.tileSize;
-                this.renderSprite(ctx, treeImg, treeX, treeY, tree.type == 'stump' ? 0 : CONFIG.tileSize, 0, CONFIG.tileSize);
+                const spritePosition = { x: tree.type == 'stump' ? 0 : CONFIG.tileSize, y: 0};
+                this.renderSprite(ctx, treeImg, treeX, treeY, spritePosition.x, spritePosition.y, CONFIG.tileSize);
+                this.renderMiniMapImg(this.minimapTerrainCanvas, tree.position.x, tree.position.y, CONFIG.tileSize, spritePosition, treeImg);
             }
         });
     }
@@ -141,8 +200,17 @@ export default class RenderManager {
                 const roadImg = this.assetManager.assets[`terrain`]; // Replace with your road sprite key
                 const x = point.x * CONFIG.tileSize;
                 const y = point.y * CONFIG.tileSize;
+                const spritePosition = { x: CONFIG.tileSize * 3, y: 0};
                 
-                this.renderSprite(ctx, roadImg, x, y, CONFIG.tileSize * 3, 0, CONFIG.tileSize);
+                //this.renderSprite(ctx, roadImg, x, y, CONFIG.tileSize * 3, 0, CONFIG.tileSize);
+                const cornerRadius = this.cornerRadius / 4;
+                const terrainType = "road";
+                const posX = x - cornerRadius / 2;
+                const posY = y - cornerRadius / 2;
+                const tileSizeWithRadius = CONFIG.tileSize + cornerRadius;
+                const fillColor = `rgb(${this.terrainTypes[terrainType].r}, ${this.terrainTypes[terrainType].g}, ${this.terrainTypes[terrainType].b})`;
+                this.renderRoundedRect(ctx, posX, posY, tileSizeWithRadius, tileSizeWithRadius, cornerRadius, fillColor);
+                this.renderMiniMapImg(this.minimapTerrainCanvas, point.x, point.y, CONFIG.tileSize, spritePosition, roadImg, 1);
     
                 // Store the road tile coordinates in the set
                 this.roadCoordinates.add(`${point.x},${point.y}`);
@@ -287,6 +355,62 @@ export default class RenderManager {
             itemElement.textContent = item.name; // Assuming items have a 'name' property
             this.inventoryElement.appendChild(itemElement);
         });
+    }
+
+
+    // Function to render a rounded rectangle with overlapping
+    renderRoundedRect(ctx, x, y, width, height, radius, fillStyle) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+    }
+
+
+    renderColorTerrain() {
+        // Loop through the terrain map and draw tiles in the specified order
+        for (const terrainType of this.drawOrder) {
+            for (let y = 0; y < this.gameState.terrain.map.length; y++) {
+                for (let x = 0; x < this.gameState.terrain.map[y].length; x++) {    
+                    if (this.gameState.terrain.getTerrainTypeAt(x, y) === terrainType) {
+                        // Adjusted position and size to account for corner radius
+                        const posX = x * CONFIG.tileSize - this.cornerRadius / 2;
+                        const posY = y * CONFIG.tileSize - this.cornerRadius / 2;
+                        const tileSizeWithRadius = CONFIG.tileSize + this.cornerRadius;
+                        const fillColor = `rgb(${this.terrainTypes[terrainType].r}, ${this.terrainTypes[terrainType].g}, ${this.terrainTypes[terrainType].b})`;
+    
+                        this.renderRoundedRect(this.terrainCtx, posX, posY, tileSizeWithRadius, tileSizeWithRadius, this.cornerRadius, fillColor);
+                        // Update minimap rendering as needed
+                        this.renderMiniMapColor(this.minimapTerrainCtx, x, y, fillColor);
+                    }
+                }
+            }
+        }
+    }
+    
+    renderSpriteTerrain() {
+        for (let y = 0; y < this.gameState.terrain.map.length; y++) {
+            for (let x = 0; x < this.gameState.terrain.map[y].length; x++) {
+                const terrainType = this.gameState.terrain.getTerrainTypeAt(x, y);
+                const spritePosition = this.gameState.terrain.getSpriteLocation(terrainType);
+                const img = this.assetManager.assets[this.gameState.terrain.spriteSheetKey];
+                if (!img) {
+                    console.error(`${terrainType} image not loaded`);
+                } else {
+                    this.renderSprite(this.terrainCtx, img, x * CONFIG.tileSize, y * CONFIG.tileSize, spritePosition.x, spritePosition.y);
+                    this.minimapTerrainCtx.fillRect(x, y, playerSize, playerSize);
+                }
+            }
+        }   
     }
 
 }

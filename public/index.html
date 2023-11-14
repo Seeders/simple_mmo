@@ -8,11 +8,15 @@
 </head>
 <body>
     <div id="game-container">
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <canvas id="gameCanvas" height="600"></canvas>
     </div>
     
     <div id="uiContainer">
         <div id="ui-row">
+            <div id="minimap-container">
+                <canvas id="minimapCanvas"></canvas>
+                <canvas id="minimapTerrainCanvas"></canvas>
+            </div>
             <div id="inventory" class="inventory-grid">
                 <!-- Inventory items will be dynamically added here -->
             </div>
@@ -36,6 +40,9 @@
         
         <!-- Add more UI elements as needed -->
     </div>
+<script>
+      document.getElementById('gameCanvas').setAttribute('width', window.document.body.clientWidth);
+ </script>
     <!-- The scripts are deferred to ensure they load after the HTML content -->
 <script src="./bundle.js"></script>
 <script>

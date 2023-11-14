@@ -3,7 +3,8 @@ import copy
 import asyncio
 
 class Enemy:
-    def __init__(self, enemy_id, enemy_type, position, full_path):
+    def __init__(self, world, enemy_id, enemy_type, position, full_path):
+        self.world = world
         self.id = enemy_id
         self.position = position
         self.attacking = False
@@ -19,13 +20,15 @@ class Enemy:
         self.patrol_direction = 1  # 1 for forward, -1 for reverse
 
     def update(self, current_time):
-        # Select movement behavior based on enemy type
-        if self.stats["behavior"] == "patrol":
-            self.patrol_movement(current_time)
-        elif self.stats["behavior"] == "wander":
-            self.wander_movement(current_time)
-        else:
-            self.wander_movement(current_time)
+        if current_time - self.last_patrol_update >= self.patrol_delay and len(self.paths) > 0:
+          self.last_patrol_update = current_time
+          # Select movement behavior based on enemy type
+          if self.stats["behavior"] == "patrol":
+              self.patrol_movement()
+          elif self.stats["behavior"] == "wander":
+              self.wander_movement()
+          else:
+              self.wander_movement()
 
     def move_along_path(self):
         # Check if at the end of the path and reverse direction if needed
@@ -43,18 +46,23 @@ class Enemy:
         # Update position
         self.position = self.paths[self.path_index]
 
-    def patrol_movement(self, current_time):
-        if current_time - self.last_patrol_update >= self.patrol_delay and len(self.paths) > 0:
-            self.move_along_path()
-            self.last_patrol_update = current_time
+    def patrol_movement(self):      
+        next_index = self.path_index + self.patrol_direction
+        if 0 <= next_index < len(self.paths):
+            next_position = self.paths[next_index]
+            if self.world.is_position_valid(next_position):
+                self.move_along_path()
+                
+
+
             
-    def wander_movement(self, current_time):
+    def wander_movement(self):
         # Example of a simple wander behavior
-        if current_time - self.last_patrol_update >= self.patrol_delay:
-            x = self.position["x"] + random.randint(-1, 1)
-            y = self.position["y"] + random.randint(-1, 1)
-            self.position = {"x": x, "y": y}   # Random new position
-            self.last_patrol_update = current_time
+        x = self.position["x"] + random.randint(-1, 1)
+        y = self.position["y"] + random.randint(-1, 1)
+        next_position = {"x": x, "y": y}
+        if self.world.is_position_valid(next_position):
+            self.position = next_position
 
 def get_enemy_stats(enemy_type):
     if enemy_type in enemy_types:
