@@ -7,6 +7,39 @@
 
 </head>
 <body>
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <form id="loginForm">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required><br>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required><br>
+                <input type="submit" value="Login">
+            </form>
+        </div>
+    </div>
+
+    <div id="registrationModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('registrationModal')">&times;</span>
+            <form id="registrationForm">
+                <label for="regUsername">Username:</label>
+                <input type="text" id="regUsername" name="username" required><br>
+                <label for="regPassword">Password:</label>
+                <input type="password" id="regPassword" name="password" required><br>
+                <label for="regPasswordConfirm">Confirm Password:</label>
+                <input type="password" id="regPasswordConfirm" name="passwordConfirm" required><br>
+                <input type="submit" value="Register">
+            </form>
+        </div>
+    </div>
+    
+    <!-- Buttons to toggle between login and registration -->
+    <div class="auth-toggle">
+        <button onclick="showModal('loginModal')">Login</button>
+        <button onclick="showModal('registrationModal')">Register</button>
+    </div>
     <div id="game-container">
         <canvas id="gameCanvas" height="600"></canvas>
     </div>
@@ -46,6 +79,17 @@
     <!-- The scripts are deferred to ensure they load after the HTML content -->
 <script src="./bundle.js"></script>
 <script>
+    
+    function showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.style.display = "block";
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.style.display = "none";
+    }
+
 function openTab(evt, tabName) {
     var i, tabcontent, tablinks;
 

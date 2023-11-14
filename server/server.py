@@ -38,33 +38,8 @@ def is_rate_limited(ip_address):
     return False
 
 async def game_server(websocket, path, game_manager:GameManager):
-
-    player = await game_manager.new_player(websocket)
-
+    player = None  
     try:
-        # Send initial game state to the connected player
-        await websocket.send(json.dumps({
-            "type": "init",
-            "id": player.id,
-            "color": player.color,
-            "terrain": game_manager.world.terrain.terrain,
-            "trees": game_manager.world.trees,
-            "towns": [{"x": town[0], "y": town[1]} for town in game_manager.world.towns],
-            "roads": [[{"x": point[0], "y": point[1]} for point in road] for road in game_manager.world.roads],  # Adjusted for new road structure
-            "players": [{"id": pid, "color": p.color, "position": {"x": game_manager.world.towns[0][0], "y": game_manager.world.towns[0][1]}, "stats": p.stats} for pid, p in game_manager.connected.items()],
-            "chat": [],
-            "enemies": [{"id": enemy_id, "position": e.position, "stats": e.stats} for enemy_id, e in game_manager.world.enemies.items()]
-        }))
-
-        # Notify other players of the new player
-        await broadcast({
-            "type": "new_player",
-            "id": player.id,
-            "color": player.color,
-            "position": player.position,
-            "stats": player.stats
-        }, game_manager.connected, game_manager.connections, websocket)
-
         # Main message handling loop
         async for message in websocket:
             ip_address = websocket.remote_address[0]
@@ -72,7 +47,7 @@ async def game_server(websocket, path, game_manager:GameManager):
                 print(f"Rate limit exceeded for {ip_address}")
                 return  # Close connection or send error message
             data = json.loads(message)
-            player_id = data["playerId"]
+            player_id = data.get("playerId")
             # Handle different message types with appropriate game_manager methods
             if data["type"] == "move":
                 if game_manager.connected[player_id].move(data["position"]):       
@@ -123,11 +98,69 @@ async def game_server(websocket, path, game_manager:GameManager):
                             "potionId": item_id,
                             "newHealth": player.stats['health']
                         }, game_manager.connected, game_manager.connections)
+            elif data["type"] == "login":
+                username = data["username"]
+                password = data["password"]
+                player_id = await game_manager.authenticate_user(username, password)
+                if player_id:
+                    player = await game_manager.new_player(player_id, websocket)
+                    await websocket.send(json.dumps({
+                        "type": "login_response",
+                        "success": True,
+                        "player_id": player_id
+                    }))
+                    # Send initial game state to the connected player
+                    await websocket.send(json.dumps({
+                        "type": "init",
+                        "id": player.id,
+                        "color": player.color,
+                        "terrain": game_manager.world.terrain.terrain,
+                        "trees": game_manager.world.trees,
+                        "towns": [{"x": town[0], "y": town[1]} for town in game_manager.world.towns],
+                        "roads": [[{"x": point[0], "y": point[1]} for point in road] for road in game_manager.world.roads],  # Adjusted for new road structure
+                        "players": [{"id": pid, "color": p.color, "position": {"x": game_manager.world.towns[0][0], "y": game_manager.world.towns[0][1]}, "stats": p.stats} for pid, p in game_manager.connected.items()],
+                        "chat": [],
+                        "enemies": [{"id": enemy_id, "position": e.position, "stats": e.stats} for enemy_id, e in game_manager.world.enemies.items()]
+                    }))
+
+                    # Notify other players of the new player
+                    await broadcast({
+                        "type": "new_player",
+                        "id": player.id,
+                        "color": player.color,
+                        "position": player.position,
+                        "stats": player.stats
+                    }, game_manager.connected, game_manager.connections, websocket)
+
+                else:
+                    await websocket.send(json.dumps({
+                        "type": "login_response",
+                        "success": False,
+                        "message": "Invalid username or password"
+                    }))
+
+            elif data["type"] == "register":
+                username = data["username"]
+                password = data["password"]
+                registration_success = await game_manager.register_user(username, password)
+                if registration_success:
+                    await websocket.send(json.dumps({
+                        "type": "register_response",
+                        "success": True
+                    }))
+                else:
+                    await websocket.send(json.dumps({
+                        "type": "register_response",
+                        "success": False,
+                        "message": "Username already taken"
+                    }))
+                # Add logic to create new user account
 
     except websockets.exceptions.ConnectionClosedError:
         pass  # Handle disconnection
     finally:
-        await game_manager.disconnect_player(player.id)
+        if player is not None:  # Check if player is not None before trying to use it
+            await game_manager.disconnect_player(player.id)
 
 async def main():
     game_manager = GameManager()

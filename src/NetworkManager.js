@@ -44,6 +44,14 @@ export default class NetworkManager {
             console.error('WebSocket is not connected.');
         }
     }
+    register(username, password) {
+        const payload = { username, password };
+        this.send('register', payload);
+      }
+    login(username, password) {
+        const payload = { username, password };
+        this.send('login', payload);
+    }
 
     // Handle incoming messages
     handleMessage(data) {

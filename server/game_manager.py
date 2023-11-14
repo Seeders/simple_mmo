@@ -1,7 +1,9 @@
 # game_manager.py
-
 import asyncio
 import random
+import aiosqlite
+import bcrypt
+import json
 from game.player import Player
 from game.world import World
 from game.item import generate_random_item
@@ -15,34 +17,120 @@ class GameManager:
         self.next_item_id = 0
         self.world = World()
         self.combat_logs = {}
+        self.db_file = 'game.db'
 
-    async def new_player(self, websocket):
-        self.player_id_counter += 1
-        player_id = f"Player{self.player_id_counter}"
-        player_position = {"x": 50, "y": 50}
-        # Create a new Player object without the websocket
-        new_player = Player(self, player_id, player_position)
-        # Store the Player object in the connected dictionary
-        self.connected[player_id] = new_player
-        # Store the websocket connection in a separate dictionary
-        self.connections[player_id] = websocket
 
-        return new_player
+    async def register_user(self, username, password):
+        # Check if username already exists
+        async with aiosqlite.connect(self.db_file) as db:
+            async with db.execute('SELECT username FROM user_credentials WHERE username = ?', (username,)) as cursor:
+                if await cursor.fetchone():
+                    return False  # Username already exists
+
+        # Hash the password
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+        # Generate a new player ID
+        new_player_id = await self.get_next_player_id()
+
+        # Insert new user credentials into the database
+        async with aiosqlite.connect(self.db_file) as db:
+            await db.execute(
+                'INSERT INTO user_credentials (username, password_hash, player_id) VALUES (?, ?, ?)',
+                (username, hashed_password, new_player_id)
+            )
+            await db.commit()
+
+        # Create and save the new player object
+        new_player = Player(self, new_player_id)  # removed default_position argument
+        self.connected[new_player_id] = new_player
+        await self.save_player_state(new_player_id)
+
+        return True  # Registration successful
+
+
+    async def authenticate_user(self, username, password):
+        async with aiosqlite.connect(self.db_file) as db:
+            async with db.execute('SELECT password_hash, player_id FROM user_credentials WHERE username = ?', (username,)) as cursor:
+                row = await cursor.fetchone()
+                if row and bcrypt.checkpw(password.encode('utf-8'), row[0].encode('utf-8')):
+                    return row[1]  # Return the player_id
+                else:
+                    return None
+
+    async def get_next_player_id(self):
+        async with aiosqlite.connect(self.db_file) as db:
+            async with db.execute('SELECT MAX(player_id) FROM players') as cursor:
+                row = await cursor.fetchone()
+                max_id = row[0]
+                if max_id is not None:
+                    # Extract the numeric part and increment it
+                    self.player_id_counter = int(max_id.replace('Player', '')) + 1
+                else:
+                    # Start from 1 if the table is empty
+                    self.player_id_counter = 1
+                return f"Player{self.player_id_counter}"
+
+    async def save_player_state(self, player_id):
+        player = self.connected[player_id]
+        try:
+            async with aiosqlite.connect(self.db_file) as db:
+                await db.execute(
+                    'REPLACE INTO players (player_id, position_x, position_y, health, max_health, experience, level, inventory) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                    (player_id, player.position['x'], player.position['y'], player.stats['health'], player.stats['max_health'], player.stats['experience'], player.stats['level'], json.dumps(player.inventory))
+                )
+                await db.commit()
+        except Exception as e:
+            print(f"Error saving player state: {e}")
+
+    async def load_player_state(self, player_id):
+        try:
+            async with aiosqlite.connect(self.db_file) as db:
+                async with db.execute('SELECT * FROM players WHERE player_id = ?', (player_id,)) as cursor:
+                    row = await cursor.fetchone()
+
+                    if row:
+                        player_data = {
+                            'position': {'x': row[1], 'y': row[2]},
+                            'stats': {
+                                'health': row[3],
+                                'max_health': row[4],
+                                'experience': row[5],
+                                'level': row[6]
+                            },
+                            'inventory': json.loads(row[7])
+                        }
+                        return Player(self, player_id, player_data['position'], player_data['stats'], player_data['inventory'])
+                    else:
+                        return None
+        except Exception as e:
+            print(f"Error loading player state: {e}")
+            return None
+
+    async def new_player(self, player_id, websocket):
+        # Load existing player state
+        existing_player = await self.load_player_state(player_id)
+        if existing_player:
+            self.connected[player_id] = existing_player
+            self.connections[player_id] = websocket
+            return existing_player
+        else:
+            new_player = Player(self, player_id, { "x": self.world.towns[0][0], "y": self.world.towns[0][1] })
+            self.connected[player_id] = new_player
+            self.connections[player_id] = websocket
+            await self.save_player_state(player_id)  # Save the new player state
+            return new_player
 
     async def disconnect_player(self, player_id):
-        # Make sure player_id is the correct type and is present in the dictionary
         if player_id in self.connected:
+            await self.save_player_state(player_id)
             del self.connected[player_id]
-        # Handle the case where the player_id is not in the dictionary
         else:
-            # Log an error or handle it as appropriate
             print(f"Player ID {player_id} not found in connected players.")
 
         if player_id in self.connections:
             del self.connections[player_id]
-        # Handle the case where the player_id is not in the dictionary
         else:
-            # Log an error or handle it as appropriate
             print(f"Player ID {player_id} not found in connections.")
 
         await broadcast({

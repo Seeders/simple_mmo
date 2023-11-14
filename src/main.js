@@ -87,23 +87,75 @@ function gameLoop(gameState) {
   requestAnimationFrame(() => gameLoop(gameState));
 }
 
+// Optionally, if you need to export anything from this module
+
 async function main() {
   const assetManager = new AssetManager();
-  await loadAssets(assetManager);
 
   const { gameState, networkManager, combatLogUI, chatUI, inventoryUI } = setupGame(assetManager);
-  gameLoop(gameState);
 
-  // If you need to expose some components globally or to other modules you can attach them to window or export them.
-  window.game = {
-    gameState: gameState,
-    networkManager: networkManager, 
-    chatUI: chatUI,
-    combatLogUI: combatLogUI, 
-    inventoryUI: inventoryUI
+  var _networkManager;
+  // Show login modal
+  const loginLodal = document.getElementById("loginModal");
+
+  const loginForm = document.getElementById("loginForm");
+  loginForm.onsubmit = async function(event) {
+    event.preventDefault();
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    // Here, you would send the username and password to the server for authentication
+    // For example, using networkManager or another AJAX method
+    // If login is successful, proceed with game setup
+    try {
+
+      await networkManager.login(username, password);
+      loginLodal.style.display = "none";
+      await loadAssets(assetManager);
+      gameLoop(gameState);
+        
+      // If you need to expose some components globally or to other modules you can attach them to window or export them.
+      window.game = {
+        gameState: gameState,
+        networkManager: networkManager, 
+        chatUI: chatUI,
+        combatLogUI: combatLogUI, 
+        inventoryUI: inventoryUI
+      };
+    } catch (error) {
+      console.error("Login failed:", error);
+      // Handle login failure (e.g., show an error message)
+    }
+  };
+  
+  const closeModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.style.display = "none";
+  }
+  
+  const registrationForm = document.getElementById("registrationForm");
+  registrationForm.onsubmit = async function(event) {
+    event.preventDefault();
+    const username = document.getElementById("regUsername").value;
+    const password = document.getElementById("regPassword").value;
+    const passwordConfirm = document.getElementById("regPasswordConfirm").value;
+  
+    if (password !== passwordConfirm) {
+      alert("Passwords do not match.");
+      return;
+    }
+  
+    // Here, send the username and password to the server for registration
+    // For example, using networkManager or another AJAX method
+    try {
+      await networkManager.register(username, password);
+      closeModal("registrationModal");
+      // Optionally, automatically log in the user after successful registration
+    } catch (error) {
+      console.error("Registration failed:", error);
+      // Handle registration failure (e.g., show an error message)
+    }
   };
 }
 
 main().catch(console.error);
-
-// Optionally, if you need to export anything from this module

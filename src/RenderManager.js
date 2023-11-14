@@ -198,18 +198,14 @@ export default class RenderManager {
         this.gameState.roads.forEach(roadSegment => {
             roadSegment.forEach(point => {
                 const roadImg = this.assetManager.assets[`terrain`]; // Replace with your road sprite key
+                const spritePosition = { x: CONFIG.tileSize * 3, y: 0};
                 const x = point.x * CONFIG.tileSize;
                 const y = point.y * CONFIG.tileSize;
-                const spritePosition = { x: CONFIG.tileSize * 3, y: 0};
-                
-                //this.renderSprite(ctx, roadImg, x, y, CONFIG.tileSize * 3, 0, CONFIG.tileSize);
-                const cornerRadius = this.cornerRadius / 4;
-                const terrainType = "road";
-                const posX = x - cornerRadius / 2;
-                const posY = y - cornerRadius / 2;
-                const tileSizeWithRadius = CONFIG.tileSize + cornerRadius;
-                const fillColor = `rgb(${this.terrainTypes[terrainType].r}, ${this.terrainTypes[terrainType].g}, ${this.terrainTypes[terrainType].b})`;
-                this.renderRoundedRect(ctx, posX, posY, tileSizeWithRadius, tileSizeWithRadius, cornerRadius, fillColor);
+    
+                // Use a base color for the dirt path
+                const baseColor = this.terrainTypes.road; // SaddleBrown: A good base for a dirt path
+                ctx.fillStyle = baseColor;
+                ctx.fillRect(x, y, CONFIG.tileSize, CONFIG.tileSize);
                 this.renderMiniMapImg(this.minimapTerrainCanvas, point.x, point.y, CONFIG.tileSize, spritePosition, roadImg, 1);
     
                 // Store the road tile coordinates in the set

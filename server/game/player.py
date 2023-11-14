@@ -7,19 +7,17 @@ from utils.broadcast import broadcast, broadcastCombatLog
 
 class Player:
 
-    def __init__(self, game_manager, player_id, position, stats=None):
+    def __init__(self, game_manager, player_id, position, stats=None, inventory=[]):
         self.id = player_id
         self.game_manager = game_manager
-        self.position = position
+        self.position = position if position else {"x": 50, "y": 50}
         self.in_combat = False
         self.attacking = False
-        self.inventory = []
+        self.inventory = inventory
         self.color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
         self.last_attack_time = asyncio.get_event_loop().time()
-        if stats:
-            self.stats = stats
-        else:
-            self.stats = Player.generate_player_stats()
+        default_stats = self.generate_player_stats()
+        self.stats = {**default_stats, **(stats or {})}
 
     def level_up(self):
         self.stats['level'] += 1
