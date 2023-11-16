@@ -322,22 +322,111 @@ export default class RenderManager {
     renderRoads() {
         this.roadCoordinates = new Set(); // Initialize the set to store road coordinates
     
-        this.gameState.roads.forEach(roadSegment => {
-            roadSegment.forEach(point => {
+        this.gameState.roads.forEach((roadSegment, roadIndex) => {
+            roadSegment.forEach((point, index) => {
                 const roadImg = this.assetManager.assets[`road`]; // Replace with your road sprite key
-                const spritePosition = { x: 0, y: 0};
+                const spritePosition = { x: 0, y: 0 };
                 const x = point.x * CONFIG.tileSize;
                 const y = point.y * CONFIG.tileSize;
     
-                this.renderSprite(this.terrainCtx, roadImg, x, y, spritePosition.x, spritePosition.y, CONFIG.tileSize);
-               // this.gameState.context.fillRect(x, y, CONFIG.tileSize, CONFIG.tileSize);
-                this.renderMiniMapImg(this.minimapTerrainCanvas, point.x, point.y, CONFIG.tileSize, spritePosition, roadImg, 1);
+                const prevPoint = roadSegment[index - 1];
+                const nextPoint = roadSegment[index + 1];
     
-                // Store the road tile coordinates in the set
+                // Determine if this segment is part of a stair-like pattern
+                if (prevPoint && nextPoint) {
+                    const isStairPatternToRightUp = prevPoint.y === point.y - 1 && nextPoint.x === point.x - 1;
+                    const isStairPatternToLeftUp = prevPoint.y === point.y - 1 && nextPoint.x === point.x + 1;
+                    const isStairPatternToRightDown = prevPoint.y === point.y + 1 && nextPoint.x === point.x - 1;
+                    const isStairPatternToLeftDown = prevPoint.y === point.y + 1 && nextPoint.x === point.x + 1;
+    
+                    if (isStairPatternToRightDown) {
+                        this.drawAndShiftTriangle(roadImg, x - CONFIG.tileSize, y, false, true);
+                    } else if (isStairPatternToLeftUp) {
+                        this.drawAndShiftTriangle(roadImg, x, y, false, false);
+                    } else if (isStairPatternToLeftDown) {
+                        this.drawAndShiftTriangle(roadImg, x + CONFIG.tileSize, y + CONFIG.tileSize, true, false);
+                    }else if (isStairPatternToRightUp) {
+                        this.drawAndShiftTriangle(roadImg, x - CONFIG.tileSize, y - CONFIG.tileSize, true, true);
+                    } else {
+                        this.renderSprite(this.terrainCtx, roadImg, x, y, spritePosition.x, spritePosition.y, CONFIG.tileSize);
+                    }
+                } else {
+                    this.renderSprite(this.terrainCtx, roadImg, x, y, spritePosition.x, spritePosition.y, CONFIG.tileSize);
+                }
+    
+                this.renderMiniMapImg(this.minimapTerrainCanvas, point.x, point.y, CONFIG.tileSize, spritePosition, roadImg, 1);
                 this.roadCoordinates.add(`${point.x},${point.y}`);
             });
         });
     }
+    
+    drawAndShiftTriangle(image, x, y, flip, goingDown) {
+        // Determine the new canvas size
+        const canvasWidth = image.width * 2;
+        const canvasHeight = image.height * 2;
+    
+        // Create a new canvas element
+        const canvas = document.createElement('canvas');
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        const ctx = canvas.getContext('2d');
+    
+        // Draw the image onto the canvas at the center
+        ctx.drawImage(image, canvasWidth / 4, canvasHeight / 4, image.width, image.height);
+    
+        // Get the image data from the canvas
+        let imgData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+        let pixels = imgData.data;
+    
+        // Create a new empty image data object for the shifted image
+        let shiftedImgData = ctx.createImageData(canvasWidth, canvasHeight);
+    
+        const shiftAmount = image.width / 2; // Shift by half the width of the image
+    
+
+        for (let localY = 0; localY < image.height; localY++) {
+            for (let localX = 0; localX < image.width; localX++) {
+                let oldIndex = ((localY + canvasHeight / 4) * canvasWidth + (localX + canvasWidth / 4)) * 4;
+                let isBelowDiagonal = localX < localY;
+                if(flip) isBelowDiagonal = image.width - localX < localY;
+                if (isBelowDiagonal) {
+                    // Calculate the new position for the pixel in the triangle
+                    let newX = flip ? localX - shiftAmount : localX + shiftAmount;
+                    let newY = localY - shiftAmount;
+    
+                    let newIndex = ((newY + canvasHeight / 4) * canvasWidth + (newX + canvasWidth / 4)) * 4;
+    
+                    // Shift the pixel
+                    for (let i = 0; i < 4; i++) {
+                        shiftedImgData.data[newIndex + i] = pixels[oldIndex + i];
+                    }
+                } else {
+                    // Calculate the new position for the pixel in the triangle
+                    let newX = flip ? localX + shiftAmount : localX - shiftAmount;
+                    let newY = localY + shiftAmount;
+    
+                    let newIndex = ((newY + canvasHeight / 4) * canvasWidth + (newX + canvasWidth / 4)) * 4;
+                    for (let i = 0; i < 4; i++) {
+                        shiftedImgData.data[newIndex + i] = pixels[oldIndex + i];
+                    }
+                }
+            }
+        }
+    
+    
+        // Clear the canvas and draw the shifted image
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        ctx.putImageData(shiftedImgData, 0, 0);
+    
+        // Adjust final drawing position based on road direction
+        let finalX = x - (flip && !goingDown ? CONFIG.tileSize : 0);
+        let finalY = y - (goingDown ? 0 : CONFIG.tileSize);
+    
+        // Draw the shifted image onto the original context at the specified position
+        this.terrainCtx.drawImage(canvas, finalX, finalY);
+    }
+    
+    
     
     
     // Function to draw the level and health of the current player

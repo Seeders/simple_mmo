@@ -249,7 +249,7 @@ class World:
 
         if terrain_type == 'water':
             return 100  # High cost for water
-        elif terrain_type == 'forest':
+        elif terrain_type == 'forest' or terrain_type == 'sand':
             return 50   # Medium cost for forest
         else:
             return 10   # Low cost for other types
