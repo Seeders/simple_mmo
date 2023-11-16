@@ -8,6 +8,7 @@ export default class GameState {
     constructor(context, debugCanvas, assetManager) {
         this.context = context;
         this.canvas = context.canvas;
+        this.canvas.width = window.innerWidth;
         this.debugCanvas = debugCanvas;
         this.assetManager = assetManager;
         this.playerManager = new PlayerManager(this);
@@ -103,7 +104,7 @@ export default class GameState {
     
     updateTrees(data) {
         this.trees = data.trees;
-        this.renderManager.terrainRendered = false;
+       // this.renderManager.terrainRendered = false;
     }
 
     levelUp(data) {

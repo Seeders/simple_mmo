@@ -30,7 +30,7 @@ button {
 }
 canvas {
     background-color: transparent;
-    height: 100%;
+
 }
 #ui-row {
     display: flex;

@@ -6,7 +6,7 @@ class Terrain:
         self.height = height
         self.terrain = self.generate_terrain(width, height)
 
-    def generate_terrain(self, width, height, scale=0.02):
+    def generate_terrain(self, width, height, scale=0.04):
         terrain = []
         for y in range(height):
             row = []

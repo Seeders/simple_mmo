@@ -59,7 +59,7 @@ export default class Unit {
         // Define the names of the sprites
         let names = this.stats.walk_animation_order;
 
-        let tileSize = CONFIG.tileSize;
+        let tileSize = CONFIG.unitSize;
         if( this.stats.size ) {
             tileSize = this.stats.size;
         }
@@ -87,7 +87,7 @@ export default class Unit {
         let prefix = 'attack';
         // Define the names of the sprites
         let names = this.stats.attack_animation_order;
-        let tileSize = CONFIG.tileSize;
+        let tileSize = CONFIG.unitSize;
         if( this.stats.size ) {
             tileSize = this.stats.size;
         }
@@ -167,11 +167,11 @@ export default class Unit {
 
                 // Update the last frame time
                 this.animationState.lastAttackFrameTime = currentTime;
+            } else if( !this.currentSprite ) {
+                this.currentSprite = this.sprites[`move_${this.animationState.direction}1`];
             }
         }
-        if( !this.currentSprite ) {
-            debugger;
-        }
+        
     }
 
     // ... other common methods ...

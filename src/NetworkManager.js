@@ -88,30 +88,30 @@ export default class NetworkManager {
                 this.gameState.combatUpdate(data);
                 break;
             case "start_attack":
-                let id, unit, target;
+                let id, unit, targetPosition;
                 if( data.playerId ) {
                     id = data.playerId;
                     unit = this.gameState.playerManager.getPlayer(id);
-                    if( data.targetId ) {
-                        target = this.gameState.enemyManager.enemies[data.targetId];
+                    if( data.targetPosition ) {
+                        targetPosition = data.targetPosition;
                     }
                 } else if( data.enemyId ) {
                     id = data.enemyId;
                     unit = this.gameState.enemyManager.enemies[id];       
-                    if( data.targetId ) {
-                        target = this.gameState.playerManager.getPlayer(data.targetId);
+                    if( data.targetPosition ) {
+                        targetPosition = data.targetPosition;
                     }
                 }   
                 
                 if( unit ) {
-                    if( target ) {
-                        if (target.position.x < unit.position.x) {
+                    if( targetPosition ) {
+                        if (targetPosition.x < unit.position.x) {
                             unit.faceDirection('attack', 'left');
-                        } else if (target.position.x > unit.position.x) {
+                        } else if (targetPosition.x > unit.position.x) {
                             unit.faceDirection('attack', 'right');
-                        } else if (target.position.y < unit.position.y) {
+                        } else if (targetPosition.y < unit.position.y) {
                             unit.faceDirection('attack', 'up');
-                        } else if (target.position.y > unit.position.y) {
+                        } else if (targetPosition.y > unit.position.y) {
                             unit.faceDirection('attack', 'down');
                         }                        
                     }

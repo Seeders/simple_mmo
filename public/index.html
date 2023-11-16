@@ -12,9 +12,9 @@
             <span class="close">&times;</span>
             <form id="loginForm">
                 <label for="username">Username:</label>
-                <input type="text" id="username" name="username" required><br>
+                <input type="text" id="username" name="username"><br>
                 <label for="password">Password:</label>
-                <input type="password" id="password" name="password" required><br>
+                <input type="password" id="password" name="password"><br>
                 <input type="submit" value="Login">
             </form>
         </div>
@@ -41,8 +41,8 @@
         <button onclick="showModal('registrationModal')">Register</button>
     </div>
     <div id="game-container">
-        <canvas id="debugCanvas" class="gameCanvas" height="600"></canvas>
-        <canvas id="gameCanvas" class="gameCanvas" height="600"></canvas>
+        <canvas id="debugCanvas" class="gameCanvas"></canvas>
+        <canvas id="gameCanvas" class="gameCanvas"></canvas>
     </div>
     
     <div id="uiContainer">
@@ -74,10 +74,6 @@
         
         <!-- Add more UI elements as needed -->
     </div>
-<script>
-    document.getElementById('gameCanvas').setAttribute('width', window.document.body.clientWidth);
-      document.getElementById('debugCanvas').setAttribute('width', window.document.body.clientWidth);
- </script>
     <!-- The scripts are deferred to ensure they load after the HTML content -->
 <script src="./bundle.js"></script>
 <script>

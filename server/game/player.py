@@ -52,6 +52,11 @@ class Player:
         # Reduce the health of the tree
         for tree in self.game_manager.world.trees:
             if tree["position"] == position and tree["type"] != "stump":
+                asyncio.create_task(broadcast({
+                    "type": "start_attack",   
+                    "playerId": self.id,
+                    "targetPosition": tree["position"]
+                }, self.game_manager.connected, self.game_manager.connections))
                 tree["health"] -= self.stats["damage"]
                 if tree["health"] <= 0:
                     tree["type"] = "stump"  # Change tree type to 'stump' when health is depleted

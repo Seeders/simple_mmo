@@ -44,6 +44,10 @@ export default class EventHandler {
             // Calculate the center of the player's position
             const playerCenterX = player.position.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2;
             const playerCenterY = player.position.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2;
+
+            let p = document.createElement('p');
+            p.innerText = `<p>${clickX},${clickY} - ${playerCenterX},${playerCenterY}</p>`;
+            document.getElementById('chatMessages').appendChild(p);
             // Check if the click is within the circle's radius
             if (Math.pow(clickX - playerCenterX, 2) + Math.pow(clickY - playerCenterY, 2) <= Math.pow(CONFIG.unitSize / 2, 2)) {
                 this.gameState.selectedTarget = { type: 'player', id: id, stats: player.stats };

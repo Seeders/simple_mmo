@@ -1,5 +1,6 @@
 
 import { CONFIG } from './config';
+import TileMap from './TileMap';
 export default class RenderManager {
     constructor(gameState, assetManager) {
         this.gameState = gameState;
@@ -53,7 +54,7 @@ export default class RenderManager {
         this.minimapTerrainCanvas.width = CONFIG.miniMapSize; // Match the CSS size
         this.minimapTerrainCanvas.height = CONFIG.miniMapSize; // Match the CSS size
 
-        
+        this.tileMap = new TileMap(gameState, assetManager, this.terrainCanvas, CONFIG.tileSize, ['water', 'sand', 'grass', 'forest', 'mountain']);
 
     
         this.cornerRadius = 0; // Adjust the corner radius as needed
@@ -75,44 +76,70 @@ export default class RenderManager {
         this.gameState.context.clearRect(0, 0, this.gameState.canvas.width, this.gameState.canvas.height);
         const player = this.gameState.getCurrentPlayer();
         if (player) {
+               this.gameState.canvas.width = window.innerWidth;
+            this.gameState.canvas.height = window.innerHeight - document.getElementById('uiContainer').offsetHeight;
+            const halfCanvasWidth = this.gameState.canvas.width / 2;
+            const halfCanvasHeight = this.gameState.canvas.height / 2;
+            const worldPixelWidth = this.gameState.terrain.map[0].length * CONFIG.tileSize;
+            const worldPixelHeight = this.gameState.terrain.map.length * CONFIG.tileSize;
+       
+            // Calculate the desired center position
+            let desiredCenterX = player.position.x * CONFIG.tileSize + CONFIG.tileSize / 2;
+            let desiredCenterY = player.position.y * CONFIG.tileSize + CONFIG.tileSize / 2;
+       
+            // Clamp the center position to prevent the viewport from showing out-of-bounds areas
+            desiredCenterX = Math.max(halfCanvasWidth, Math.min(desiredCenterX, worldPixelWidth - halfCanvasWidth));
+            desiredCenterY = Math.max(halfCanvasHeight, Math.min(desiredCenterY, worldPixelHeight - halfCanvasHeight));
+       
+        
+            // Calculate the top-left corner of the viewport
+            this.gameState.offsetX = halfCanvasWidth - desiredCenterX;
+            this.gameState.offsetY = halfCanvasHeight - desiredCenterY;
             // Render each layer to its off-screen canvas if not done yet
             if (!this.terrainRendered) {
-                this.renderLayer(this.waterCtx, 'water');
-                this.renderLayer(this.sandCtx, 'sand');
-                this.renderLayer(this.grassCtx, 'grass');
-                this.renderLayer(this.forestCtx, 'forest');
-                this.renderLayer(this.mountainCtx, 'mountain');
+                // this.renderLayer(this.waterCtx, 'water');
+                // this.renderLayer(this.sandCtx, 'sand');
+                // this.renderLayer(this.grassCtx, 'grass');
+                // this.renderLayer(this.forestCtx, 'forest');
+                // this.renderLayer(this.mountainCtx, 'mountain');
                 // ... render other layers ...
+                this.tileMap.load();
+                let minimapWidth = this.minimapCanvas.width;
+                let minimapHeight = this.minimapCanvas.height;
 
+                // Draw the terrain canvas onto the minimap canvas, scaling it down
+                this.minimapTerrainCtx.drawImage(this.terrainCanvas, 0, 0, this.terrainCanvas.width, this.terrainCanvas.height, 0, 0, minimapWidth, minimapHeight);
+                        
+                this.renderRoads();
+                this.renderTrees();
                 this.terrainRendered = true;
             }
+         
         }
 
-        // Apply shadow and draw each off-screen canvas to the main canvas
-        this.gameState.context.shadowOffsetX = 5;
-        this.gameState.context.shadowOffsetY = 5;
-        this.gameState.context.shadowBlur = 10;
-        this.gameState.context.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        // // Apply shadow and draw each off-screen canvas to the main canvas
+        // this.gameState.context.shadowOffsetX = 5;
+        // this.gameState.context.shadowOffsetY = 5;
+        // this.gameState.context.shadowBlur = 10;
+        // this.gameState.context.shadowColor = 'rgba(0, 0, 0, 0.5)';
         
-        // Draw the sand layer with shadow
-        this.gameState.context.drawImage(this.waterCanvas, this.gameState.offsetX, this.gameState.offsetY);
-        this.gameState.context.drawImage(this.sandCanvas, this.gameState.offsetX, this.gameState.offsetY);
-        this.gameState.context.drawImage(this.grassCanvas, this.gameState.offsetX, this.gameState.offsetY);
-        this.gameState.context.drawImage(this.forestCanvas, this.gameState.offsetX, this.gameState.offsetY);
-        this.gameState.context.drawImage(this.mountainCanvas, this.gameState.offsetX, this.gameState.offsetY);
+        // // Draw the sand layer with shadow
+        // // this.gameState.context.drawImage(this.waterCanvas, this.gameState.offsetX, this.gameState.offsetY);
+        // // this.gameState.context.drawImage(this.sandCanvas, this.gameState.offsetX, this.gameState.offsetY);
+        // // this.gameState.context.drawImage(this.grassCanvas, this.gameState.offsetX, this.gameState.offsetY);
+        // // this.gameState.context.drawImage(this.forestCanvas, this.gameState.offsetX, this.gameState.offsetY);
+        // // this.gameState.context.drawImage(this.mountainCanvas, this.gameState.offsetX, this.gameState.offsetY);
       
 
-        // ... draw other layers ...
+        // // ... draw other layers ...
 
-        // Reset shadow effects after drawing all layers
-        this.gameState.context.shadowColor = 'transparent';
+        // // Reset shadow effects after drawing all layers
+        // this.gameState.context.shadowColor = 'transparent';
 
         // Clear the minimap
         this.minimapCtx.clearRect(0, 0, this.minimapCanvas.width, this.minimapCanvas.height);
 
-        // Draw the static terrain canvas onto the main canvas
         this.renderTerrain();
-
         // Render towns, target circle, minimap, players, enemies, etc.
         this.renderTowns();
         this.renderTargetCircle();
@@ -154,40 +181,9 @@ export default class RenderManager {
 
     renderTerrain() {
         // Calculate the offset based on the player's position to center the player on the screen
-        const player = this.gameState.getCurrentPlayer();
-        if (player) {
-            const halfCanvasWidth = this.gameState.canvas.width / 2;
-            const halfCanvasHeight = this.gameState.canvas.height / 2;
-            const worldPixelWidth = this.gameState.terrain.map[0].length * CONFIG.tileSize;
-            const worldPixelHeight = this.gameState.terrain.map.length * CONFIG.tileSize;
 
-            // Calculate the desired center position
-            let desiredCenterX = player.position.x * CONFIG.tileSize + CONFIG.tileSize / 2;
-            let desiredCenterY = player.position.y * CONFIG.tileSize + CONFIG.tileSize / 2;
+            this.gameState.context.drawImage(this.terrainCanvas, this.gameState.offsetX, this.gameState.offsetY);
 
-            // Clamp the center position to prevent the viewport from showing out-of-bounds areas
-            desiredCenterX = Math.max(halfCanvasWidth, Math.min(desiredCenterX, worldPixelWidth - halfCanvasWidth));
-            desiredCenterY = Math.max(halfCanvasHeight, Math.min(desiredCenterY, worldPixelHeight - halfCanvasHeight));
-
-            // Calculate the top-left corner of the viewport
-            this.gameState.offsetX = halfCanvasWidth - desiredCenterX;
-            this.gameState.offsetY = halfCanvasHeight - desiredCenterY;
-            this.gameState.context.shadowColor = 'transparent';
-
-            // Draw layers with specific shadow settings
-            this.drawLayerWithShadows(this.gameState.context, this.waterCanvas, 'water');
-            this.drawLayerWithShadows(this.gameState.context, this.sandCanvas, 'sand');
-            this.drawLayerWithShadows(this.gameState.context, this.grassCanvas, 'grass');
-            this.drawLayerWithShadows(this.gameState.context, this.forestCanvas, 'forest');
-            this.drawLayerWithShadows(this.gameState.context, this.mountainCanvas, 'mountain');
-
-            this.gameState.context.shadowColor = 'transparent';
-            // ... draw other layers ...
-
-            // Optionally, draw additional elements like roads, trees, etc.
-            this.renderRoads(this.gameState.context);
-            this.renderTrees(this.gameState.context);
-        }
     }
 
     drawLayerWithShadows(ctx, canvas, layerType) {
@@ -272,7 +268,7 @@ export default class RenderManager {
             const img = this.assetManager.assets[player.spriteSheetKey];            
             const spritePosition = player.currentSprite;  
             // Adjust the position to center the larger unit image on the tile
-            this.renderSprite(this.gameState.context, img, player.position.x * CONFIG.tileSize + this.gameState.offsetX, player.position.y * CONFIG.tileSize + this.gameState.offsetY, spritePosition.x, spritePosition.y); 
+            this.renderSprite(this.gameState.context, img, player.position.x * CONFIG.tileSize + this.gameState.offsetX, player.position.y * CONFIG.tileSize + this.gameState.offsetY, spritePosition.x, spritePosition.y, CONFIG.unitSize); 
            // this.drawDebugHitbox(this.gameState.context, player.position.x, player.position.y);
                           
         }
@@ -284,16 +280,16 @@ export default class RenderManager {
             enemy.render();
             const img = this.assetManager.assets[enemy.spriteSheetKey];     
             let spritePosition = enemy.currentSprite;  
-            let tileSize = CONFIG.tileSize;
+            let unitSize = CONFIG.unitSize;
             if( enemy.stats.size ) {
-                tileSize = enemy.stats.size;
+                unitSize = enemy.stats.size;
             }
             if(!spritePosition){
                 spritePosition = {x: 0, y: 0};
             }
             // Adjust the position to center the larger unit image on the tile
-            this.renderSprite(this.gameState.context, img, enemy.position.x * CONFIG.tileSize + this.gameState.offsetX, enemy.position.y * CONFIG.tileSize + this.gameState.offsetY, spritePosition.x, spritePosition.y, tileSize);                         
-            this.renderMiniMapImg(this.minimapCanvas, enemy.position.x, enemy.position.y, tileSize, spritePosition, img, 4);
+            this.renderSprite(this.gameState.context, img, enemy.position.x * CONFIG.tileSize + this.gameState.offsetX, enemy.position.y * CONFIG.tileSize + this.gameState.offsetY, spritePosition.x, spritePosition.y, unitSize);                         
+            this.renderMiniMapImg(this.minimapCanvas, enemy.position.x, enemy.position.y, unitSize, spritePosition, img, 4);
           //  this.drawDebugHitbox(this.gameState.context, enemy.position.x, enemy.position.y);
         }
     }
@@ -309,34 +305,32 @@ export default class RenderManager {
         });
     }
 
-    renderTrees(ctx) {
+    renderTrees() {
         this.gameState.trees.forEach(tree => {
             // Check if the tree's position overlaps with a road
             if (!this.roadCoordinates.has(`${tree.position.x},${tree.position.y}`)) {
                 const treeImg = this.assetManager.assets[`${tree.type}_tree`]; // Replace with your tree sprite key
-                const treeX = tree.position.x * CONFIG.tileSize + this.gameState.offsetX;
-                const treeY = tree.position.y * CONFIG.tileSize + this.gameState.offsetY;
-                const spritePosition = { x: tree.type == 'stump' ? 0 : CONFIG.tileSize, y: 0};
-                this.renderSprite(ctx, treeImg, treeX, treeY, spritePosition.x, spritePosition.y, CONFIG.tileSize);
-                this.renderMiniMapImg(this.minimapTerrainCanvas, tree.position.x, tree.position.y, CONFIG.tileSize, spritePosition, treeImg);
+                const treeX = tree.position.x * CONFIG.tileSize;
+                const treeY = tree.position.y * CONFIG.tileSize;
+                const spritePosition = { x: tree.type == 'stump' ? 0 : CONFIG.unitSize, y: 0};
+                this.renderSprite(this.terrainCtx, treeImg, treeX, treeY, spritePosition.x, spritePosition.y, CONFIG.unitSize);
+                this.renderMiniMapImg(this.minimapTerrainCanvas, tree.position.x, tree.position.y, CONFIG.unitSize, spritePosition, treeImg);
             }
         });
     }
 
-    renderRoads(ctx) {
+    renderRoads() {
         this.roadCoordinates = new Set(); // Initialize the set to store road coordinates
     
         this.gameState.roads.forEach(roadSegment => {
             roadSegment.forEach(point => {
-                const roadImg = this.assetManager.assets[`terrain`]; // Replace with your road sprite key
-                const spritePosition = { x: CONFIG.tileSize * 3, y: 0};
-                const x = point.x * CONFIG.tileSize + this.gameState.offsetX;
-                const y = point.y * CONFIG.tileSize + this.gameState.offsetY;
+                const roadImg = this.assetManager.assets[`road`]; // Replace with your road sprite key
+                const spritePosition = { x: 0, y: 0};
+                const x = point.x * CONFIG.tileSize;
+                const y = point.y * CONFIG.tileSize;
     
-                // Use a base color for the dirt path
-                const roadColor = this.terrainTypes.road; // SaddleBrown: A good base for a dirt path
-                ctx.fillStyle = `rgb(${roadColor.r}, ${roadColor.g}, ${roadColor.b})`;
-                ctx.fillRect(x, y, CONFIG.tileSize, CONFIG.tileSize);
+                this.renderSprite(this.terrainCtx, roadImg, x, y, spritePosition.x, spritePosition.y, CONFIG.tileSize);
+               // this.gameState.context.fillRect(x, y, CONFIG.tileSize, CONFIG.tileSize);
                 this.renderMiniMapImg(this.minimapTerrainCanvas, point.x, point.y, CONFIG.tileSize, spritePosition, roadImg, 1);
     
                 // Store the road tile coordinates in the set

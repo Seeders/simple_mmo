@@ -54,7 +54,28 @@ async function loadAssets(assetManager) {
     'terrain': './images/Ground/Grass.png',
     'townSprite': './images/Buildings/Wood/Chapels.png',
     'pine_tree': './images/Nature/PineTrees.png',
-    'stump_tree': './images/Nature/PineTrees.png'
+    'stump_tree': './images/Nature/PineTrees.png',
+    'road': './images/Ground/road.png',
+    'water0': './tiles/0_water/0.png',
+    'water1': './tiles/0_water/1.png',
+    'water2': './tiles/0_water/2.png',
+    'water3': './tiles/0_water/3.png',
+    'sand0': './tiles/1_sand/0.png',
+    'sand1': './tiles/1_sand/1.png',
+    'sand2': './tiles/1_sand/2.png',
+    'sand3': './tiles/1_sand/3.png',
+    'grass0': './tiles/2_grass/0.png',
+    'grass1': './tiles/2_grass/1.png',
+    'grass2': './tiles/2_grass/2.png',
+    'grass3': './tiles/2_grass/3.png',
+    'forest0': './tiles/3_forest/0.png',
+    'forest1': './tiles/3_forest/1.png',
+    'forest2': './tiles/3_forest/2.png',
+    'forest3': './tiles/3_forest/3.png',
+    'mountain0': './tiles/4_mountain/0.png',
+    'mountain1': './tiles/4_mountain/1.png',
+    'mountain2': './tiles/4_mountain/2.png',
+    'mountain3': './tiles/4_mountain/3.png'
 };
 
 
@@ -100,6 +121,7 @@ async function main() {
   const loginLodal = document.getElementById("loginModal");
 
   const loginForm = document.getElementById("loginForm");
+  loginLodal.style.display = "block";
   loginForm.onsubmit = async function(event) {
     event.preventDefault();
     const username = document.getElementById("username").value;
@@ -110,7 +132,7 @@ async function main() {
     // If login is successful, proceed with game setup
     try {
 
-      await networkManager.login(username, password);
+      await networkManager.login('seeders', 'asdf');
       loginLodal.style.display = "none";
       await loadAssets(assetManager);
       gameLoop(gameState);

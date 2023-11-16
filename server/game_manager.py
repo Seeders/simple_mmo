@@ -159,7 +159,7 @@ class GameManager:
                             await broadcast({
                                 "type": "start_attack",
                                 "playerId": player_id,
-                                "targetId": enemy_id
+                                "targetPosition": enemy.position
                             }, self.connected, self.connections)
                         elif current_time - player.last_attack_time >= 1 / player.stats['attack_speed']:
                             # Update combat log for player
@@ -181,7 +181,7 @@ class GameManager:
                             await broadcast({
                                 "type": "start_attack",
                                 "enemyId": enemy_id,
-                                "targetId": player_id
+                                "targetPosition": player.position
                             }, self.connected, self.connections)
                         elif current_time - enemy.last_attack_time >= 1 / enemy.stats['attack_speed']:
                             # Update combat log for enemy attack
