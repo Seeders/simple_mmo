@@ -2,6 +2,7 @@ import PlayerManager from './PlayerManager';
 import EnemyManager from './EnemyManager';
 import Terrain from './Terrain';
 import RenderManager from './RenderManager';
+import Pathfinding from './Utility/Pathfinding';
 import { CONFIG } from './config';
 
 export default class GameState {
@@ -24,7 +25,7 @@ export default class GameState {
         this.currentPlayerId = null;
         this.offsetX = 0;
         this.offsetY = 0;
-        this.renderManager = new RenderManager(this, assetManager);
+        this.renderManager = new RenderManager(this, assetManager);        
     }
 
     init(data) {
@@ -33,11 +34,34 @@ export default class GameState {
         this.towns = data.towns;
         this.roads = data.roads;
         this.trees = data.trees;
+        let tempTerrain = [];
+        for(let i = 0; i < this.terrain.map.length; i++) {
+            tempTerrain[i] = [];
+            for(let j = 0; j < this.terrain.map[i].length; j++) {
+                tempTerrain[i][j] = this.terrain.map[i][j];
+            }
+        }
+        for(let i = 0; i < this.roads.length; i++) {
+            for(let j = 0; j < this.roads[i].length; j++) {
+                let road = this.roads[i][j];
+                tempTerrain[road.y][road.x] = 5;
+            }
+        }
+        
+        for(let i = 0; i < this.trees.length; i++) {
+            let tree = this.trees[i];
+            if(tree.type != 'stump') {
+                tempTerrain[tree.position.y][tree.position.x] = 6;            
+            }
+        }
+        this.pathfinding = new Pathfinding(tempTerrain, [50, 10, 5, 10, 10, 1, 0]);
         this.playerManager.initPlayers(data.players);
         this.enemyManager.initEnemies(data.enemies);
         this.adjustViewToCurrentPlayer();
     }
-
+    findPath(start, goal) {
+        return this.pathfinding.aStar(start, goal);
+    }
     adjustViewToCurrentPlayer() {
         let player = this.getCurrentPlayer();
         if (player) {

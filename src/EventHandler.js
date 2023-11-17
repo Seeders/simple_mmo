@@ -13,7 +13,7 @@ export default class EventHandler {
         document.addEventListener('keydown', this.handleKeyDown.bind(this));
 
         // Function to handle mouse clicks for selecting targets
-        this.gameState.debugCanvas.addEventListener('click', this.handleClick.bind(this));
+        this.gameState.canvas.addEventListener('click', this.handleClick.bind(this));
         
     }
     getCanvasCoordinates(event) {
@@ -44,10 +44,6 @@ export default class EventHandler {
             // Calculate the center of the player's position
             const playerCenterX = player.position.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2;
             const playerCenterY = player.position.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2;
-
-            let p = document.createElement('p');
-            p.innerText = `<p>${clickX},${clickY} - ${playerCenterX},${playerCenterY}</p>`;
-            document.getElementById('chatMessages').appendChild(p);
             // Check if the click is within the circle's radius
             if (Math.pow(clickX - playerCenterX, 2) + Math.pow(clickY - playerCenterY, 2) <= Math.pow(CONFIG.unitSize / 2, 2)) {
                 this.gameState.selectedTarget = { type: 'player', id: id, stats: player.stats };
@@ -64,9 +60,17 @@ export default class EventHandler {
                 this.gameState.selectedTarget = { type: 'enemy', id: id, stats: enemy.stats };
                 return;
             }
-        }
+        }        
         // If nothing is clicked, clear the selection
         this.gameState.selectedTarget = null;
+
+        const destination = this.gridCoordsFromCanvas(coords.x, coords.y);
+        
+        // Assuming you have a method to check if the destination is walkable
+       
+        this.gameState.getCurrentPlayer().playerMoveDestination = destination;
+        this.startPathFinding(this.gameState.getCurrentPlayer(), destination);
+    
     }
 
     handleKeyDown(event) {
@@ -74,31 +78,7 @@ export default class EventHandler {
 
         if( player ) {
             const key = event.key;
-            // Handle key down events for player movement or actions
-            if (key === 'w' || key === 's' || key === 'a' || key === 'd') {
-                const move = {x: 0, y: 0};
-                if (key === 'w'){
-                    player.faceDirection('move', 'up');
-                    move.y = -1;
-                }
-                if (key === 's') {
-                    player.faceDirection('move', 'down');
-                    move.y = 1;
-                }
-                if (key === 'a') {
-                    player.faceDirection('move', 'left');
-                    move.x = -1;
-                }
-                if (key === 'd'){
-                    player.faceDirection('move', 'right');
-                    move.x = 1;
-                }
-        
-                let newPositionX = player.position.x + move.x;
-                let newPositionY = player.position.y + move.y;
-        
-                this.networkManager.socket.send(JSON.stringify({type: "move", playerId: this.gameState.currentPlayerId, move: move, position: {x: newPositionX, y: newPositionY}}));
-            }
+            // Handle key down events for player movement or actions           
             if (event.key === 'e') {
                 // Assuming you have a function to get the current tile
                 const currentPosition = this.gameState.getCurrentPlayer().position;
@@ -117,8 +97,42 @@ export default class EventHandler {
         }
     }
 
-   
+    startPathFinding(player, destination) {
+        // Assuming you have a function to calculate the path
+        const path = this.gameState.findPath(player.position, destination);
+        
+        if (path.length > 0) {
+            player.path = path;
+            this.movePlayerAlongPath(player, path);
+        } else {
+            let move = { x: player.position.x - destination.x, y: player.position.y - destination.y };
+            this.networkManager.socket.send(JSON.stringify({type: "move", playerId: this.gameState.currentPlayerId, move: move, position: { x: player.position.x + move.x, y: player.position.y + move.y }}));
+        }
+    }
 
+    gridCoordsFromCanvas(canvasX, canvasY) {
+        // Convert canvas coordinates to grid coordinates
+        const x = Math.floor((canvasX - this.gameState.offsetX) / CONFIG.tileSize);
+        const y = Math.floor((canvasY - this.gameState.offsetY) / CONFIG.tileSize);
+        return { x, y };
+    }
 
-
+    movePlayerAlongPath(player, path) {
+        let nextStep = 0;
+        if( player.pathInterval ) {
+            clearInterval(player.pathInterval);
+        }
+        player.pathInterval = setInterval(() => {
+            if (nextStep < path.length) {
+                let move = { x: player.position.x - path[nextStep].x, y: player.position.y - path[nextStep].y };
+                console.log(move);
+                this.networkManager.socket.send(JSON.stringify({type: "move", playerId: this.gameState.currentPlayerId, move: move, position: path[nextStep]}));
+                nextStep++;
+            } else {
+                clearInterval(player.pathInterval);
+                player.playerMoveDestination = null;
+                player.path = null;
+            }
+        }, 1000 / player.stats['move_speed']);
+    }
 }

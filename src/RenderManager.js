@@ -97,12 +97,6 @@ export default class RenderManager {
             this.gameState.offsetY = halfCanvasHeight - desiredCenterY;
             // Render each layer to its off-screen canvas if not done yet
             if (!this.terrainRendered) {
-                // this.renderLayer(this.waterCtx, 'water');
-                // this.renderLayer(this.sandCtx, 'sand');
-                // this.renderLayer(this.grassCtx, 'grass');
-                // this.renderLayer(this.forestCtx, 'forest');
-                // this.renderLayer(this.mountainCtx, 'mountain');
-                // ... render other layers ...
                 this.tileMap.load();
                 let minimapWidth = this.minimapCanvas.width;
                 let minimapHeight = this.minimapCanvas.height;
@@ -150,24 +144,7 @@ export default class RenderManager {
         this.renderTargetInfo();
         this.renderItems();
     }
-
-    renderLayer(ctx, layerType) {
-        for (let y = 0; y < this.gameState.terrain.map.length; y++) {
-            for (let x = 0; x < this.gameState.terrain.map[y].length; x++) {
-                if (this.gameState.terrain.getTerrainTypeAt(x, y) === layerType) {
-                    const fillColor = `rgb(${this.terrainTypes[layerType].r}, ${this.terrainTypes[layerType].g}, ${this.terrainTypes[layerType].b})`;
-        
-                    // Drawing rounded rectangles
-                    const posX = x * CONFIG.tileSize - this.cornerRadius / 2;
-                    const posY = y * CONFIG.tileSize - this.cornerRadius / 2;
-                    this.renderRoundedRect(ctx, posX, posY, CONFIG.tileSize + this.cornerRadius * 2, CONFIG.tileSize + this.cornerRadius * 2, this.cornerRadius, fillColor);
-                    this.renderMiniMapColor(this.minimapTerrainCtx , x, y, fillColor);
-                }
-            }
-        }
-        ctx.shadowColor = 'transparent'; // Reset shadow after rendering the layer
-    }
-    
+ 
 
     renderSprite(context, img, dx, dy, sx = 0, sy = 0, size = CONFIG.tileSize ){ 
         if( size != CONFIG.tileSize ) {
@@ -583,57 +560,6 @@ export default class RenderManager {
         ctx.closePath();
         ctx.fillStyle = fillStyle;
         ctx.fill();
-    }
-
-    renderColorTerrain() {
-        // Loop through the terrain map and draw tiles in the specified order
-        for (const terrainType of this.drawOrder) {
-            for (let y = 0; y < this.gameState.terrain.map.length; y++) {
-                for (let x = 0; x < this.gameState.terrain.map[y].length; x++) {    
-                    if (this.gameState.terrain.getTerrainTypeAt(x, y) === terrainType) {
-                        const posX = x * CONFIG.tileSize - this.cornerRadius / 2;
-                        const posY = y * CONFIG.tileSize - this.cornerRadius / 2;
-                        const tileSizeWithRadius = CONFIG.tileSize + this.cornerRadius;
-                        const fillColor = `rgb(${this.terrainTypes[terrainType].r}, ${this.terrainTypes[terrainType].g}, ${this.terrainTypes[terrainType].b})`;
-    
-                        this.terrainCtx.save(); // Save the current context state
-    
-                        if (terrainType === "water") {
-                            // Set shadow properties only for water tiles
-                            this.terrainCtx.shadowOffsetX = 2;
-                            this.terrainCtx.shadowOffsetY = 2;
-                            this.terrainCtx.shadowBlur = 4;
-                            this.terrainCtx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                        }
-    
-                        this.renderRoundedRect(this.terrainCtx, posX, posY, tileSizeWithRadius, tileSizeWithRadius, this.cornerRadius, fillColor);
-    
-                        this.terrainCtx.restore(); // Restore the context state
-    
-                        // Update minimap rendering as needed
-                        this.renderMiniMapColor(this.minimapTerrainCtx, x, y, fillColor);
-                    }
-                }
-            }
-        }
-    }
-    
-    
-    
-    renderSpriteTerrain() {
-        for (let y = 0; y < this.gameState.terrain.map.length; y++) {
-            for (let x = 0; x < this.gameState.terrain.map[y].length; x++) {
-                const terrainType = this.gameState.terrain.getTerrainTypeAt(x, y);
-                const spritePosition = this.gameState.terrain.getSpriteLocation(terrainType);
-                const img = this.assetManager.assets[this.gameState.terrain.spriteSheetKey];
-                if (!img) {
-                    console.error(`${terrainType} image not loaded`);
-                } else {
-                    this.renderSprite(this.terrainCtx, img, x * CONFIG.tileSize, y * CONFIG.tileSize, spritePosition.x, spritePosition.y);
-                    this.minimapTerrainCtx.fillRect(x, y, playerSize, playerSize);
-                }
-            }
-        }   
     }
 
     drawDebugHitbox(ctx, tileX, tileY) {

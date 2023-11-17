@@ -13,15 +13,15 @@ class Terrain:
             for x in range(width):
                 noise_value = pnoise2(x * scale, y * scale)
                 if noise_value < -0.05:
-                    tile = 'water'
+                    tile = 0
                 elif -0.05 <= noise_value < 0.06:
-                    tile = 'sand'
+                    tile = 1
                 elif 0.06 <= noise_value < 0.4:
-                    tile = 'grass'
+                    tile = 2
                 elif 0.4 <= noise_value < 0.6:
-                    tile = 'forest'
+                    tile = 3
                 else:
-                    tile = 'mountain'
+                    tile = 4
                 row.append(tile)
             terrain.append(row)
         return terrain

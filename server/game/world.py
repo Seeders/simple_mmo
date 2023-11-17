@@ -7,6 +7,7 @@ class World:
     def __init__(self):
         self.players = {}
         self.terrain = Terrain(100, 100) 
+        self.terrainLayers = ["water", "sand", "grass", "forest", "mountain"]
         self.enemy_spawns = ['green_slime', 'mammoth', 'giant_crab', 'pirate_grunt', 'pirate_gunner', 'pirate_captain']
         self.enemies = self.spawn_enemies(50, 100, 100, self.terrain.terrain)       
         self.items_on_ground = {}
@@ -59,7 +60,7 @@ class World:
     
     def is_land(self, x, y, world_map):
         if 0 <= y < len(world_map) and 0 <= x < len(world_map[0]):
-            return world_map[y][x] != 'water'
+            return self.terrainLayers[world_map[y][x]] != 'water'
         else:
             return False  # Out of bounds, treat as non-land
 
@@ -127,8 +128,9 @@ class World:
         trees = []
         for y, row in enumerate(world_map):
             for x, tile in enumerate(row):
-                if tile in ["forest", "grass"]:  # Assuming "forest" is the identifier for forest tiles
-                    if tile == "grass" and random.randint(0, 9) > 0:
+                tileType = self.terrainLayers[tile]
+                if tileType == "forest" or tileType == "grass":  # Assuming "forest" is the identifier for forest tiles
+                    if tileType == "grass" and random.randint(0, 9) > 0:
                         continue
                     tree = {
                         "type": tree_type,
@@ -148,7 +150,8 @@ class World:
 
             # Check distance from existing towns
             if all(self.heuristic((x, y), town) >= min_distance for town in towns):
-                if self.terrain.terrain[y][x] in ['grass', 'sand']:
+                tileType = self.terrainLayers[self.terrain.terrain[y][x]]
+                if tileType == 'grass' or tileType == 'sand':
                     towns.append((x, y))
 
         return towns
@@ -242,7 +245,7 @@ class World:
 
     def terrain_cost(self, current, neighbor):
         # Define the cost of moving from current to neighbor based on terrain type
-        terrain_type = self.terrain.terrain[neighbor[1]][neighbor[0]]
+        terrain_type = self.terrainLayers[self.terrain.terrain[neighbor[1]][neighbor[0]]]
         road_weight = 1  # Lower cost for road tiles
 
         if self.is_road_at_position({'x': neighbor[0], 'y': neighbor[1]}):
@@ -311,7 +314,7 @@ class World:
     
     def is_world_full(self):
         """ Check if the world has enough space to spawn new entities. """
-        land_count = sum(1 for row in self.terrain.terrain for tile in row if tile != 'water')
+        land_count = sum(1 for row in self.terrain.terrain for tile in row if tile != 0)
         return land_count <= len(self.enemies)
 
     def is_position_valid(self, position):
@@ -322,7 +325,7 @@ class World:
         if x < 0 or y < 0 or x >= len(terrain[0]) or y >= len(terrain):
             return False
 
-        terrain_type = terrain[y][x]
+        terrain_type = self.terrainLayers[terrain[y][x]]
         if terrain_type == 'water' and not self.is_road_at_position(position):
             return False
 

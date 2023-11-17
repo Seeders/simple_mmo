@@ -1,5 +1,5 @@
 // tileMapModule.js
-
+import CanvasUtility from "./Utility/CanvasUtility"
 class TileAnalysis {
     constructor() {
       this.heightIndex = 0;
@@ -68,7 +68,7 @@ class TileMap {
 		this.numColumns = 0;
 		this.layers = layers;
 		this.tileMap = [];
-	
+		this.canvasUtility = new CanvasUtility();
 
 	}
     load(){
@@ -316,60 +316,13 @@ class TileMap {
 	}
 
 	rotateTexture(imageData, angle) {
-		const tempCanvas = document.createElement("canvas");
-		tempCanvas.width = imageData.width;
-		tempCanvas.height = imageData.height;
-		const tempCtx = tempCanvas.getContext("2d");
-		tempCtx.putImageData(imageData, 0, 0);
-
-		const rotatedTexture = document.createElement("canvas");
-		rotatedTexture.width = imageData.width;
-		rotatedTexture.height = imageData.height;
-		const rotatedCtx = rotatedTexture.getContext("2d");
-
-		rotatedCtx.translate(rotatedTexture.width / 2, rotatedTexture.height / 2);
-		rotatedCtx.rotate(angle);
-		rotatedCtx.translate(-rotatedTexture.width / 2, -rotatedTexture.height / 2);
-
-		rotatedCtx.drawImage(tempCanvas, 0, 0);
-
-		return rotatedCtx.getImageData(0, 0, rotatedTexture.width, rotatedTexture.height);
+		return this.canvasUtility.rotateTexture(imageData, angle);
 	}
 	flipTextureVertical(imageData) {
-		const tempCanvas = document.createElement("canvas");
-		tempCanvas.width = imageData.width;
-		tempCanvas.height = imageData.height;
-		const tempCtx = tempCanvas.getContext("2d");
-		tempCtx.putImageData(imageData, 0, 0);
-
-		const canvas = document.createElement("canvas");
-		canvas.width = imageData.width;
-		canvas.height = imageData.height;
-		const ctx = canvas.getContext("2d");
-
-		ctx.translate(0, canvas.height);
-		ctx.scale(1, -1);
-		ctx.drawImage(tempCanvas, 0, 0);
-
-		return ctx.getImageData(0, 0, imageData.width, imageData.height);
+		return this.canvasUtility.flipTextureVertical(imageData);
 	}
 	flipTextureHorizontal(imageData) {
-		const tempCanvas = document.createElement("canvas");
-		tempCanvas.width = imageData.width;
-		tempCanvas.height = imageData.height;
-		const tempCtx = tempCanvas.getContext("2d");
-		tempCtx.putImageData(imageData, 0, 0);
-
-		const canvas = document.createElement("canvas");
-		canvas.width = imageData.width;
-		canvas.height = imageData.height;
-		const ctx = canvas.getContext("2d");
-
-		ctx.translate(canvas.width, 0);
-		ctx.scale(-1, 1);
-		ctx.drawImage(tempCanvas, 0, 0);
-
-		return ctx.getImageData(0, 0, imageData.width, imageData.height);
+		return this.canvasUtility.flipTextureHorizontal(imageData);
 	}
 
 	analyzeTile(locationIndex) {
@@ -381,8 +334,7 @@ class TileMap {
 			return tileAnalysis; // Out of bounds
 		}
 
-		let tileName = this.tileMap[row][col];
-		tileAnalysis.heightIndex = this.layers.indexOf(tileName);
+		tileAnalysis.heightIndex = this.tileMap[row][col];
 
 		// Helper function to check if a location is within bounds
 		function isWithinBounds(r, c, n) {
@@ -391,11 +343,11 @@ class TileMap {
 
 		// Helper function to check and update tile analysis
 		var checkAndUpdate = ((r, c, n, propertyLess, propertyLess2) => {
-			if (isWithinBounds(r, c, n) && this.layers.indexOf(this.tileMap[r][c]) < tileAnalysis.heightIndex) {
+			if (isWithinBounds(r, c, n) && this.tileMap[r][c] < tileAnalysis.heightIndex) {
 				tileAnalysis[propertyLess] = true;
 				if(['topLess', 'leftLess', 'rightLess', 'botLess'].indexOf(propertyLess) >= 0 ) {
 					tileAnalysis.neighborLowerCount++;
-				} else if(['c1Less', 'c2Less', 'c3Less', 'c4Less', 'c1Less2', 'c2Less2', 'c3Less2', 'c4Less2'].indexOf(propertyLess) >= 0 ) {
+				} else if(['c1Less', 'c2Less', 'c3Less', 'c4Less'].indexOf(propertyLess) >= 0 || ['c1Less2', 'c2Less2', 'c3Less2', 'c4Less2'].indexOf(propertyLess2) >= 0 ) {
 					tileAnalysis.cornerLowerCount++;
 				}
 			}
