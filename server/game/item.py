@@ -1,4 +1,6 @@
 import random
+import asyncio
+from utils.broadcast import broadcast
 
 # Define a base class for items
 class Item:
@@ -8,7 +10,7 @@ class Item:
         self.name = item_name
         self.position = position  # The position where the item is dropped
 
-    def use(self, player):
+    def use(self, game_manager, player, item_index):
         # Define how the item is used
         raise NotImplementedError("Use method must be defined in subclass")
 
@@ -17,11 +19,54 @@ class HealthPotion(Item):
     def __init__(self, item_id, position=None):
         super().__init__(item_id, "health_potion", "Health Potion", position)
 
-    def use(self, player):
+    def use(self, game_manager, player, item_index):
         # Define the effect of the health potion
         heal_amount = 50  # Example heal amount
         player.stats['health'] = min(player.stats['max_health'], player.stats['health'] + heal_amount)
-        return player.stats['health']
+        del player.inventory[item_index]
+        asyncio.create_task(broadcast({
+            "type": "potion_used",
+            "playerId": player.id,
+            "potionId": self.id,
+            "newHealth": player.stats['health']
+        }, game_manager.connected, game_manager.connections))
+    
+class Wood(Item):
+    def __init__(self, item_id, position=None):
+        super().__init__(item_id, "wood", "Wood", position)
+
+    def use(self, game_manager, player, item_index):
+        # Define the effect of the health potion
+        print("using wood")
+        player.stats['resources'][self.type] = player.stats['resources'][self.type] + 1
+        del player.inventory[item_index]
+        asyncio.create_task(broadcast({
+            "type": "update_resource",
+            "playerId": player.id,
+            "itemId": self.id,
+            "resourceType": self.type,
+            "newValue": player.stats['resources'][self.type]
+        }, game_manager.connected, game_manager.connections))
+
+class Ore(Item):
+    def __init__(self, item_id, position=None):
+        super().__init__(item_id, "ore", "Ore", position)
+
+    def use(self, game_manager, player, item_index):
+        # Define the effect of the health potion
+        player.stats['resources']['ore'] = player.stats['resources']['ore'] + 1
+        del player.inventory[item_index]
+        
+
+class Gold(Item):
+    def __init__(self, item_id, position=None):
+        super().__init__(item_id, "gold", "Gold", position)
+
+    def use(self, game_manager, player, item_index):
+        # Define the effect of the health potion
+        player.stats['resources']['gold'] = player.stats['resources']['gold'] + 1
+        del player.inventory[item_index]
+           
 
 # Function to generate a random item
 def generate_random_item(next_item_id, position):
@@ -32,6 +77,9 @@ def generate_random_item(next_item_id, position):
 def generate_specific_item(item_type, next_item_id, position):
     item_classes = {
         "health_potion": HealthPotion,
+        "wood": Wood,
+        "ore": Ore,
+        "gold": Gold,
         # Add other item types here
     }
     if item_type in item_classes:

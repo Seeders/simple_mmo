@@ -83,9 +83,14 @@ class TileMap {
 			this.layers.forEach((layer, index) => {
 				textures[index] = [];
 				for (const key in atomTextures) {
-					const img = this.assetManager.assets[`${layer}${key}`]; 
-					console.log(img.src);  
+					let tempKey = key;
+					if( layer == 'water' && key > 0 ) {//only use the first sprite for base layer
+						tempKey = 0;
+					} 
+
+					const img = this.assetManager.assets[`${layer}${tempKey}`]; 
 					textures[index].push(img);
+				
 				}
 			});
 			this.layers.forEach((layer, index) => {	  

@@ -131,6 +131,7 @@ export default class NetworkManager {
                 this.gameState.healthRegeneration(data);                
                 break;
             case "item_drop":
+                console.log("item_drop");
                 this.gameState.addItem(data);
                 break;
             case "item_pickup":
@@ -145,6 +146,10 @@ export default class NetworkManager {
                 break;
             case 'update_trees':
                 this.gameState.updateTrees(data);
+                break;
+            case 'update_resource':
+                console.log(`update_resource ${data}`);
+                this.gameState.updateResource(data);
                 break;
         }
       

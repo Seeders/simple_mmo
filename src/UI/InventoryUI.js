@@ -1,7 +1,8 @@
 // InventoryManager.js
 export default class InventoryManager {
-    constructor(gameState) {
+    constructor(gameState, assetManager) {
         this.gameState = gameState;
+        this.assetManager = assetManager;
         this.createInventorySlots(25);
         this.setupDropZones();
     }   
@@ -77,7 +78,7 @@ export default class InventoryManager {
 
             // Set the background image to the sprite for the item
             // You will need to have the sprites available as URLs or paths
-            const itemSpriteUrl = `./images/${item.type}.png`; // Replace with the actual path to your sprite images
+            const itemSpriteUrl = this.assetManager.assets[item.type].src; // Replace with the actual path to your sprite images
             itemElement.style.backgroundImage = `url('${itemSpriteUrl}')`;
             itemElement.style.backgroundSize = 'cover'; // Ensure the sprite covers the whole item element
             itemElement.style.width = '32px'; // Set the width of the item element

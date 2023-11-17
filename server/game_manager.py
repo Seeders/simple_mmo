@@ -6,7 +6,7 @@ import bcrypt
 import json
 from game.player import Player
 from game.world import World
-from game.item import generate_random_item
+from game.item import generate_random_item, generate_specific_item
 from utils.broadcast import broadcast, broadcastCombatLog
 
 class GameManager:
@@ -18,7 +18,6 @@ class GameManager:
         self.world = World()
         self.combat_logs = {}
         self.db_file = 'game.db'
-
 
     async def register_user(self, username, password):
         # Check if username already exists

@@ -85,19 +85,9 @@ async def game_server(websocket, path, game_manager:GameManager):
 
                 # Find the index of the item with the matching 'id'
                 item_index = next((index for (index, d) in enumerate(player.inventory) if d.id == item_id), None)
-
                 if item_index is not None:
                     item = player.inventory[item_index]
-                    if item.type == "health_potion":
-                        player.stats['health'] += 50
-                        player.stats['health'] = min(player.stats['health'], player.stats['max_health'])
-                        del player.inventory[item_index]  # Remove the potion from inventory using the index
-                        await broadcast({
-                            "type": "potion_used",
-                            "playerId": player_id,
-                            "potionId": item_id,
-                            "newHealth": player.stats['health']
-                        }, game_manager.connected, game_manager.connections)
+                    item.use(game_manager, player, item_index)                      
             elif data["type"] == "login":
                 username = data["username"]
                 password = data["password"]

@@ -55,11 +55,11 @@ async function loadAssets(assetManager) {
     'townSprite': './images/Buildings/Wood/Chapels.png',
     'pine_tree': './images/Nature/PineTrees.png',
     'stump_tree': './images/Nature/PineTrees.png',
+    'wood': './images/Nature/PineTrees.png',
+    'ore': './images/Nature/PineTrees.png',
+    'gold': './images/Nature/PineTrees.png',
     'road': './images/Ground/road.png',
     'water0': './tiles/0_water/0.png',
-    'water1': './tiles/0_water/1.png',
-    'water2': './tiles/0_water/2.png',
-    'water3': './tiles/0_water/3.png',
     'sand0': './tiles/1_sand/0.png',
     'sand1': './tiles/1_sand/1.png',
     'sand2': './tiles/1_sand/2.png',
@@ -97,7 +97,7 @@ function setupGame(assetManager) {
   const networkManager = new NetworkManager(CONFIG.serverUrl, gameState);
   const chatUI = new ChatUI(gameState);
   const combatLogUI = new CombatLogUI(gameState);
-  const inventoryUI = new InventoryUI(gameState);
+  const inventoryUI = new InventoryUI(gameState, assetManager);
   const eventHandler = new EventHandler(gameState, networkManager);
   eventHandler.setupEventListeners();
 

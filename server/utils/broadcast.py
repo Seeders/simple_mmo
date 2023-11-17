@@ -6,7 +6,11 @@ from websockets.exceptions import ConnectionClosedOK, ConnectionClosedError
 async def broadcast(message, connected, websockets_map, sender_websocket=None):
     # Convert the message to a JSON string
     message_json = json.dumps(message)
-
+    
+    if message["type"] != "enemy_move":
+        print(message["type"])
+    if message["type"] == "item_drop":
+        print("item_drop")
     # Send the message to all connected clients except the sender
     awaitables = []
     for player_id, player in connected.items():

@@ -4,7 +4,7 @@ import random
 BASE_HEALTH = 100
 HEALTH_INCREMENT = 20  # Additional health per level
 from utils.broadcast import broadcast, broadcastCombatLog
-
+from .item import generate_specific_item
 class Player:
 
     def __init__(self, game_manager, player_id, position, stats=None, inventory=[]):
@@ -48,6 +48,23 @@ class Player:
                 return True
         return False
 
+    def drop_specific_item(self, itemType, position):
+        item_id = self.game_manager.next_item_id
+        self.game_manager.next_item_id += 1  # Increment the ID for the next item
+        item = generate_specific_item(itemType, item_id, position)                              
+        self.game_manager.world.items_on_ground[item_id] = item
+        asyncio.create_task(broadcast({
+            "type": "item_drop",
+            "itemId": item_id,
+            "item": {
+                "id": item.id,
+                "type": item.type,
+                "name": item.name,
+                "position": item.position
+            }
+        }, self.game_manager.connected, self.game_manager.connections))
+
+
     def attack_tree(self, position):
         # Reduce the health of the tree
         for tree in self.game_manager.world.trees:
@@ -65,7 +82,10 @@ class Player:
                     asyncio.create_task(broadcastCombatLog(
                         self.game_manager.combat_logs, self.id, 
                         f"{self.id} destroyed a tree at {position}.", 
-                        self.game_manager.connected, self.game_manager.connections))
+                        self.game_manager.connected, self.game_manager.connections))                    
+
+                    self.drop_specific_item('wood', position)
+
                 else:
                     # Broadcast combat log update for attacking the tree
                     asyncio.create_task(broadcastCombatLog(
@@ -102,5 +122,10 @@ class Player:
             "walk_frames": 4,
             "attack_frames": 4,
             "attack_animation_order": ["down", "up", "left", "right"],
-            "walk_animation_order": ["down", "up", "left", "right"]
+            "walk_animation_order": ["down", "up", "left", "right"],
+            "resources": {
+                "wood": 0,
+                "ore": 0,
+                "gold": 0
+            }
         }

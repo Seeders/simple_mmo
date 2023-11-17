@@ -7,6 +7,7 @@ class World:
     def __init__(self):
         self.players = {}
         self.terrain = Terrain(100, 100) 
+        self.enemy_spawns = ['green_slime', 'mammoth', 'giant_crab', 'pirate_grunt', 'pirate_gunner', 'pirate_captain']
         self.enemies = self.spawn_enemies(50, 100, 100, self.terrain.terrain)       
         self.items_on_ground = {}
         self.towns = self.place_towns()
@@ -104,7 +105,7 @@ class World:
                 if self.is_land(x, y, world_map):
                     enemy_id = f"Enemy{i}"
                     enemy_position = {"x": x, "y": y}
-                    random_enemy_type = random.choice(list(enemy_types.keys()))
+                    random_enemy_type = random.choice(self.enemy_spawns)
                     patrol_route = self.generate_patrol_route(enemy_position)  # Pass dictionary directly
                     full_path = self.generate_full_path(patrol_route)
                     full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
@@ -242,17 +243,17 @@ class World:
     def terrain_cost(self, current, neighbor):
         # Define the cost of moving from current to neighbor based on terrain type
         terrain_type = self.terrain.terrain[neighbor[1]][neighbor[0]]
-        road_weight = .01  # Lower cost for road tiles
+        road_weight = 1  # Lower cost for road tiles
 
         if self.is_road_at_position({'x': neighbor[0], 'y': neighbor[1]}):
             return road_weight  # Prefer paths on existing roads
 
         if terrain_type == 'water':
-            return 100  # High cost for water
+            return 1000  # High cost for water
         elif terrain_type == 'forest' or terrain_type == 'sand':
-            return 50   # Medium cost for forest
+            return 500   # Medium cost for forest
         else:
-            return 10   # Low cost for other types
+            return 100   # Low cost for other types
 
     def get_neighbors(self, node):
         # Get all valid neighboring tiles

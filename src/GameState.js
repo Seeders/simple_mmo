@@ -164,6 +164,18 @@ export default class GameState {
         }
     }
 
+    updateResource(data) {
+        
+        if (data.playerId === this.currentPlayerId) {
+            let player = this.getCurrentPlayer();
+            if (player) {
+                player.removeItemFromInventory(data.itemId);
+                player.resources[data.resourceType] = data.newValue;
+                console.log(`Player has ${data.newValue} ${data.resourceType}`);
+            }
+        }
+    }
+
     healthRegeneration(data) {
         let player = this.playerManager.getPlayer(data.playerId);
         if (player) {

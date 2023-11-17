@@ -111,7 +111,6 @@ export default class RenderManager {
                 this.minimapTerrainCtx.drawImage(this.terrainCanvas, 0, 0, this.terrainCanvas.width, this.terrainCanvas.height, 0, 0, minimapWidth, minimapHeight);
                         
                 this.renderRoads();
-                this.renderTrees();
                 this.terrainRendered = true;
             }
          
@@ -142,6 +141,7 @@ export default class RenderManager {
         this.renderTerrain();
         // Render towns, target circle, minimap, players, enemies, etc.
         this.renderTowns();
+        this.renderTrees();
         this.renderTargetCircle();
         this.renderMinimap();
         this.renderPlayers();
@@ -310,10 +310,10 @@ export default class RenderManager {
             // Check if the tree's position overlaps with a road
             if (!this.roadCoordinates.has(`${tree.position.x},${tree.position.y}`)) {
                 const treeImg = this.assetManager.assets[`${tree.type}_tree`]; // Replace with your tree sprite key
-                const treeX = tree.position.x * CONFIG.tileSize;
-                const treeY = tree.position.y * CONFIG.tileSize;
+                const treeX = tree.position.x * CONFIG.tileSize + this.gameState.offsetX;
+                const treeY = tree.position.y * CONFIG.tileSize + this.gameState.offsetY;
                 const spritePosition = { x: tree.type == 'stump' ? 0 : CONFIG.unitSize, y: 0};
-                this.renderSprite(this.terrainCtx, treeImg, treeX, treeY, spritePosition.x, spritePosition.y, CONFIG.unitSize);
+                this.renderSprite(this.gameState.context, treeImg, treeX, treeY, spritePosition.x, spritePosition.y, CONFIG.unitSize);
                 this.renderMiniMapImg(this.minimapTerrainCanvas, tree.position.x, tree.position.y, CONFIG.unitSize, spritePosition, treeImg);
             }
         });
@@ -531,10 +531,10 @@ export default class RenderManager {
                 // Calculate the center x position
                 const centerX = target.position.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2;
                 // Calculate the bottom y position, adjusted by the line width
-                const bottomY = target.position.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize - this.gameState.context.lineWidth / 2;
+                const bottomY = target.position.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.unitSize * 1.5;
                 // Draw the circle at the bottom center of the tile
                 // The radius is now set to half of CONFIG.tileSize plus an extra 5 pixels
-                this.gameState.context.arc(centerX, bottomY, CONFIG.tileSize / 2, 0, Math.PI * 2);
+                this.gameState.context.arc(centerX, bottomY, CONFIG.unitSize / 2 + 5, 0, Math.PI * 2);
                 this.gameState.context.stroke();
             }
         }
@@ -542,14 +542,14 @@ export default class RenderManager {
     renderItems() {
         for (const id in this.gameState.items) {
             const item = this.gameState.items[id];
-            const potionX = item.position.x * CONFIG.tileSize + this.gameState.offsetX;
-            const potionY = item.position.y * CONFIG.tileSize + this.gameState.offsetY;
+            const itemX = item.position.x * CONFIG.tileSize + this.gameState.offsetX;
+            const itemY = item.position.y * CONFIG.tileSize + this.gameState.offsetY;
 
             // Check if the potion's position is within the canvas bounds
-            if (potionX >= 0 && potionX <= this.gameState.canvas.width && potionY >= 0 && potionY <= this.gameState.canvas.height) {
-                this.gameState.context.drawImage(this.assetManager.assets[item.type], potionX, potionY, CONFIG.tileSize, CONFIG.tileSize);
+            if (itemX >= 0 && itemX <= this.gameState.canvas.width && itemY >= 0 && itemY <= this.gameState.canvas.height) {
+                this.gameState.context.drawImage(this.assetManager.assets[item.type], itemX, itemY, CONFIG.tileSize, CONFIG.tileSize);
             } else {
-                console.log(`Item with ID ${id} is out of bounds: ${potionX}, ${potionY}`);
+                console.log(`Item with ID ${id} is out of bounds: ${itemX}, ${itemY}`);
             }
         }
     }
