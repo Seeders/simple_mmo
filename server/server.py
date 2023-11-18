@@ -156,7 +156,7 @@ async def main():
     game_manager = GameManager()
     asyncio.create_task(game_manager.combat_handler())
     asyncio.create_task(game_manager.health_regeneration_handler())
-    async with websockets.serve(lambda ws, path: game_server(ws, path, game_manager), "localhost", 6789):
+    async with websockets.serve(lambda ws, path: game_server(ws, path, game_manager), "0.0.0.0", 6789):
         await asyncio.Future()  # This will run forever
 
 if __name__ == "__main__":

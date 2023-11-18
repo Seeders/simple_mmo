@@ -64,6 +64,8 @@ async function loadAssets(assetManager) {
     'sand1': './tiles/1_sand/1.png',
     'sand2': './tiles/1_sand/2.png',
     'sand3': './tiles/1_sand/3.png',
+    'grass0_1': './tiles/2_grass/0_1.png',
+    'grass0_2': './tiles/2_grass/0_2.png',
     'grass0': './tiles/2_grass/0.png',
     'grass1': './tiles/2_grass/1.png',
     'grass2': './tiles/2_grass/2.png',

@@ -51,13 +51,6 @@ class TileAnalysis {
     [TileAtom.TwoCorner]: "2.png",
     [TileAtom.ThreeCorner]: "3.png",
 };
-  function loadTexture(src, callback) {
-    const img = new Image();
-    img.src = src;
-    img.onload = () => callback(img);
-    return img;
-  }
-  
 
 class TileMap {
 	constructor(gameState, assetManager, canvas, tileSize, layers) {
@@ -121,11 +114,6 @@ class TileMap {
 		// Set the texture sizes
 		const spriteResolution = sprites[0].width;
 		const finalTileBaseResolution = spriteResolution * 2;
-        const tileResolutionMidIndex = (finalTileBaseResolution * finalTileBaseResolution / 2) + (finalTileBaseResolution / 2);
-		const bottomLeftOffset = 0;
-        const bottomRightOffset = finalTileBaseResolution / 2;
-        const topLeftOffset = finalTileBaseResolution * finalTileBaseResolution / 2; 
-        const topRightOffset = finalTileBaseResolution * finalTileBaseResolution / 2 + finalTileBaseResolution / 2; 
 
 		fullTexture.width = spriteResolution;
 		fullTexture.height = spriteResolution;
@@ -650,6 +638,34 @@ class TileMap {
 		};
 	}	
 	
+	addVariationImage(imageData, tileAnalysis) {
+		let layer = this.layers[tileAnalysis.heightIndex];
+		let variation = parseInt(Math.random() * 2) + 1
+		const img = this.assetManager.assets[`${layer}0_${variation}`];
+	
+		// Create an instance of CanvasUtility
+		const canvasUtility = new CanvasUtility();
+		canvasUtility.setSize(imageData.width, imageData.height);
+	
+		if (img && Math.random() < .5) {
+			
+			
+			// Paint the existing imageData onto the canvas
+			canvasUtility.paintTexture(imageData);
+	
+			// Assuming img is a loaded Image object and you want to draw it at (0,0)
+			// Draw the img over the imageData
+			canvasUtility.ctx.drawImage(img, 0, 0);
+	
+			// Get the updated imageData from the canvas
+			let updatedImageData = canvasUtility.ctx.getImageData(0, 0, imageData.width, imageData.height);
+
+			return updatedImageData;
+		} else {
+			// If img is not available, return the original imageData
+			return imageData;
+		}
+	}
 	
 
 	drawMap(analyzedMap) {
@@ -662,9 +678,11 @@ class TileMap {
 			const x = (index % this.numColumns) * this.tileSize;
 			const y = Math.floor(index / this.numColumns) * this.tileSize;
 			var tileBase = this.getTileBaseByTileAnalysis(tileAnalysis);
-			const imageData = this.getTransformedTexture(this.layerTextures[tileAnalysis.heightIndex], tileAnalysis, tileBase);
+			const imageData = this.getTransformedTexture(this.layerTextures[tileAnalysis.heightIndex], tileAnalysis, tileBase);			
 			const coloredData = this.colorImageData(imageData, tileAnalysis);
-			const corneredData = this.addCornerGraphics(coloredData, tileAnalysis);
+			const variationData = this.addVariationImage(coloredData, tileAnalysis);
+			const corneredData = this.addCornerGraphics(variationData, tileAnalysis);
+
 			ctx.putImageData(corneredData, x, y);
 
 		});

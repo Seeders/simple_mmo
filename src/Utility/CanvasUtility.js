@@ -8,6 +8,12 @@ export default class CanvasUtility {
         this.canvas.width = width;
         this.canvas.height = height;
     }
+    paintTexture(imageData) {
+        this.setSize(imageData.width, imageData.height);
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.putImageData(imageData, 0, 0);
+        return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    }
 	rotateTexture(imageData, angle) {
 		const tempCanvas = document.createElement("canvas");
 		tempCanvas.width = imageData.width;
