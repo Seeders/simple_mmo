@@ -254,5 +254,20 @@ export default class GameState {
             player.stats.health = parseInt(data.newHealth);
         }
     }
+
+    healthRegeneration(data) {
+        if( data.playerId ) {
+            let player = this.playerManager.getPlayer(data.playerId);
+            if (player) {
+                player.stats.health = parseInt(data.newHealth);
+            }
+        } else if( data.enemyId ) {
+            let enemy = this.enemyManager.getEnemy(data.enemyId);
+            if (enemy) {
+                enemy.stats.health = parseInt(data.newHealth);
+            }
+
+        }
+    }
     // Additional methods for managing and querying the game state can be added here
 }

@@ -179,7 +179,7 @@ export default class RenderManager {
             for (let i = player.pathStep + 1; i < player.path.length - 1; i++) {
                 const node = player.path[i];
                 const circleSize = CONFIG.unitSize / 2;
-                this.renderRoundedRect(this.gameState.context, node.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2 - circleSize / 2, node.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2 - circleSize / 2, circleSize, circleSize, circleSize / 2, 'yellow');
+                this.renderRoundedRect(this.gameState.context, node.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2 - circleSize / 2, node.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2 - circleSize / 2, circleSize, circleSize, circleSize / 2, '#F4C430');
             }
         // this.drawDebugHitbox(this.gameState.context, player.position.x, player.position.y);
         }

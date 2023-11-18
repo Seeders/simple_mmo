@@ -15,7 +15,7 @@ class GameManager:
         self.connections = {}  # This will store websocket connections keyed by player_id        
         self.player_id_counter = 0
         self.next_item_id = 0
-        self.world = World()
+        self.world = World(self)
         self.combat_logs = {}
         self.db_file = 'game.db'
 
@@ -153,6 +153,7 @@ class GameManager:
                 for enemy_id, enemy in list(self.world.enemies.items()):
                     if player.is_in_combat(enemy.position):
                         player.in_combat = True
+                        enemy.in_combat = True
                         if player.attacking == False:
                             player.attacking = True
                             await broadcast({
@@ -241,7 +242,7 @@ class GameManager:
                                     }
                                 }, self.connected, self.connections)
 
-                            while player.stats['experience'] >= player.stats['next_level_exp']:
+                            if player.stats['experience'] >= player.stats['next_level_exp']:
                                 player.level_up()
                                 # save_player_state(player_id, player)
                                 # Broadcast level up information    
@@ -252,6 +253,8 @@ class GameManager:
                                     "max_health": player.stats['max_health'],
                                     "health": player.stats['health']
                                 }, self.connected, self.connections)
+                    elif enemy.in_combat:
+                        enemy.exit_combat()
 
             await asyncio.sleep(0.1)  # Sleep to prevent a tight loop
 

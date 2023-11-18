@@ -1,10 +1,11 @@
 import random
 import copy
 import asyncio
+from utils.broadcast import broadcast
 
 class Enemy:
-    def __init__(self, world, enemy_id, enemy_type, position, full_path):
-        self.world = world
+    def __init__(self, game_manager, enemy_id, enemy_type, position, full_path):
+        self.game_manager = game_manager
         self.id = enemy_id
         self.position = position
         self.attacking = False
@@ -18,6 +19,9 @@ class Enemy:
         self.current_waypoint_index = 0
         self.moving_to_waypoint = False
         self.patrol_direction = 1  # 1 for forward, -1 for reverse
+        self.last_stopped_combat = None  # Time when the enemy last stopped attacking
+        self.health_regeneration_delay = 5  # 5 seconds delay for health regeneration
+        self.in_combat = False
 
     def update(self, current_time):
         if current_time - self.last_patrol_update >= self.patrol_delay and len(self.paths) > 0:
@@ -29,6 +33,16 @@ class Enemy:
               self.wander_movement()
           else:
               self.wander_movement()
+
+          # Check if the enemy should start regenerating health
+        if not self.in_combat and self.last_stopped_combat is not None:
+            if current_time - self.last_stopped_combat >= self.health_regeneration_delay:
+                self.regenerate_health()
+                
+    def exit_combat(self):
+        # Call this method when the enemy stops attacking
+        self.in_combat = False
+        self.last_stopped_combat = asyncio.get_event_loop().time()
 
     def move_along_path(self):
         # Check if at the end of the path and reverse direction if needed
@@ -50,18 +64,25 @@ class Enemy:
         next_index = self.path_index + self.patrol_direction
         if 0 <= next_index < len(self.paths):
             next_position = self.paths[next_index]
-            if self.world.is_position_valid(next_position):
+            if self.game_manager.world.is_position_valid(next_position):
                 self.move_along_path()
                 
 
-
+    def regenerate_health(self):
+        # Regenerate health to full
+        self.stats["health"] = self.stats["max_health"]
+        asyncio.create_task(broadcast({
+            "type": "health_regeneration",
+            "enemyId": self.id,
+            "newHealth": int(self.stats['health'])
+        }, self.game_manager.connected, self.game_manager.connections))
             
     def wander_movement(self):
         # Example of a simple wander behavior
         x = self.position["x"] + random.randint(-1, 1)
         y = self.position["y"] + random.randint(-1, 1)
         next_position = {"x": x, "y": y}
-        if self.world.is_position_valid(next_position):
+        if self.game_manager.world.is_position_valid(next_position):
             self.position = next_position
 
 def get_enemy_stats(enemy_type):

@@ -4,7 +4,8 @@ import heapq
 import random
 from .terrain import Terrain
 class World:
-    def __init__(self):
+    def __init__(self, game_manager):
+        self.game_manager = game_manager
         self.players = {}
         self.terrain = Terrain(100, 100) 
         self.terrainLayers = ["water", "sand", "grass", "forest", "mountain"]
@@ -111,7 +112,7 @@ class World:
                     patrol_route = self.generate_patrol_route(enemy_position)  # Pass dictionary directly
                     full_path = self.generate_full_path(patrol_route)
                     full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
-                    enemies[enemy_id] = Enemy(self, enemy_id, random_enemy_type, enemy_position, full_path_coords)
+                    enemies[enemy_id] = Enemy(self.game_manager, enemy_id, random_enemy_type, enemy_position, full_path_coords)
                     enemies[enemy_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
                     break
         return enemies
@@ -306,7 +307,7 @@ class World:
                 patrol_route = self.generate_patrol_route(enemy_position)  # Pass dictionary directly
                 full_path = self.generate_full_path(patrol_route)
                 full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
-                self.enemies[enemy_id] = Enemy(self, enemy_id, random_enemy_type, enemy_position, full_path_coords)
+                self.enemies[enemy_id] = Enemy(self.game_manager, enemy_id, random_enemy_type, enemy_position, full_path_coords)
                 self.enemies[enemy_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
                 print(f"Spawned enemy {enemy_id}[{random_enemy_type}] at ({x}, {y}) with {self.enemies[enemy_id].stats['health']}/{self.enemies[enemy_id].stats['max_health']} hp")  
                 return self.enemies[enemy_id]
