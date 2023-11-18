@@ -1,3 +1,5 @@
+
+import { CONFIG } from "../config"
 // InventoryManager.js
 export default class InventoryManager {
     constructor(gameState, assetManager) {
@@ -68,22 +70,31 @@ export default class InventoryManager {
         });
     }
 
-
     addItemToSlot(item, slotId) {
         const slotElement = document.getElementById(slotId);
         if (slotElement && !slotElement.firstChild) { // Check if the slot is empty
             const itemElement = document.createElement('div');
             itemElement.className = 'item';
             itemElement.id = `item-${item.id}`;
-
+    
+            // Sprite sheet information
+            const spriteWidth = CONFIG.tileSize; // Width of a single sprite
+            const spriteHeight = CONFIG.tileSize; // Height of a single sprite
+            const spriteRow = 0; // Row of the sprite in the sprite sheet
+            const spriteColumn = 0; // Column of the sprite in the sprite sheet
+    
+            // Calculate background position
+            const backgroundPosX = -(spriteColumn * spriteWidth) + 'px';
+            const backgroundPosY = -(spriteRow * spriteHeight) + 'px';
+    
             // Set the background image to the sprite for the item
-            // You will need to have the sprites available as URLs or paths
-            const itemSpriteUrl = this.assetManager.assets[item.type].src; // Replace with the actual path to your sprite images
-            itemElement.style.backgroundImage = `url('${itemSpriteUrl}')`;
-            itemElement.style.backgroundSize = 'cover'; // Ensure the sprite covers the whole item element
-            itemElement.style.width = '32px'; // Set the width of the item element
-            itemElement.style.height = '32px'; // Set the height of the item element
-
+            const spriteSheetUrl = this.assetManager.assets[item.type].src; // Path to your sprite sheet
+            itemElement.style.backgroundImage = `url('${spriteSheetUrl}')`;
+            itemElement.style.backgroundPosition = `${backgroundPosX} ${backgroundPosY}`;
+            itemElement.style.backgroundSize = 'cover'; // Adjust if needed
+            itemElement.style.width = `${spriteWidth}px`;
+            itemElement.style.height = `${spriteHeight}px`;
+    
             itemElement.onclick = () => this.useItem(item.id); // Set up the click to use the item
             this.makeItemDraggable(itemElement);
             slotElement.appendChild(itemElement);
@@ -91,7 +102,7 @@ export default class InventoryManager {
             console.error('Slot is not empty or does not exist');
         }
     }
-
+    
     useItem(itemId) {
         // Send a message to the server that the item is used
         window.game.networkManager.send('item_used', {            

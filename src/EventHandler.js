@@ -127,8 +127,7 @@ export default class EventHandler {
             if (nextStep < path.length) {
                 let move = { x: path[nextStep].x - player.position.x, y: path[nextStep].y - player.position.y };
                 this.networkManager.socket.send(JSON.stringify({type: "move", playerId: this.gameState.currentPlayerId, move: move, position: path[nextStep]}));
-                player.position = path[nextStep]; // Update player position
-                nextStep++;
+                player.pathStep = nextStep++;                
     
                 // Check if the player is on a road for the next step
                 let roadBonus = this.gameState.isPlayerOnRoad(player.id) ? 1.5 : this.gameState.getTerrainCost(player.position);

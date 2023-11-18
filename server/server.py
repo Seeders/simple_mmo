@@ -106,6 +106,7 @@ async def game_server(websocket, path, game_manager:GameManager):
                         "color": player.color,
                         "terrain": game_manager.world.terrain.terrain,
                         "trees": game_manager.world.trees,
+                        "stones": game_manager.world.stones,
                         "towns": [{"x": town[0], "y": town[1]} for town in game_manager.world.towns],
                         "roads": [[{"x": point[0], "y": point[1]} for point in road] for road in game_manager.world.roads],  # Adjusted for new road structure
                         "players": [{"id": pid, "color": p.color, "position": {"x": game_manager.world.towns[0][0], "y": game_manager.world.towns[0][1]}, "stats": p.stats} for pid, p in game_manager.connected.items()],

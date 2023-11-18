@@ -38,6 +38,9 @@ class Player:
             if self.is_tree_at_position(new_position):
                 self.attack_tree(new_position)
                 return False  # Player does not move, but attacks the tree
+            if self.is_stone_at_position(new_position):
+                self.attack_stone(new_position)
+                return False  # Player does not move, but attacks the tree
             self.position = new_position
             return True
         return False
@@ -45,6 +48,12 @@ class Player:
     def is_tree_at_position(self, position):
         for tree in self.game_manager.world.trees:
             if tree["type"] != "stump" and tree["position"]["x"] == position["x"] and tree["position"]["y"] == position["y"]:
+                return True
+        return False
+    
+    def is_stone_at_position(self, position):
+        for stone in self.game_manager.world.stones:
+            if stone["position"]["x"] == position["x"] and stone["position"]["y"] == position["y"]:
                 return True
         return False
 
@@ -63,6 +72,46 @@ class Player:
                 "position": item.position
             }
         }, self.game_manager.connected, self.game_manager.connections))
+
+    def attack_stone(self, position):
+        # Reduce the health of the stone
+        for index, stone in enumerate(self.game_manager.world.stones):
+            if stone["position"] == position:
+                asyncio.create_task(broadcast({
+                    "type": "start_attack",   
+                    "playerId": self.id,
+                    "targetPosition": stone["position"]
+                }, self.game_manager.connected, self.game_manager.connections))
+
+                stone["health"] -= self.stats["damage"]
+
+                if stone["health"] <= 0:
+                    stone["health"] = 0  # Set health to 0 to avoid negative values
+
+                    # Broadcast combat log update for destroying the stone
+                    asyncio.create_task(broadcastCombatLog(
+                        self.game_manager.combat_logs, self.id, 
+                        f"{self.id} destroyed a stone at {position}.", 
+                        self.game_manager.connected, self.game_manager.connections))
+
+                    self.drop_specific_item('stone', position)
+
+                    # Remove the stone from world.stones
+                    del self.game_manager.world.stones[index]
+
+                else:
+                    # Broadcast combat log update for attacking the stone
+                    asyncio.create_task(broadcastCombatLog(
+                        self.game_manager.combat_logs, self.id, 
+                        f"{self.id} attacked a stone for {self.stats['damage']} damage, {stone['health']} remaining.", 
+                        self.game_manager.connected, self.game_manager.connections))
+
+                # Broadcast stone update
+                asyncio.create_task(broadcast({
+                    "type": "update_stones",                
+                    "stones": self.game_manager.world.stones
+                }, self.game_manager.connected, self.game_manager.connections))
+                break  # Exit the loop once the stone is found and processed
 
 
     def attack_tree(self, position):
@@ -125,7 +174,7 @@ class Player:
             "walk_animation_order": ["down", "up", "left", "right"],
             "resources": {
                 "wood": 0,
-                "ore": 0,
+                "stone": 0,
                 "gold": 0
             }
         }

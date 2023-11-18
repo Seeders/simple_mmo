@@ -20,13 +20,14 @@ export default class GameState {
         this.items = {};
         this.towns = [];
         this.trees = [];
+        this.stones = [];
         this.chats = [];
         this.selectedTarget = null;
         this.currentPlayerId = null;
         this.offsetX = 0;
         this.offsetY = 0;
         this.renderManager = new RenderManager(this, assetManager);    
-        this.terrainCosts = [20, 10, 5, 10, 10, 1, 0];    
+        this.terrainCosts = [20, 10, 5, 10, 10, 1, 0, 0];    
     }
 
     init(data) {
@@ -35,6 +36,8 @@ export default class GameState {
         this.towns = data.towns;
         this.roads = data.roads;
         this.trees = data.trees;
+     
+        this.stones = data.stones;
      
         this.playerManager.initPlayers(data.players);
         this.enemyManager.initEnemies(data.enemies);
@@ -67,10 +70,14 @@ export default class GameState {
                 tempTerrain[tree.position.y][tree.position.x] = 6;            
             }
         }
-        console.log(start, goal);
+        for(let i = 0; i < this.stones.length; i++) {
+            let stone = this.stones[i];
+            tempTerrain[stone.position.y][stone.position.x] = 7;           
+        }
+        
         let pathfinding = new Pathfinding(tempTerrain, this.terrainCosts);
         let path = pathfinding.aStar(start, goal);
-        console.log(path);
+        
         return path;
     }
     adjustViewToCurrentPlayer() {
@@ -141,7 +148,10 @@ export default class GameState {
         this.trees = data.trees;
        // this.renderManager.terrainRendered = false;
     }
-
+    updateStones(data) {
+        this.stones = data.stones;
+       // this.renderManager.terrainRendered = false;
+    }
     levelUp(data) {
         this.playerManager.playerLevelUp(data.playerId, data);
     }

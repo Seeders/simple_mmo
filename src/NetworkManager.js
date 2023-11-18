@@ -1,19 +1,20 @@
 import { CONFIG } from "./config";
 // Network.js
 export default class NetworkManager {
-    constructor(serverUrl, gameState) {
+    constructor(serverUrl, gameState, connectedCallback) {
         this.gameState = gameState;
         this.socket = null;    
-        this.connect(serverUrl);    
+        this.connect(serverUrl, connectedCallback);    
     }
 
     // Connect to the WebSocket server
-    connect(serverUrl) {
+    connect(serverUrl, connectedCallback) {
         this.socket = new WebSocket(serverUrl);
 
         // Connection opened
         this.socket.addEventListener('open', (event) => {
             console.log('Connected to the WebSocket server.');
+            connectedCallback();
             // Send an initial message or perform a handshake if necessary
         });
 
@@ -146,6 +147,9 @@ export default class NetworkManager {
                 break;
             case 'update_trees':
                 this.gameState.updateTrees(data);
+                break;
+            case 'update_stones':
+                this.gameState.updateStones(data);
                 break;
             case 'update_resource':
                 console.log(`update_resource ${data}`);

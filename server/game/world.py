@@ -15,6 +15,7 @@ class World:
         self.roads = [] 
         self.roads = self.generate_roads()
         self.trees = self.spawn_trees(self.terrain.terrain, 'pine')
+        self.stones = self.spawn_stones(self.terrain.terrain, 'stone')
         self.remove_trees_on_roads() 
         self.enemy_counter = len(self.enemies)
 
@@ -139,6 +140,20 @@ class World:
                     }
                     trees.append(tree)
         return trees
+    
+    def spawn_stones(self, world_map, type):
+        stones = []
+        for y, row in enumerate(world_map):
+            for x, tile in enumerate(row):
+                tileType = self.terrainLayers[tile]
+                if tileType == "mountain":  # Assuming "forest" is the identifier for forest tiles                    
+                    stone = {
+                        "type": type,
+                        "position": {"x": x, "y": y},
+                        "health": 200
+                    }
+                    stones.append(stone)
+        return stones
     
     def place_towns(self, num_towns=5):
         towns = []

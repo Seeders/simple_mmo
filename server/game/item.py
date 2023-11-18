@@ -31,10 +31,11 @@ class HealthPotion(Item):
             "newHealth": player.stats['health']
         }, game_manager.connected, game_manager.connections))
     
-class Wood(Item):
-    def __init__(self, item_id, position=None):
-        super().__init__(item_id, "wood", "Wood", position)
 
+class Resource(Item):
+    def __init__(self, item_id, item_type, item_name, position=None):
+        super().__init__(item_id, item_type, item_name, position)
+    
     def use(self, game_manager, player, item_index):
         # Define the effect of the health potion
         if game_manager.world.is_town_at_position(player.position):
@@ -48,29 +49,24 @@ class Wood(Item):
                 "newValue": player.stats['resources'][self.type]
             }, game_manager.connected, game_manager.connections))
 
-class Ore(Item):
+class Wood(Resource):
     def __init__(self, item_id, position=None):
-        super().__init__(item_id, "ore", "Ore", position)
+        super().__init__(item_id, "wood", "Wood", position)
 
-    def use(self, game_manager, player, item_index):
-        # Define the effect of the health potion
-        player.stats['resources']['ore'] = player.stats['resources']['ore'] + 1
-        del player.inventory[item_index]
-        
 
-class Gold(Item):
+class Stone(Resource):
+    def __init__(self, item_id, position=None):
+        super().__init__(item_id, "stone", "Stone", position)
+       
+
+class Gold(Resource):
     def __init__(self, item_id, position=None):
         super().__init__(item_id, "gold", "Gold", position)
-
-    def use(self, game_manager, player, item_index):
-        # Define the effect of the health potion
-        player.stats['resources']['gold'] = player.stats['resources']['gold'] + 1
-        del player.inventory[item_index]
            
 
 # Function to generate a random item
 def generate_random_item(next_item_id, position):
-    # For now, we only have health potions, but you can add more item types
+    # For now, we only have health potions, but you can add mstone item types
     return HealthPotion(next_item_id, position)
 
 # Function to generate a specific item
@@ -78,7 +74,7 @@ def generate_specific_item(item_type, next_item_id, position):
     item_classes = {
         "health_potion": HealthPotion,
         "wood": Wood,
-        "ore": Ore,
+        "stone": Stone,
         "gold": Gold,
         # Add other item types here
     }

@@ -136,6 +136,7 @@ export default class RenderManager {
         // Render towns, target circle, minimap, players, enemies, etc.
         this.renderTowns();
         this.renderTrees();
+        this.renderStones();
         this.renderTargetCircle();
         this.renderMinimap();
         this.renderPlayers();
@@ -143,10 +144,15 @@ export default class RenderManager {
         this.renderPlayerStats();
         this.renderTargetInfo();
         this.renderItems();
+        this.renderPath();
     }
  
 
-    renderSprite(context, img, dx, dy, sx = 0, sy = 0, size = CONFIG.tileSize ){ 
+    renderSprite(context, img, dx, dy, sx = 0, sy = 0, size = CONFIG.tileSize, autoScale=true ){ 
+        if(autoScale){
+            dx = dx * CONFIG.tileSize + this.gameState.offsetX;
+            dy = dy * CONFIG.tileSize + this.gameState.offsetY;
+        }
         if( size != CONFIG.tileSize ) {
             let difference = size - CONFIG.tileSize;
             dx -= difference / 2;
@@ -161,6 +167,23 @@ export default class RenderManager {
 
             this.gameState.context.drawImage(this.terrainCanvas, this.gameState.offsetX, this.gameState.offsetY);
 
+    }
+
+    renderPath() {
+        const player = this.gameState.getCurrentPlayer();
+        
+        if(player && player.playerMoveDestination && player.path){     
+            const destination = this.assetManager.assets["box_selector"];   
+        // Adjust the position to center the larger unit image on the tile
+            this.renderSprite(this.gameState.context, destination, player.playerMoveDestination.x, player.playerMoveDestination.y, 0, 0, CONFIG.unitSize); 
+            for (let i = player.pathStep + 1; i < player.path.length - 1; i++) {
+                const node = player.path[i];
+                const circleSize = CONFIG.unitSize / 2;
+                this.renderRoundedRect(this.gameState.context, node.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2 - circleSize / 2, node.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2 - circleSize / 2, circleSize, circleSize, circleSize / 2, 'yellow');
+            }
+        // this.drawDebugHitbox(this.gameState.context, player.position.x, player.position.y);
+        }
+        
     }
 
     drawLayerWithShadows(ctx, canvas, layerType) {
@@ -245,7 +268,7 @@ export default class RenderManager {
             const img = this.assetManager.assets[player.spriteSheetKey];            
             const spritePosition = player.currentSprite;  
             // Adjust the position to center the larger unit image on the tile
-            this.renderSprite(this.gameState.context, img, player.position.x * CONFIG.tileSize + this.gameState.offsetX, player.position.y * CONFIG.tileSize + this.gameState.offsetY, spritePosition.x, spritePosition.y, CONFIG.unitSize); 
+            this.renderSprite(this.gameState.context, img, player.position.x, player.position.y, spritePosition.x, spritePosition.y, CONFIG.unitSize); 
            // this.drawDebugHitbox(this.gameState.context, player.position.x, player.position.y);
                           
         }
@@ -265,7 +288,7 @@ export default class RenderManager {
                 spritePosition = {x: 0, y: 0};
             }
             // Adjust the position to center the larger unit image on the tile
-            this.renderSprite(this.gameState.context, img, enemy.position.x * CONFIG.tileSize + this.gameState.offsetX, enemy.position.y * CONFIG.tileSize + this.gameState.offsetY, spritePosition.x, spritePosition.y, unitSize);                         
+            this.renderSprite(this.gameState.context, img, enemy.position.x, enemy.position.y, spritePosition.x, spritePosition.y, unitSize);                         
             this.renderMiniMapImg(this.minimapCanvas, enemy.position.x, enemy.position.y, unitSize, spritePosition, img, 4);
           //  this.drawDebugHitbox(this.gameState.context, enemy.position.x, enemy.position.y);
         }
@@ -286,12 +309,22 @@ export default class RenderManager {
         this.gameState.trees.forEach(tree => {
             // Check if the tree's position overlaps with a road
             if (!this.roadCoordinates.has(`${tree.position.x},${tree.position.y}`)) {
-                const treeImg = this.assetManager.assets[`${tree.type}_tree`]; // Replace with your tree sprite key
-                const treeX = tree.position.x * CONFIG.tileSize + this.gameState.offsetX;
-                const treeY = tree.position.y * CONFIG.tileSize + this.gameState.offsetY;
+                const treeImg = this.assetManager.assets[`${tree.type}_tree`]; // Replace with your tree sprite key               
                 const spritePosition = { x: tree.type == 'stump' ? 0 : CONFIG.unitSize, y: 0};
-                this.renderSprite(this.gameState.context, treeImg, treeX, treeY, spritePosition.x, spritePosition.y, CONFIG.unitSize);
+                this.renderSprite(this.gameState.context, treeImg, tree.position.x, tree.position.y, spritePosition.x, spritePosition.y, CONFIG.unitSize);
                 this.renderMiniMapImg(this.minimapTerrainCanvas, tree.position.x, tree.position.y, CONFIG.unitSize, spritePosition, treeImg);
+            }
+        });
+    }
+
+    renderStones() {
+        this.gameState.stones.forEach(stone => {
+            // Check if the stone's position overlaps with a road
+            if (!this.roadCoordinates.has(`${stone.position.x},${stone.position.y}`)) {
+                const stoneImg = this.assetManager.assets[`stone`]; // Replace with your stone sprite key
+                const spritePosition = { x: 0, y: 0};
+                this.renderSprite(this.gameState.context, stoneImg, stone.position.x, stone.position.y, spritePosition.x, spritePosition.y, CONFIG.unitSize);
+                this.renderMiniMapImg(this.minimapTerrainCanvas, stone.position.x, stone.position.y, CONFIG.unitSize, spritePosition, stoneImg);
             }
         });
     }
@@ -325,10 +358,10 @@ export default class RenderManager {
                     }else if (isStairPatternToRightUp) {
                         this.drawAndShiftTriangle(roadImg, x - CONFIG.tileSize, y - CONFIG.tileSize, true, true);
                     } else {
-                        this.renderSprite(this.terrainCtx, roadImg, x, y, spritePosition.x, spritePosition.y, CONFIG.tileSize);
+                        this.renderSprite(this.terrainCtx, roadImg, x, y, spritePosition.x, spritePosition.y, CONFIG.tileSize, false);
                     }
                 } else {
-                    this.renderSprite(this.terrainCtx, roadImg, x, y, spritePosition.x, spritePosition.y, CONFIG.tileSize);
+                    this.renderSprite(this.terrainCtx, roadImg, x, y, spritePosition.x, spritePosition.y, CONFIG.tileSize, false);
                 }
     
                 this.renderMiniMapImg(this.minimapTerrainCanvas, point.x, point.y, CONFIG.tileSize, spritePosition, roadImg, 1);
@@ -519,12 +552,14 @@ export default class RenderManager {
     renderItems() {
         for (const id in this.gameState.items) {
             const item = this.gameState.items[id];
-            const itemX = item.position.x * CONFIG.tileSize + this.gameState.offsetX;
-            const itemY = item.position.y * CONFIG.tileSize + this.gameState.offsetY;
+            const itemImg = this.assetManager.assets[item.type];
+            const itemX = item.position.x;
+            const itemY = item.position.y;
 
+            const spritePosition = { x: 0, y: 0};
             // Check if the potion's position is within the canvas bounds
             if (itemX >= 0 && itemX <= this.gameState.canvas.width && itemY >= 0 && itemY <= this.gameState.canvas.height) {
-                this.gameState.context.drawImage(this.assetManager.assets[item.type], itemX, itemY, CONFIG.tileSize, CONFIG.tileSize);
+                this.renderSprite(this.gameState.context, itemImg, itemX, itemY, spritePosition.x, spritePosition.y, CONFIG.unitSize);
             } else {
                 console.log(`Item with ID ${id} is out of bounds: ${itemX}, ${itemY}`);
             }

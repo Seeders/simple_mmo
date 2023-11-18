@@ -50,13 +50,13 @@ async function loadAssets(assetManager) {
     'mega_green_slime': 'images/Characters/Monsters/Slimes/MegaSlimeGreen.png',
     'necromancer': 'images/Characters/Monsters/Undead/Necromancer.png',
     'skeleton': 'images/Characters/Monsters/Undead/Skeleton-Soldier.png',
-    'health_potion': 'images/health_potion.png',
+    'health_potion': 'images/Objects/potions.png',
     'terrain': './images/Ground/Grass.png',
     'townSprite': './images/Buildings/Wood/Chapels.png',
     'pine_tree': './images/Nature/PineTrees.png',
     'stump_tree': './images/Nature/PineTrees.png',
     'wood': './images/Nature/PineTrees.png',
-    'ore': './images/Nature/PineTrees.png',
+    'stone': './images/Nature/Rocks.png',
     'gold': './images/Nature/PineTrees.png',
     'road': './images/Ground/road.png',
     'water0': './tiles/0_water/0.png',
@@ -77,7 +77,8 @@ async function loadAssets(assetManager) {
     'mountain0': './tiles/4_mountain/0.png',
     'mountain1': './tiles/4_mountain/1.png',
     'mountain2': './tiles/4_mountain/2.png',
-    'mountain3': './tiles/4_mountain/3.png'
+    'mountain3': './tiles/4_mountain/3.png',
+    'box_selector': './images/ui/BoxSelector.png'
 };
 
 
@@ -93,10 +94,11 @@ async function loadAssets(assetManager) {
     console.error('Error loading assets:', error);
   }
 }
+const assetManager = new AssetManager();
+const gameState = new GameState(ctx, debugCanvas, assetManager);
+const networkManager = new NetworkManager(CONFIG.serverUrl, gameState, connectedCallback);
 
 function setupGame(assetManager) {
-  const gameState = new GameState(ctx, debugCanvas, assetManager);
-  const networkManager = new NetworkManager(CONFIG.serverUrl, gameState);
   const chatUI = new ChatUI(gameState);
   const combatLogUI = new CombatLogUI(gameState);
   const inventoryUI = new InventoryUI(gameState, assetManager);
@@ -114,73 +116,58 @@ function gameLoop(gameState) {
 // Optionally, if you need to export anything from this module
 
 async function main() {
-  const assetManager = new AssetManager();
 
   const { gameState, networkManager, combatLogUI, chatUI, inventoryUI } = setupGame(assetManager);
 
-  var _networkManager;
-  // Show login modal
-  const loginLodal = document.getElementById("loginModal");
-
+  const loginModal = document.getElementById("loginModal");
   const loginForm = document.getElementById("loginForm");
-  loginLodal.style.display = "block";
+
+  // Function to handle login
+  const handleLogin = async (username, password) => {
+    try {
+      loginModal.style.display = "none";
+      await loadAssets(assetManager);
+      await networkManager.login(username, password);
+      gameLoop(gameState);
+
+      window.game = {
+        gameState,
+        networkManager,
+        chatUI,
+        combatLogUI,
+        inventoryUI
+      };
+    } catch (error) {
+      console.error("Login failed:", error);
+      loginModal.style.display = "block"; // Show login modal on login failure
+    }
+  };
+
+  // Check if credentials are stored in localStorage
+  const storedUsername = localStorage.getItem("username");
+  const storedPassword = localStorage.getItem("password");
+
+  if (storedUsername && storedPassword) {
+    // Attempt to automatically log in
+    await handleLogin(storedUsername, storedPassword);
+  } else {
+    // Show login modal
+    loginModal.style.display = "block";
+  }
+
   loginForm.onsubmit = async function(event) {
     event.preventDefault();
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
 
-    // Here, you would send the username and password to the server for authentication
-    // For example, using networkManager or another AJAX method
-    // If login is successful, proceed with game setup
-    try {
+    // Store credentials in localStorage for automatic login next time
+    localStorage.setItem("username", username);
+    localStorage.setItem("password", password);
 
-      await networkManager.login(username, password);
-      loginLodal.style.display = "none";
-      await loadAssets(assetManager);
-      gameLoop(gameState);
-        
-      // If you need to expose some components globally or to other modules you can attach them to window or export them.
-      window.game = {
-        gameState: gameState,
-        networkManager: networkManager, 
-        chatUI: chatUI,
-        combatLogUI: combatLogUI, 
-        inventoryUI: inventoryUI
-      };
-    } catch (error) {
-      console.error("Login failed:", error);
-      // Handle login failure (e.g., show an error message)
-    }
-  };
-  
-  const closeModal = function(modalId) {
-    const modal = document.getElementById(modalId);
-    modal.style.display = "none";
-  }
-  
-  const registrationForm = document.getElementById("registrationForm");
-  registrationForm.onsubmit = async function(event) {
-    event.preventDefault();
-    const username = document.getElementById("regUsername").value;
-    const password = document.getElementById("regPassword").value;
-    const passwordConfirm = document.getElementById("regPasswordConfirm").value;
-  
-    if (password !== passwordConfirm) {
-      alert("Passwords do not match.");
-      return;
-    }
-  
-    // Here, send the username and password to the server for registration
-    // For example, using networkManager or another AJAX method
-    try {
-      await networkManager.register(username, password);
-      closeModal("registrationModal");
-      // Optionally, automatically log in the user after successful registration
-    } catch (error) {
-      console.error("Registration failed:", error);
-      // Handle registration failure (e.g., show an error message)
-    }
+    await handleLogin(username, password);
   };
 }
 
-main().catch(console.error);
+function connectedCallback() {
+  main().catch(console.error);
+}
