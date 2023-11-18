@@ -9,17 +9,19 @@ export default class Pathfinding {
 		let cameFrom = new Map();
 		let gScore = new Map();
 		let fScore = new Map();
+		let closedSet = new Set();
 		let closestNode = start; // Keep track of the node closest to the goal
 		let closestNodeDistance = this._heuristic(start, goal);
-	
+		
 		gScore.set(this._hash(start), 0);
 		fScore.set(this._hash(start), closestNodeDistance);
 	
 		openSet.enqueue({ position: start, f: closestNodeDistance });
-	
+		
 		while (!openSet.isEmpty()) {
 			let current = openSet.dequeue().position;
-	
+			// Add current node to closed set
+			closedSet.add(this._hash(current));
 			if (this._isEqual(current, goal)) {
 				return this._reconstructPath(cameFrom, current);
 			}
@@ -31,8 +33,12 @@ export default class Pathfinding {
 			}
 	
 			for (let neighbor of this._getNeighbors(current)) {
+				// Skip if neighbor is in closed set
+				if (closedSet.has(this._hash(neighbor))) {
+					continue;
+				}
 				let tentativeGScore = gScore.get(this._hash(current)) + this._cost(neighbor);
-	
+
 				if (tentativeGScore < (gScore.get(this._hash(neighbor)) || Infinity)) {
 					cameFrom.set(this._hash(neighbor), current);
 					gScore.set(this._hash(neighbor), tentativeGScore);
@@ -94,16 +100,10 @@ export default class Pathfinding {
 
 	_reconstructPath(cameFrom, current) {
 		let totalPath = [current];
-		let visitedNodes = new Set([this._hash(current)]);
 	
 		while (cameFrom.has(this._hash(current))) {
 			current = cameFrom.get(this._hash(current));
-			if (visitedNodes.has(this._hash(current))) {
-				console.error("Cycle detected in path reconstruction");
-				break;
-			}
 			totalPath.unshift(current);
-			visitedNodes.add(this._hash(current));
 		}
 	
 		return totalPath;
@@ -122,7 +122,7 @@ class PriorityQueue {
     constructor(comparator = (a, b) => a > b, equals = (a, b) => a === b) {
         this._heap = [];
         this._comparator = comparator;
-        this._equals = equals; // New equality function
+        this._equals = equals; // New equality function		
     }
 
     enqueue(value) {

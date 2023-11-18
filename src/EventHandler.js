@@ -38,6 +38,7 @@ export default class EventHandler {
         const coords = this.getCanvasCoordinates(event);
         const clickX = coords.x;
         const clickY = coords.y;
+        this.gameState.selectedTarget = null;
         // Check if a player is clicked
         for (const id in this.gameState.playerManager.players) {
             const player = this.gameState.playerManager.players[id];
@@ -58,11 +59,8 @@ export default class EventHandler {
             const enemyY = enemy.position.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2;
             if (Math.pow(clickX - enemyX, 2) + Math.pow(clickY - enemyY, 2) <= Math.pow(CONFIG.unitSize / 2, 2)) {
                 this.gameState.selectedTarget = { type: 'enemy', id: id, stats: enemy.stats };
-                return;
             }
         }        
-        // If nothing is clicked, clear the selection
-        this.gameState.selectedTarget = null;
 
         const destination = this.gridCoordsFromCanvas(coords.x, coords.y);
         
@@ -98,6 +96,7 @@ export default class EventHandler {
     }
 
     startPathFinding(player, destination) {
+        clearTimeout(player.pathTimeout);
         // Assuming you have a function to calculate the path
         const path = this.gameState.findPath(player.position, destination);
         
@@ -105,7 +104,11 @@ export default class EventHandler {
             player.path = path;
             this.movePlayerAlongPath(player, path);
         } else {
-            let move = { x: player.position.x - destination.x, y: player.position.y - destination.y };
+            let move = { x: 0, y: 0 };
+            if(destination.x < player.position.x) move.x = -1;
+            if(destination.x > player.position.x) move.x = 1;
+            if(destination.y < player.position.y) move.y = -1;
+            if(destination.y > player.position.y) move.y = 1;
             this.networkManager.socket.send(JSON.stringify({type: "move", playerId: this.gameState.currentPlayerId, move: move, position: { x: player.position.x + move.x, y: player.position.y + move.y }}));
         }
     }
@@ -119,20 +122,30 @@ export default class EventHandler {
 
     movePlayerAlongPath(player, path) {
         let nextStep = 0;
-        if( player.pathInterval ) {
-            clearInterval(player.pathInterval);
-        }
-        player.pathInterval = setInterval(() => {
+        clearTimeout(player.pathTimeout);
+        let movePlayer = () => {
             if (nextStep < path.length) {
-                let move = { x: player.position.x - path[nextStep].x, y: player.position.y - path[nextStep].y };
-                console.log(move);
+                let move = { x: path[nextStep].x - player.position.x, y: path[nextStep].y - player.position.y };
                 this.networkManager.socket.send(JSON.stringify({type: "move", playerId: this.gameState.currentPlayerId, move: move, position: path[nextStep]}));
+                player.position = path[nextStep]; // Update player position
                 nextStep++;
+    
+                // Check if the player is on a road for the next step
+                let roadBonus = this.gameState.isPlayerOnRoad(player.id) ? 1.5 : this.gameState.getTerrainCost(player.position);
+                let nextMoveTime = 1000 / (roadBonus * player.stats['move_speed']);
+    
+                // Schedule the next move
+                player.pathTimeout = setTimeout(movePlayer, nextMoveTime);
             } else {
-                clearInterval(player.pathInterval);
                 player.playerMoveDestination = null;
                 player.path = null;
+                if (player.pathTimeout) {
+                    clearTimeout(player.pathTimeout);
+                }
             }
-        }, 1000 / player.stats['move_speed']);
+        };
+    
+        // Start moving the player
+        movePlayer();
     }
 }

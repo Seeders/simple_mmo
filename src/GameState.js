@@ -25,7 +25,8 @@ export default class GameState {
         this.currentPlayerId = null;
         this.offsetX = 0;
         this.offsetY = 0;
-        this.renderManager = new RenderManager(this, assetManager);        
+        this.renderManager = new RenderManager(this, assetManager);    
+        this.terrainCosts = [20, 10, 5, 10, 10, 1, 0];    
     }
 
     init(data) {
@@ -34,6 +35,18 @@ export default class GameState {
         this.towns = data.towns;
         this.roads = data.roads;
         this.trees = data.trees;
+     
+        this.playerManager.initPlayers(data.players);
+        this.enemyManager.initEnemies(data.enemies);
+        this.adjustViewToCurrentPlayer();
+    }
+    getTerrainCost(position) {
+        let cost = this.terrainCosts[this.terrain.map[position.y][position.x]] ;
+ 
+        return 1 / ((cost + 1) / 3);
+   
+    }
+    findPath(start, goal) {
         let tempTerrain = [];
         for(let i = 0; i < this.terrain.map.length; i++) {
             tempTerrain[i] = [];
@@ -54,13 +67,11 @@ export default class GameState {
                 tempTerrain[tree.position.y][tree.position.x] = 6;            
             }
         }
-        this.pathfinding = new Pathfinding(tempTerrain, [50, 10, 5, 10, 10, 1, 0]);
-        this.playerManager.initPlayers(data.players);
-        this.enemyManager.initEnemies(data.enemies);
-        this.adjustViewToCurrentPlayer();
-    }
-    findPath(start, goal) {
-        return this.pathfinding.aStar(start, goal);
+        console.log(start, goal);
+        let pathfinding = new Pathfinding(tempTerrain, this.terrainCosts);
+        let path = pathfinding.aStar(start, goal);
+        console.log(path);
+        return path;
     }
     adjustViewToCurrentPlayer() {
         let player = this.getCurrentPlayer();
@@ -187,7 +198,34 @@ export default class GameState {
             }
         }
     }
+    isPlayerOnRoad() {
+        const player = this.getCurrentPlayer();
+        if (!player) {
+            return false; // Player not found or invalid playerId
+        }
 
+        const playerPos = player.position;
+
+        // Check if the player's position matches any position in the roads array
+        return this.roads.some(roadSegment => 
+            roadSegment.some(roadPos => 
+                roadPos.x === playerPos.x && roadPos.y === playerPos.y
+            )
+        );
+    }
+    isPlayerInTown() {
+        const player = this.getCurrentPlayer();
+        if (!player) {
+            return false; // Player not found or invalid playerId
+        }
+
+        const playerPos = player.position;
+
+        // Check if the player's position matches any position in the roads array
+        return this.towns.some(townPos => 
+            townPos.x === playerPos.x && townPos.y === playerPos.y
+        );    
+    }
     updateResource(data) {
         
         if (data.playerId === this.currentPlayerId) {
@@ -203,7 +241,7 @@ export default class GameState {
     healthRegeneration(data) {
         let player = this.playerManager.getPlayer(data.playerId);
         if (player) {
-            player.stats.health = data.newHealth;
+            player.stats.health = parseInt(data.newHealth);
         }
     }
     // Additional methods for managing and querying the game state can be added here
