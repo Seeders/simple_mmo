@@ -7,10 +7,10 @@ from utils.broadcast import broadcast, broadcastCombatLog
 from .item import generate_specific_item
 class Player:
 
-    def __init__(self, game_manager, player_id, position, stats=None, inventory=[]):
+    def __init__(self, game_manager, player_id, position={"x": 50, "y": 50}, stats=None, inventory=[]):
         self.id = player_id
         self.game_manager = game_manager
-        self.position = position if position else {"x": 50, "y": 50}
+        self.position = position
         self.in_combat = False
         self.attacking = False
         self.inventory = inventory

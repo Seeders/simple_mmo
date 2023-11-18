@@ -134,7 +134,7 @@ async function main() {
     // If login is successful, proceed with game setup
     try {
 
-      await networkManager.login('seeders', 'asdf');
+      await networkManager.login(username, password);
       loginLodal.style.display = "none";
       await loadAssets(assetManager);
       gameLoop(gameState);
