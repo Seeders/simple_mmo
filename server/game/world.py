@@ -337,6 +337,19 @@ class World:
                 return True
         return False
     
+    def is_town_at_position(self, position):
+        print(position)
+        for town in self.towns:
+            print(town)
+            # Convert position dictionary to a tuple for comparison
+            position_tuple = (position['x'], position['y'])
+            print(position_tuple)
+            if position_tuple == town:
+                print("found")
+                return True
+        print("not found")
+        return False
+        
     def merge_overlapping_segments(self, road1, road2, merge_threshold=2):
         merged_road = []
         i, j = 0, 0
