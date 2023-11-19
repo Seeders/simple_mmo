@@ -12,12 +12,12 @@ class World:
         self.enemy_spawns = ['green_slime', 'mammoth', 'giant_crab', 'pirate_grunt', 'pirate_gunner', 'pirate_captain']
         self.building_types = ['house', 'market', 'tavern', 'blacksmith', 'temple', 'barracks', 'dock']
         self.trees = self.spawn_trees(self.terrain.terrain)
+        self.stones = self.spawn_stones(self.terrain.terrain, 'stone')
         self.enemies = self.spawn_enemies(50, 100, 100, self.terrain.terrain)       
         self.items_on_ground = {}
         self.towns = self.place_towns()
         self.roads = [] 
         self.roads = self.generate_roads()
-        self.stones = self.spawn_stones(self.terrain.terrain, 'stone')
         self.remove_trees_on_roads() 
         self.enemy_counter = len(self.enemies)
 
@@ -159,7 +159,7 @@ class World:
         stones = []
         for y, row in enumerate(world_map):
             for x, tile in enumerate(row):
-                if self.is_tree_at_position({"x":x,"y":y}):
+                if self.is_tree_at_position({"x":x,"y":y}) >= 0:
                     continue
                 tileType = self.terrainLayers[tile]
                 if tileType == "water" and random.randint(0, 40) > 0:
@@ -213,6 +213,14 @@ class World:
             for neighbor in nearest_neighbors:
                 if not self.is_road_exists(town["center"], neighbor, roads):
                     new_road = self.connect_towns(town["center"], neighbor)
+                    for road in new_road:                                                
+                        tree_index = self.is_tree_at_position({'x': road[0], 'y': road[1]})
+                        if tree_index >= 0:
+                            del self.trees[tree_index]
+                        
+                        stone_index = self.is_stone_at_position({'x': road[0], 'y': road[1]})
+                        if stone_index >= 0:
+                            del self.stones[stone_index]
                     roads.append(new_road)
         return roads
 
@@ -301,7 +309,7 @@ class World:
         if self.is_road_at_position({'x': neighbor[0], 'y': neighbor[1]}):
             return road_weight  # Prefer paths on existing roads
         
-        if self.is_building_at_position({'x': neighbor[0], 'y': neighbor[1]}):
+        if self.is_building_at_position({'x': neighbor[0], 'y': neighbor[1]}) != (-1, -1):
             return 1000  # Prefer paths on existing roads
         
         if terrain_type == 'water':
@@ -399,20 +407,27 @@ class World:
         return False
 
     def is_tree_at_position(self, position):
-        for tree in self.trees:
+        for index, tree in enumerate(self.trees):
             # Convert position dictionary to a tuple for comparison
             if position == tree['position']:
-                return True
-        return False
+                return index
+        return -1
+    
+    def is_stone_at_position(self, position):
+        for index, stone in enumerate(self.stones):
+            # Convert position dictionary to a tuple for comparison
+            if position == stone['position']:
+                return index
+        return -1
     
     def is_building_at_position(self, position):
-        for town in self.towns:
+        for tindex, town in enumerate(self.towns):
             # Convert position dictionary to a tuple for comparison
             coordinate = {'x': position['x'], 'y': position['y']}
-            for building in town['layout']:
+            for bindex, building in enumerate(town['layout']):
                 if coordinate == building['position']:
-                    return True
-        return False
+                    return (tindex, bindex)
+        return (-1, -1)
     
     def generate_town(self, town_center, town_width, town_height, total_buildings, building_counts):
         town_layout = []
@@ -427,7 +442,7 @@ class World:
             x, y = town_center[0] + x_offset, town_center[1] + y_offset
 
             position = {'x': x, 'y': y}
-            if self.is_land(x, y, self.terrain.terrain) and not self.is_tree_at_position(position) and position not in building_locations:
+            if self.is_land(x, y, self.terrain.terrain) and self.is_tree_at_position(position) == -1 and self.is_stone_at_position(position) == -1 and position not in building_locations:
                 building_locations.append(position)
 
         counts = []
