@@ -54,6 +54,7 @@ async function loadAssets(assetManager) {
     'terrain': './images/Ground/Grass.png',
     'town': './images/Buildings/Wood/Keep.png',
     'pine_tree': './images/Nature/PineTrees.png',
+    'palm_tree': './images/Nature/CoconutTrees.png',
     'stump_tree': './images/Nature/PineTrees.png',
     'wood': './images/Nature/PineTrees.png',
     'stone': './images/Nature/Rocks.png',

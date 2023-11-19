@@ -11,7 +11,7 @@ class World:
         self.terrainLayers = ["water", "sand", "grass", "forest", "mountain"]
         self.enemy_spawns = ['green_slime', 'mammoth', 'giant_crab', 'pirate_grunt', 'pirate_gunner', 'pirate_captain']
         self.building_types = ['house', 'market', 'tavern', 'blacksmith', 'temple', 'barracks', 'dock']
-        self.trees = self.spawn_trees(self.terrain.terrain, 'pine')
+        self.trees = self.spawn_trees(self.terrain.terrain)
         self.enemies = self.spawn_enemies(50, 100, 100, self.terrain.terrain)       
         self.items_on_ground = {}
         self.towns = self.place_towns()
@@ -127,34 +127,53 @@ class World:
         self.trees = [tree for tree in self.trees if (tree["position"]["x"], tree["position"]["y"]) not in road_tiles]
 
     
-    def spawn_trees(self, world_map, tree_type):
+    def spawn_trees(self, world_map):
         trees = []
         for y, row in enumerate(world_map):
             for x, tile in enumerate(row):
                 tileType = self.terrainLayers[tile]
-                if tileType == "forest" or tileType == "grass":  # Assuming "forest" is the identifier for forest tiles
-                    if tileType == "grass" and random.randint(0, 9) > 0:
+                tree_type = ""
+                if tileType == "grass":  # Assuming "forest" is the identifier for forest tiles
+                    if random.randint(0, 9) > 0:
                         continue
-                    tree = {
-                        "type": tree_type,
-                        "position": {"x": x, "y": y},
-                        "health": 200
-                    }
-                    trees.append(tree)
+                    tree_type = 'pine'
+                if tileType == "forest":
+                    if random.randint(0, 10) > 9:
+                        continue                    
+                    tree_type = 'pine'
+                if tileType == "sand":
+                    if random.randint(0, 10) > 0:
+                        continue
+                    tree_type = 'palm'
+                if tree_type == '':
+                    continue
+                tree = {
+                    "type": tree_type,
+                    "position": {"x": x, "y": y},
+                    "health": 200
+                }
+                trees.append(tree)
         return trees
     
     def spawn_stones(self, world_map, type):
         stones = []
         for y, row in enumerate(world_map):
             for x, tile in enumerate(row):
+                if self.is_tree_at_position({"x":x,"y":y}):
+                    continue
                 tileType = self.terrainLayers[tile]
-                if tileType == "mountain":  # Assuming "forest" is the identifier for forest tiles                    
-                    stone = {
-                        "type": type,
-                        "position": {"x": x, "y": y},
-                        "health": 200
-                    }
-                    stones.append(stone)
+                if tileType == "water" and random.randint(0, 40) > 0:
+                    continue   
+                if tileType == "sand" and random.randint(0, 30) > 0:
+                    continue   
+                if tileType == "grass" and random.randint(0, 20) > 0:
+                    continue   
+                stone = {
+                    "type": type,
+                    "position": {"x": x, "y": y},
+                    "health": 200
+                }
+                stones.append(stone)
         return stones
     
     def place_towns(self, num_towns=5):

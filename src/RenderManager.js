@@ -324,6 +324,9 @@ export default class RenderManager {
             if (!this.roadCoordinates.has(`${tree.position.x},${tree.position.y}`)) {
                 const treeImg = this.assetManager.assets[`${tree.type}_tree`]; // Replace with your tree sprite key               
                 const spritePosition = { x: tree.type == 'stump' ? 0 : CONFIG.unitSize, y: 0};
+                if(tree.type == 'palm'){
+                    spritePosition.x = CONFIG.unitSize * (tree.position.x % 2 == 0 ? 2 : 4);
+                }
                 this.renderSprite(this.gameState.context, treeImg, tree.position.x, tree.position.y, spritePosition.x, spritePosition.y, CONFIG.unitSize);
                 this.renderMiniMapImg(this.minimapTerrainCanvas, tree.position.x, tree.position.y, CONFIG.unitSize, spritePosition, treeImg);
             }
