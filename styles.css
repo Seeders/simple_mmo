@@ -46,6 +46,14 @@ canvas {
     margin: 0 auto; /* Center the UI row if max-width is set */
 }
 
+#ui-row > div {
+    margin-right: 1em;
+}
+#view-container {
+    border: 1px solid black;
+    padding: 20px;
+    background-color: #111;
+}
 /* Chat container styling */
 #chat {
     width: 300px;
@@ -78,7 +86,6 @@ canvas {
     grid-gap: 5px;
     padding: 10px;
     background-color: #fff;
-    margin-right: 10px;
 }
 
 /* Individual inventory slots */
@@ -129,7 +136,6 @@ canvas {
     width: 300px; /* Adjust size as needed */
     height: 300px; /* Adjust size as needed */
     border: 1px solid #000; /* Optional border */
-    margin-right: 10px; /* Spacing between minimap and inventory */
 }
 
 #minimapCanvas, #minimapTerrainCanvas {

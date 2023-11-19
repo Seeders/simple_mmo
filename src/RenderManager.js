@@ -53,9 +53,12 @@ export default class RenderManager {
         this.minimapTerrainCtx = this.minimapTerrainCanvas.getContext('2d');
         this.minimapTerrainCanvas.width = CONFIG.miniMapSize; // Match the CSS size
         this.minimapTerrainCanvas.height = CONFIG.miniMapSize; // Match the CSS size
+        this.tileMap = new TileMap(gameState, assetManager, this.terrainCanvas, CONFIG.tileSize, CONFIG.tileTypes);
 
-        this.tileMap = new TileMap(gameState, assetManager, this.terrainCanvas, CONFIG.tileSize, ['water', 'sand', 'grass', 'forest', 'mountain']);
-
+        this.viewCanvas = document.getElementById('viewCanvas');
+        this.viewCtx = this.viewCanvas.getContext('2d');
+        this.viewCanvas.width = 256; // Match the CSS size
+        this.viewCanvas.height = 256; // Match the CSS size
     
         this.cornerRadius = 0; // Adjust the corner radius as needed
         // Define terrain types and their associated colors
@@ -69,7 +72,7 @@ export default class RenderManager {
         };
 
         // Define the order in which to draw terrain types (adjust as needed)
-        this.drawOrder = ['water', 'sand', 'grass', 'forest', 'mountain', 'road'];
+        this.drawOrder = [...CONFIG.tileTypes, 'road'];
 
     }
     renderGame() {
@@ -143,6 +146,7 @@ export default class RenderManager {
         this.renderEnemies();
         this.renderPlayerStats();
         this.renderTargetInfo();
+        this.renderView();
         this.renderItems();
         this.renderPath();
     }
@@ -295,13 +299,22 @@ export default class RenderManager {
     }
 
     renderTowns() {
-        const townImg = this.assetManager.assets['townSprite']; // Replace with your town sprite key
+        const townImg = this.assetManager.assets['town']; // Replace with your town sprite key
         this.gameState.towns.forEach(town => {
-            const townX = town.x * CONFIG.tileSize + this.gameState.offsetX;
-            const townY = town.y * CONFIG.tileSize + this.gameState.offsetY;
             const spritePosition = { x: 0, y: 0};
-            this.gameState.context.drawImage(townImg, townX, townY, CONFIG.tileSize, CONFIG.tileSize);
-            this.renderMiniMapImg(this.minimapCanvas, town.x, town.y, CONFIG.tileSize, spritePosition, townImg);
+            this.renderSprite(this.gameState.context, townImg, town.center.x, town.center.y, spritePosition.x, spritePosition.y, CONFIG.tileSize);
+            this.renderMiniMapImg(this.minimapCanvas, town.center.x, town.center.y, CONFIG.tileSize, spritePosition, townImg);
+
+            town.layout.forEach((building) => {
+                if(this.assetManager.assets[building.type]){
+                    const buildingImg = this.assetManager.assets[building.type]; // Replace with your town sprite key
+                    this.renderSprite(this.gameState.context, buildingImg, building.position.x, building.position.y, spritePosition.x, CONFIG.unitSize, CONFIG.unitSize);
+                } else {
+                  //  console.log(building.type, 'not found');
+                }
+           
+            });
+
         });
     }
 
@@ -521,6 +534,26 @@ export default class RenderManager {
                 // Render the text
                 this.gameState.context.fillText(`${target.name} [${target.stats.level}] - ${target.stats.health}`, textX, textY);
             }
+        }
+    }
+
+    renderView() {
+        let player = this.gameState.getCurrentPlayer();
+        if(player){
+            let tileType = this.gameState.terrain.map[player.position.y][player.position.x];
+            const posX = this.gameState.canvas.width / 2;
+            const posY = this.gameState.canvas.height - 30;
+            
+            // Set text style
+            this.gameState.context.fillStyle = 'white';
+            this.gameState.context.font = '12px Arial';
+            this.gameState.context.textAlign = 'center';
+            this.gameState.context.textBaseline = 'middle';
+
+            let buildingType = this.gameState.getBuildingTypeAtCurrentTile();
+            this.gameState.context.fillText(`${CONFIG.tileTypes[tileType]} - ${buildingType ? buildingType.type : 'none'}`, posX, posY);
+            
+            this.viewCtx.drawImage(this.assetManager.assets[`${CONFIG.tileTypes[tileType]}_bg_1`], 0, 0);
         }
     }
 

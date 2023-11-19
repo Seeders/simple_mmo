@@ -10,12 +10,13 @@ class World:
         self.terrain = Terrain(100, 100) 
         self.terrainLayers = ["water", "sand", "grass", "forest", "mountain"]
         self.enemy_spawns = ['green_slime', 'mammoth', 'giant_crab', 'pirate_grunt', 'pirate_gunner', 'pirate_captain']
+        self.building_types = ['house', 'market', 'tavern', 'blacksmith', 'temple', 'barracks', 'dock']
+        self.trees = self.spawn_trees(self.terrain.terrain, 'pine')
         self.enemies = self.spawn_enemies(50, 100, 100, self.terrain.terrain)       
         self.items_on_ground = {}
         self.towns = self.place_towns()
         self.roads = [] 
         self.roads = self.generate_roads()
-        self.trees = self.spawn_trees(self.terrain.terrain, 'pine')
         self.stones = self.spawn_stones(self.terrain.terrain, 'stone')
         self.remove_trees_on_roads() 
         self.enemy_counter = len(self.enemies)
@@ -164,26 +165,40 @@ class World:
             x = random.randint(0, self.terrain.width - 1)
             y = random.randint(0, self.terrain.height - 1)
 
-            # Check distance from existing towns
-            if all(self.heuristic((x, y), town) >= min_distance for town in towns):
+            if all(self.heuristic((x, y), (town["center"])) >= min_distance for town in towns):
                 tileType = self.terrainLayers[self.terrain.terrain[y][x]]
                 if tileType == 'grass' or tileType == 'sand':
-                    towns.append((x, y))
+                    town_center = (x, y)
+                    town_width = 10
+                    town_height = 10
+                    total_buildings = 15
+                    building_counts = {
+                        'house': 10,
+                        'market': 2,
+                        'tavern': 2,
+                        'blacksmith': 1,
+                        'temple': 1,
+                        'barracks': 1,
+                        'dock': 3
+                    }
+
+                    town_layout = self.generate_town(town_center, town_width, town_height, total_buildings, building_counts)
+                    towns.append({'center': town_center, 'layout': town_layout})
 
         return towns
     
     def generate_roads(self):
         roads = []
         for town in self.towns:
-            nearest_neighbors = self.find_nearest_neighbors(town, 2)  # Find two nearest neighbors
+            nearest_neighbors = self.find_nearest_neighbors(town["center"], 2)  # Find two nearest neighbors
             for neighbor in nearest_neighbors:
-                if not self.is_road_exists(town, neighbor, roads):
-                    new_road = self.connect_towns(town, neighbor)
+                if not self.is_road_exists(town["center"], neighbor, roads):
+                    new_road = self.connect_towns(town["center"], neighbor)
                     roads.append(new_road)
         return roads
 
     def find_nearest_neighbors(self, town, count):
-        distances = [(self.heuristic(town, other_town), other_town) for other_town in self.towns if other_town != town]
+        distances = [(self.heuristic(town, other_town["center"]), other_town["center"]) for other_town in self.towns if other_town != town]
         distances.sort()
         return [town for _, town in distances[:count]]
 
@@ -266,7 +281,10 @@ class World:
 
         if self.is_road_at_position({'x': neighbor[0], 'y': neighbor[1]}):
             return road_weight  # Prefer paths on existing roads
-
+        
+        if self.is_building_at_position({'x': neighbor[0], 'y': neighbor[1]}):
+            return 1000  # Prefer paths on existing roads
+        
         if terrain_type == 'water':
             return 1000  # High cost for water
         elif terrain_type == 'forest' or terrain_type == 'sand':
@@ -354,18 +372,101 @@ class World:
         return False
     
     def is_town_at_position(self, position):
-        print(position)
         for town in self.towns:
-            print(town)
             # Convert position dictionary to a tuple for comparison
             position_tuple = (position['x'], position['y'])
-            print(position_tuple)
-            if position_tuple == town:
-                print("found")
+            if position_tuple == town['center']:
                 return True
-        print("not found")
         return False
-        
+
+    def is_tree_at_position(self, position):
+        for tree in self.trees:
+            # Convert position dictionary to a tuple for comparison
+            if position == tree['position']:
+                return True
+        return False
+    
+    def is_building_at_position(self, position):
+        for town in self.towns:
+            # Convert position dictionary to a tuple for comparison
+            coordinate = {'x': position['x'], 'y': position['y']}
+            for building in town['layout']:
+                if coordinate == building['position']:
+                    return True
+        return False
+    
+    def generate_town(self, town_center, town_width, town_height, total_buildings, building_counts):
+        town_layout = []
+        building_locations = []
+
+        # Generate building positions
+        while len(building_locations) < total_buildings:
+            x_offset = random.randint(-town_width // 2, town_width // 2)
+            y_offset = random.randint(-town_height // 2, town_height // 2)
+            if x_offset == 0 and y_offset == 0: 
+                continue  # Avoid spawning on town center
+            x, y = town_center[0] + x_offset, town_center[1] + y_offset
+
+            position = {'x': x, 'y': y}
+            if self.is_land(x, y, self.terrain.terrain) and not self.is_tree_at_position(position) and position not in building_locations:
+                building_locations.append(position)
+
+        counts = []
+        for building_name in building_counts:
+            counts.append(building_counts[building_name])
+        # Assign building types based on neighboring tiles
+        for position in building_locations:
+            building_type = self.determine_building_type(town_center, position, building_counts)
+            if counts[building_type] > 0:
+                counts[building_type] = counts[building_type] - 1
+                town_layout.append({'type': self.building_types[building_type], 'position': position})
+            else:
+                town_layout.append({'type': self.building_types[0], 'position': position})# default to hut
+
+        return town_layout
+
+    def determine_building_type(self, town_center, position, building_counts):
+        """
+        Determines the building type based on neighboring tiles.
+
+        :param position: Dictionary with 'x' and 'y' keys representing the building position.
+        :return: Integer representing the building type.
+        """
+        distance_to_town = ((town_center[0] - position['x'])**2 + (town_center[1] - position['y'])**2)**0.5
+
+        # Example logic for determining building type
+        if self.is_tile_type_nearby(0, position):
+            dock_index = self.building_types.index('dock')
+            return dock_index
+        if distance_to_town < 4:
+            return random.randint(1, 4)
+        else:
+            # Other logic to determine building type
+            return 0  # Example types
+
+    def is_tile_type_nearby(self, tile_type, position):
+        """
+        Checks if the specified tile type is in the neighboring tiles of the given position.
+
+        :param tile_type: The type of tile to check for.
+        :param position: Dictionary with 'x' and 'y' keys representing the building position.
+        :return: Boolean indicating if the specified tile type is nearby.
+        """
+        x, y = position['x'], position['y']
+        terrain = self.terrain.terrain
+
+        # Check each direction: up, down, left, right
+        directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+        for dx, dy in directions:
+            new_x, new_y = x + dx, y + dy
+
+            # Check if the new position is within the bounds of the terrain
+            if 0 <= new_x < len(terrain) and 0 <= new_y < len(terrain[0]):
+                if terrain[new_y][new_x] == tile_type:
+                    return True
+
+        return False
+
     def merge_overlapping_segments(self, road1, road2, merge_threshold=2):
         merged_road = []
         i, j = 0, 0

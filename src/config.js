@@ -4,6 +4,7 @@ export const CONFIG = {
     worldSize: 100,
     miniMapSize: 300,
     serverUrl: "ws://localhost:6789/",    
+    tileTypes: ['water', 'sand', 'grass', 'forest', 'mountain'],
     terrainColors: {
         'water': '#0000ff',
         'sand': '#f4a460',

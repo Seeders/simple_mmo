@@ -24,20 +24,23 @@ class Enemy:
         self.in_combat = False
 
     def update(self, current_time):
-        if current_time - self.last_patrol_update >= self.patrol_delay and len(self.paths) > 0:
-          self.last_patrol_update = current_time
-          # Select movement behavior based on enemy type
-          if self.stats["behavior"] == "patrol":
-              self.patrol_movement()
-          elif self.stats["behavior"] == "wander":
-              self.wander_movement()
-          else:
-              self.wander_movement()
+        if not self.in_combat:
+          if current_time - self.last_patrol_update >= self.patrol_delay and len(self.paths) > 0:
+            self.last_patrol_update = current_time
+            # Select movement behavior based on enemy type
+            if self.stats["behavior"] == "patrol":
+                self.patrol_movement()
+            elif self.stats["behavior"] == "wander":
+                self.wander_movement()
+            else:
+                self.wander_movement()
 
-          # Check if the enemy should start regenerating health
-        if not self.in_combat and self.last_stopped_combat is not None:
-            if current_time - self.last_stopped_combat >= self.health_regeneration_delay:
-                self.regenerate_health()
+            # Check if the enemy should start regenerating health
+          if self.last_stopped_combat is not None:
+              if current_time - self.last_stopped_combat >= self.health_regeneration_delay:
+                  self.regenerate_health()
+        else:
+          self.last_patrol_update = current_time + self.health_regeneration_delay
                 
     def exit_combat(self):
         # Call this method when the enemy stops attacking

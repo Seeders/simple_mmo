@@ -52,7 +52,7 @@ async function loadAssets(assetManager) {
     'skeleton': 'images/Characters/Monsters/Undead/Skeleton-Soldier.png',
     'health_potion': 'images/Objects/potions.png',
     'terrain': './images/Ground/Grass.png',
-    'townSprite': './images/Buildings/Wood/Chapels.png',
+    'town': './images/Buildings/Wood/Keep.png',
     'pine_tree': './images/Nature/PineTrees.png',
     'stump_tree': './images/Nature/PineTrees.png',
     'wood': './images/Nature/PineTrees.png',
@@ -60,6 +60,16 @@ async function loadAssets(assetManager) {
     'gold': './images/Nature/PineTrees.png',
     'road': './images/Ground/road.png',
     'water0': './tiles/0_water/0.png',
+    'water_bg_1': './images/backgrounds/water.png',
+    'water_bg_2': './images/backgrounds/water.png',
+    'sand_bg_1': './images/backgrounds/beach.png',
+    'sand_bg_2': './images/backgrounds/beach2.png',
+    'grass_bg_1': './images/backgrounds/grass.png',
+    'grass_bg_2': './images/backgrounds/grass2.png',
+    'forest_bg_1': './images/backgrounds/forest.png',
+    'forest_bg_2': './images/backgrounds/forest2.png',
+    'mountain_bg_1': './images/backgrounds/mountain.png',
+    'mountain_bg_2': './images/backgrounds/mountain2.png',
     'sand0': './tiles/1_sand/0.png',
     'sand1': './tiles/1_sand/1.png',
     'sand2': './tiles/1_sand/2.png',
@@ -78,7 +88,14 @@ async function loadAssets(assetManager) {
     'mountain1': './tiles/4_mountain/1.png',
     'mountain2': './tiles/4_mountain/2.png',
     'mountain3': './tiles/4_mountain/3.png',
-    'box_selector': './images/ui/BoxSelector.png'
+    'box_selector': './images/ui/BoxSelector.png',
+    'house': './images/Buildings/Wood/huts.png',
+    'blacksmith': './images/Buildings/Wood/Workshops.png',
+    'barracks': './images/Buildings/Wood/Barracks.png',
+    'market': './images/Buildings/Wood/Market.png',
+    'tavern': './images/Buildings/Wood/Taverns.png',
+    'temple': './images/Buildings/Wood/Chapels.png',
+    'dock': './images/Buildings/Wood/Docks.png'
 };
 
 

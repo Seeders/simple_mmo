@@ -34,6 +34,9 @@ export default class GameState {
         this.currentPlayerId = data.id;
         this.terrain = new Terrain(data.terrain);
         this.towns = data.towns;
+        this.towns.forEach((town) => {
+            town.center = { x: town.center[0], y: town.center[1] };
+        });
         this.roads = data.roads;
         this.trees = data.trees;
      
@@ -236,6 +239,26 @@ export default class GameState {
             townPos.x === playerPos.x && townPos.y === playerPos.y
         );    
     }
+    
+    getBuildingTypeAtCurrentTile() {
+        const player = this.getCurrentPlayer();
+        if (!player) {
+            return false; // Player not found or invalid playerId
+        }
+
+        const playerPos = player.position;
+        let building = null;
+        // Check if the player's position matches any position in the roads array
+        this.towns.forEach((town) => {
+            town.layout.forEach((_building) => {
+                if(_building.position.x === playerPos.x && _building.position.y === playerPos.y){
+                    building = _building;                    
+                }
+            });
+        });    
+        return building;
+    }
+
     updateResource(data) {
         
         if (data.playerId === this.currentPlayerId) {

@@ -114,7 +114,7 @@ class GameManager:
             self.connections[player_id] = websocket
             return existing_player
         else:
-            new_player = Player(self, player_id, { "x": self.world.towns[0][0], "y": self.world.towns[0][1] })
+            new_player = Player(self, player_id, { "x": self.world.towns[0].center[0], "y": self.world.towns[0].center[1] })
             self.connected[player_id] = new_player
             self.connections[player_id] = websocket
             await self.save_player_state(player_id)  # Save the new player state
@@ -200,7 +200,7 @@ class GameManager:
                         if player.stats['health'] <= 0:
                             # Handle player death and respawn
                             await broadcastCombatLog(self.combat_logs, player_id, f"{player_id} was killed by {enemy.stats['name']}.", self.connected, self.connections)
-                            player.position = {"x": self.world.towns[0][0], "y": self.world.towns[0][1]}  # Respawn position
+                            player.position = {"x": self.world.towns[0].center[0], "y": self.world.towns[0].center[1]}  # Respawn position
                             player.stats['health'] = player.stats['max_health']  # Reset health
                             player.last_attack_time = current_time
                             await broadcast({
