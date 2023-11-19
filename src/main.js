@@ -96,7 +96,19 @@ async function loadAssets(assetManager) {
     'market': './images/Buildings/Wood/Market.png',
     'tavern': './images/Buildings/Wood/Taverns.png',
     'temple': './images/Buildings/Wood/Chapels.png',
-    'dock': './images/Buildings/Wood/Docks.png'
+    'dock': './images/Buildings/Wood/Docks.png',
+    'blacksmith_bg_1': './images/backgrounds/blacksmith.png',
+    'blacksmith_bg_2': './images/backgrounds/blacksmith.png',
+    'barracks_bg_1': './images/backgrounds/barracks.png',
+    'barracks_bg_2': './images/backgrounds/barracks.png',
+    'market_bg_1': './images/backgrounds/market.png',
+    'market_bg_2': './images/backgrounds/market.png',
+    'tavern_bg_1': './images/backgrounds/tavern.png',
+    'tavern_bg_2': './images/backgrounds/tavern2.png',
+    'temple_bg_1': './images/backgrounds/temple.png',
+    'temple_bg_2': './images/backgrounds/temple.png',
+    'dock_bg_1': './images/backgrounds/dock.png',
+    'dock_bg_2': './images/backgrounds/dock.png'
 };
 
 

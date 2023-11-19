@@ -544,19 +544,31 @@ export default class RenderManager {
         let player = this.gameState.getCurrentPlayer();
         if(player){
             let tileType = this.gameState.terrain.map[player.position.y][player.position.x];
-            const posX = this.gameState.canvas.width / 2;
-            const posY = this.gameState.canvas.height - 30;
+
+            let variation = parseInt(((player.position.x + player.position.y) / 10) % 2 + 1);
+            let buildingType = this.gameState.getBuildingTypeAtCurrentTile();
+            if(buildingType){
+                let buildingBg = this.assetManager.assets[`${buildingType.type}_bg_${variation}`];
+                if( buildingBg ) {
+                    this.viewCtx.drawImage(buildingBg, 0, 0);         
+                }
+            } else {
+                let bg = this.assetManager.assets[`${CONFIG.tileTypes[tileType]}_bg_${variation}`]
+                if( bg ) {
+                    this.viewCtx.drawImage(bg, 0, 0);
+                }
+            }
+            const posX = this.viewCanvas.width / 2;
+            const posY = this.viewCanvas.height - 30;
             
             // Set text style
-            this.gameState.context.fillStyle = 'white';
-            this.gameState.context.font = '12px Arial';
-            this.gameState.context.textAlign = 'center';
-            this.gameState.context.textBaseline = 'middle';
+            this.viewCtx.fillStyle = 'white';
+            this.viewCtx.font = '12px Arial';
+            this.viewCtx.textAlign = 'center';
+            this.viewCtx.textBaseline = 'middle';
 
-            let buildingType = this.gameState.getBuildingTypeAtCurrentTile();
-            this.gameState.context.fillText(`${CONFIG.tileTypes[tileType]} - ${buildingType ? buildingType.type : 'none'}`, posX, posY);
+            this.viewCtx.fillText(`${CONFIG.tileTypes[tileType]} - ${buildingType ? buildingType.type : 'none'}`, posX, posY);
             
-            this.viewCtx.drawImage(this.assetManager.assets[`${CONFIG.tileTypes[tileType]}_bg_1`], 0, 0);
         }
     }
 
