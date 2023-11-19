@@ -19,6 +19,7 @@ export default class GameState {
         this.roads = [];
         this.items = {};
         this.towns = [];
+        this.ramps = [];
         this.trees = [];
         this.stones = [];
         this.chats = [];
@@ -27,7 +28,8 @@ export default class GameState {
         this.offsetX = 0;
         this.offsetY = 0;
         this.renderManager = new RenderManager(this, assetManager);    
-        this.terrainCosts = [20, 10, 5, 10, 10, 1, 0, 0];    
+        this.terrainCosts = [20, 10, 5, 10, 10, 1, 0, 0, 0];    
+        this.playerMoved = true;
     }
 
     init(data) {
@@ -39,7 +41,7 @@ export default class GameState {
         });
         this.roads = data.roads;
         this.trees = data.trees;
-     
+        this.ramps = data.ramps;
         this.stones = data.stones;
      
         this.playerManager.initPlayers(data.players);
@@ -53,11 +55,64 @@ export default class GameState {
    
     }
     findPath(start, goal) {
+        let type1 = "forest";
+        let type2 = "grass";
+        if( CONFIG.tileTypes[this.terrain.map[start.y][start.x]] == "forest" ) {
+            type1 = "grass";
+            type2 = "forest";
+        }
         let tempTerrain = [];
-        for(let i = 0; i < this.terrain.map.length; i++) {
+        for (let i = 0; i < this.terrain.map.length; i++) {
             tempTerrain[i] = [];
-            for(let j = 0; j < this.terrain.map[i].length; j++) {
+            for (let j = 0; j < this.terrain.map[i].length; j++) {
                 tempTerrain[i][j] = this.terrain.map[i][j];
+        
+                // Check if the current tile is a forest tile
+                if (CONFIG.tileTypes.length > tempTerrain[i][j] && CONFIG.tileTypes[tempTerrain[i][j]] === type1) {
+                    // Check the neighboring tiles in cardinal directions
+                    for (let dx = -1; dx <= 1; dx++) {
+                        for (let dy = -1; dy <= 1; dy++) {
+                            // Skip diagonal neighbors and the current tile itself
+                            if (Math.abs(dx) === Math.abs(dy)) {
+                                continue;
+                            }
+                
+                            // Ensure we don't go out of bounds
+                            if (i + dx >= 0 && i + dx < this.terrain.map.length && j + dy >= 0 && j + dy < this.terrain.map[i].length) {
+                                // Check if the neighboring tile is grass
+                                if (CONFIG.tileTypes[this.terrain.map[i + dx][j + dy]] === type2) {
+                                    tempTerrain[i][j] = 8; // Update the current tile type to 8
+                                    break; // No need to check other neighbors once we find grass
+                                }
+                            }
+                        }
+                        if (tempTerrain[i][j] === 8) {
+                            break; // Break the outer loop as well if we've updated the tile
+                        }
+                    }
+                }
+                
+            }
+        }
+        for(let i = 0; i < this.ramps.length; i++) {
+            let ramp = this.ramps[i];
+            tempTerrain[ramp.y][ramp.x] = CONFIG.tileTypes.indexOf("forest"); 
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    // Skip diagonal neighbors and the current tile itself
+                    if (Math.abs(dx) === Math.abs(dy)) {
+                        continue;
+                    }
+        
+                    // Ensure we don't go out of bounds
+                    if (ramp.y + dx >= 0 && ramp.y + dx < this.terrain.map.length && ramp.x + dy >= 0 && ramp.x + dy < this.terrain.map[ramp.y].length) {
+                        // Check if the neighboring tile is grass
+                        if (CONFIG.tileTypes[this.terrain.map[ramp.y + dx][ramp.x + dy]] === "grass") {
+                            tempTerrain[ramp.y + dx][ramp.x + dy] = CONFIG.tileTypes.indexOf("grass"); // Update the current tile type to 8
+                            break; // No need to check other neighbors once we find grass
+                        }
+                    }
+                }
             }
         }
         for(let i = 0; i < this.roads.length; i++) {

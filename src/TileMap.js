@@ -313,10 +313,10 @@ class TileMap {
 		return this.canvasUtility.flipTextureHorizontal(imageData);
 	}
 
-	analyzeTile(locationIndex) {
+	analyzeTile(x, y) {
 		let tileAnalysis = new TileAnalysis();
-		let row = Math.floor(locationIndex / this.numColumns);
-		let col = locationIndex % this.numColumns;
+		let row = y;
+		let col = x;
 
 		if (row < 0 || row >= this.numColumns || col < 0 || col >= this.numColumns) {
 			return tileAnalysis; // Out of bounds
@@ -375,8 +375,7 @@ class TileMap {
 
 		for (let i = 0; i < this.numColumns; i++) {
 			for (let j = 0; j < this.numColumns; j++) {
-				let locationIndex = i * this.numColumns + j;
-				analyzedTiles.push(this.analyzeTile(locationIndex));
+				analyzedTiles.push(this.analyzeTile(j, i));
 			}
 		}
 

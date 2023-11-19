@@ -35,6 +35,10 @@ class Player:
 
     def move(self, new_position):
         if self.game_manager.world.is_position_valid(new_position):
+            if self.game_manager.world.tile_type_at_position(new_position) == "forest" and self.game_manager.world.tile_type_at_position(self.position) == "grass" and self.game_manager.world.is_ramp_at_position(new_position) == -1:
+                return False # Player must use ramp to go to forest from grass
+            if self.game_manager.world.tile_type_at_position(new_position) == "grass" and self.game_manager.world.tile_type_at_position(self.position) == "forest" and self.game_manager.world.is_ramp_at_position(self.position) == -1:
+                return False # Player must use ramp to go to grass from forest
             if self.is_tree_at_position(new_position):
                 self.attack_tree(new_position)
                 return False  # Player does not move, but attacks the tree

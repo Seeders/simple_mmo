@@ -5,6 +5,7 @@ export default class Player extends Unit {
         super(gameState, data);
         this.spriteSheetKey = 'champ_okomo';      
         this.inventory = data.inventory || [];
+        this.isOnRoad = false;
         this.resources = {
             "wood": 0,
             "ore": 0,

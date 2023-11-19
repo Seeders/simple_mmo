@@ -2,6 +2,7 @@ export default class CanvasUtility {
     constructor() {
         this.canvas = document.createElement('canvas');
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+		this.ctx.globalCompositeOperation = 'destination-over';// Set the composite operation to preserve transparency
     }
 
     setSize(width, height) {
@@ -71,4 +72,47 @@ export default class CanvasUtility {
 
 		return ctx.getImageData(0, 0, imageData.width, imageData.height);
 	}
+
+	drawImage(image) {
+        this.setSize(image.width, image.height);
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.drawImage(image, 0, 0);
+        return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+	rotateImage(image, angle) {
+		this.setSize(image.width, image.height);
+	
+		// Clear the canvas with a transparent color
+		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+		// Set up the rotation
+		this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
+		this.ctx.rotate(angle);
+		this.ctx.translate(-this.canvas.width / 2, -this.canvas.height / 2);
+		this.ctx.fillStyle = 'rgba(0, 0, 0, 0)'; // Fully transparent
+		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+	
+		// Draw the image
+		this.ctx.drawImage(image, 0, 0);
+		return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+	}
+
+    flipImageVertical(image) {
+        this.setSize(image.width, image.height);
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.translate(0, this.canvas.height);
+        this.ctx.scale(1, -1);
+        this.ctx.drawImage(image, 0, 0);
+        return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    flipImageHorizontal(image) {
+        this.setSize(image.width, image.height);
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.translate(this.canvas.width, 0);
+        this.ctx.scale(-1, 1);
+        this.ctx.drawImage(image, 0, 0);
+        return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    }
 }

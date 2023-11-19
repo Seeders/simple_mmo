@@ -108,7 +108,9 @@ async function loadAssets(assetManager) {
     'temple_bg_1': './images/backgrounds/temple.png',
     'temple_bg_2': './images/backgrounds/temple.png',
     'dock_bg_1': './images/backgrounds/dock.png',
-    'dock_bg_2': './images/backgrounds/dock.png'
+    'dock_bg_2': './images/backgrounds/dock.png',
+    'road_bg_1': './images/backgrounds/road.png',
+    'ramp': './images/Ground/ramp.png'
 };
 
 

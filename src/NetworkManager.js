@@ -69,7 +69,10 @@ export default class NetworkManager {
                 if( player ) {
                     this.gameState.offsetX -= data.move.x * CONFIG.tileSize;
                     this.gameState.offsetY -= data.move.y * CONFIG.tileSize;
-            
+                    if(data.id == this.gameState.currentPlayerId){
+                        this.gameState.playerMoved = true;
+                    }
+                    player.isOnRoad = this.gameState.isPlayerOnRoad(player.id);
                     player.position = data.position;
                 }
                 break;

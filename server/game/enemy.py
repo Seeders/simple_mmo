@@ -84,9 +84,13 @@ class Enemy:
         # Example of a simple wander behavior
         x = self.position["x"] + random.randint(-1, 1)
         y = self.position["y"] + random.randint(-1, 1)
-        next_position = {"x": x, "y": y}
-        if self.game_manager.world.is_position_valid(next_position):
-            self.position = next_position
+        new_position = {"x": x, "y": y}
+        if self.game_manager.world.is_position_valid(new_position):
+            if self.game_manager.world.tile_type_at_position(new_position) == "forest" and self.game_manager.world.tile_type_at_position(self.position) == "grass" and self.game_manager.world.is_ramp_at_position(new_position) == -1:
+                return False # Player must use ramp to go to forest from grass
+            if self.game_manager.world.tile_type_at_position(new_position) == "grass" and self.game_manager.world.tile_type_at_position(self.position) == "forest" and self.game_manager.world.is_ramp_at_position(self.position) == -1:
+                return False # Player must use ramp to go to grass from forest
+            self.position = new_position
 
 def get_enemy_stats(enemy_type):
     if enemy_type in enemy_types:

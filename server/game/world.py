@@ -20,6 +20,8 @@ class World:
         self.roads = self.generate_roads()
         self.remove_trees_on_roads() 
         self.enemy_counter = len(self.enemies)
+        self.ramps = []
+        self.generate_ramps()
 
     def a_star(self, start, end):
         # Helper functions
@@ -61,6 +63,64 @@ class World:
 
         return []  # No path found
     
+    def generate_ramps(self):
+        terrain = self.terrain.terrain
+        ramp_candidates = []
+
+        for y in range(len(terrain)):
+            for x in range(len(terrain[0])):
+                if self.is_border_tile(x, y, 'grass', 'forest'):
+                    ramp_candidates.append({'x': x, 'y': y})
+
+        num_ramps = random.randint(1, len(ramp_candidates) // 2)  # Adjust the number of ramps as needed
+        for _ in range(num_ramps):
+            ramp_tile = random.choice(ramp_candidates)
+            ramp_candidates.remove(ramp_tile)
+            self.place_ramp(ramp_tile)
+
+    def is_border_tile(self, x, y, type1, type2):
+        terrain = self.terrain.terrain
+        current_type = self.terrainLayers[terrain[y][x]]
+
+        if current_type != type1 and current_type != type2:
+            return False
+
+        # Check horizontal neighbors (left and right)
+        if 0 <= x - 1 < len(terrain[0]) and 0 <= x + 1 < len(terrain[0]):
+            left_type = self.terrainLayers[terrain[y][x - 1]]
+            right_type = self.terrainLayers[terrain[y][x + 1]]
+            if current_type == left_type == right_type == type2:
+                # Check vertical neighbors (top and bottom)
+                if 0 <= y - 1 < len(terrain) and 0 <= y + 1 < len(terrain):
+                    top_type = self.terrainLayers[terrain[y - 1][x]]
+                    bottom_type = self.terrainLayers[terrain[y + 1][x]]
+                    if (top_type != bottom_type) and (top_type == type1 or top_type == type2) and (bottom_type == type1 or bottom_type == type2):
+                        return True
+
+        # Check vertical neighbors (top and bottom)
+        if 0 <= y - 1 < len(terrain) and 0 <= y + 1 < len(terrain):
+            top_type = self.terrainLayers[terrain[y - 1][x]]
+            bottom_type = self.terrainLayers[terrain[y + 1][x]]
+            if current_type == top_type == bottom_type == type2:
+                # Check horizontal neighbors (left and right)
+                if 0 <= x - 1 < len(terrain[0]) and 0 <= x + 1 < len(terrain[0]):
+                    left_type = self.terrainLayers[terrain[y][x - 1]]
+                    right_type = self.terrainLayers[terrain[y][x + 1]]
+                    if (left_type != right_type) and (left_type == type1 or left_type == type2) and (right_type == type1 or right_type == type2):
+                        return True
+
+        return False
+
+
+    def place_ramp(self, position):
+        # Update the terrain data to reflect a ramp at the given position
+        # This might involve setting a specific value or flag in the terrain array
+        # Example:
+        treeIndex = self.is_tree_at_position(position)
+        if treeIndex >= 0:
+            del self.trees[treeIndex]
+        self.ramps.append(position)
+
     def is_land(self, x, y, world_map):
         if 0 <= y < len(world_map) and 0 <= x < len(world_map[0]):
             return self.terrainLayers[world_map[y][x]] != 'water'
@@ -420,6 +480,13 @@ class World:
                 return index
         return -1
     
+    def is_ramp_at_position(self, position):
+        for index, ramp in enumerate(self.ramps):
+            # Convert position dictionary to a tuple for comparison
+            if position == ramp:
+                return index
+        return -1
+
     def is_building_at_position(self, position):
         for tindex, town in enumerate(self.towns):
             # Convert position dictionary to a tuple for comparison
@@ -548,6 +615,10 @@ class World:
         # This could be based on the length of the path, terrain, etc.
         return path1 if len(path1) < len(path2) else path2
 
+    def tile_type_at_position(self, position):
+        if 0 <= position['x'] < len(self.terrain.terrain) and 0 <= position['y'] < len(self.terrain.terrain[0]):
+            return self.terrainLayers[self.terrain.terrain[position['y']][position['x']]]
+        return 0
 
     def average_position(self, pos1, pos2):
         return ((pos1[0] + pos2[0]) // 2, (pos1[1] + pos2[1]) // 2)

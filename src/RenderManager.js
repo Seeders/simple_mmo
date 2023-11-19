@@ -1,11 +1,13 @@
 
 import { CONFIG } from './config';
 import TileMap from './TileMap';
+import CanvasUtility from './Utility/CanvasUtility';
 export default class RenderManager {
     constructor(gameState, assetManager) {
         this.gameState = gameState;
         this.assetManager = assetManager;
         this.inventoryElement = document.getElementById('inventory');
+		this.canvasUtility = new CanvasUtility();
 
         this.terrainCanvas = document.createElement('canvas');
         this.terrainCtx = this.terrainCanvas.getContext('2d');
@@ -108,6 +110,7 @@ export default class RenderManager {
                 this.minimapTerrainCtx.drawImage(this.terrainCanvas, 0, 0, this.terrainCanvas.width, this.terrainCanvas.height, 0, 0, minimapWidth, minimapHeight);
                         
                 this.renderRoads();
+                this.renderRamps();
                 this.terrainRendered = true;
             }
          
@@ -338,13 +341,36 @@ export default class RenderManager {
             // Check if the stone's position overlaps with a road
             if (!this.roadCoordinates.has(`${stone.position.x},${stone.position.y}`)) {
                 const stoneImg = this.assetManager.assets[`stone`]; // Replace with your stone sprite key
-                const spritePosition = { x: 0, y: 0};
+                const spritePosition = { x: 0, y: 0 };
                 this.renderSprite(this.gameState.context, stoneImg, stone.position.x, stone.position.y, spritePosition.x, spritePosition.y, CONFIG.unitSize);
                 this.renderMiniMapImg(this.minimapTerrainCanvas, stone.position.x, stone.position.y, CONFIG.unitSize, spritePosition, stoneImg);
             }
         });
     }
+    renderRamps() {
+        this.gameState.ramps.forEach(ramp => {
+            // Check if the stone's position overlaps with a road
 
+            const rampImg = this.assetManager.assets[`ramp`]; // Replace with your stone sprite key
+            const tileAnalysis = this.tileMap.analyzeTile(ramp.x, ramp.y);
+            const rampX = ramp.x * CONFIG.tileSize + CONFIG.unitSize / 2;
+            const rampY = ramp.y * CONFIG.tileSize + CONFIG.unitSize / 2;
+            if (tileAnalysis.leftLess) {
+                this.canvasUtility.rotateImage(rampImg, Math.PI / 2);
+                this.terrainCtx.drawImage(this.canvasUtility.canvas, rampX - CONFIG.unitSize, rampY);
+            } else if (tileAnalysis.rightLess) {
+                this.canvasUtility.rotateImage(rampImg, -Math.PI / 2);
+                this.terrainCtx.drawImage(this.canvasUtility.canvas, rampX + CONFIG.unitSize, rampY);
+            } else if (tileAnalysis.botLess) {
+                this.terrainCtx.drawImage(rampImg, rampX, rampY + CONFIG.unitSize);
+            } else if (tileAnalysis.topLess) {
+                this.canvasUtility.flipImageVertical(rampImg);
+                this.terrainCtx.drawImage(this.canvasUtility.canvas, rampX, rampY - CONFIG.unitSize);
+                //transformedImageData = this.canvasUtility.drawImage(rampImg); // Assuming you want to flip horizontally for topLess
+            }
+        
+        });
+    }
     renderRoads() {
         this.roadCoordinates = new Set(); // Initialize the set to store road coordinates
     
@@ -551,6 +577,11 @@ export default class RenderManager {
                 let buildingBg = this.assetManager.assets[`${buildingType.type}_bg_${variation}`];
                 if( buildingBg ) {
                     this.viewCtx.drawImage(buildingBg, 0, 0);         
+                }
+            } else if(player.isOnRoad) { 
+                let bg = this.assetManager.assets[`road_bg_1`]
+                if( bg ) {
+                    this.viewCtx.drawImage(bg, 0, 0);
                 }
             } else {
                 let bg = this.assetManager.assets[`${CONFIG.tileTypes[tileType]}_bg_${variation}`]

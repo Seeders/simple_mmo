@@ -97,6 +97,7 @@ export default class EventHandler {
 
     startPathFinding(player, destination) {
         clearTimeout(player.pathTimeout);
+        this.gameState.playerMoved = true;
         // Assuming you have a function to calculate the path
         const path = this.gameState.findPath(player.position, destination);
         
@@ -124,13 +125,21 @@ export default class EventHandler {
         let nextStep = 0;
         clearTimeout(player.pathTimeout);
         let movePlayer = () => {
+            if(!this.gameState.playerMoved) {
+                player.playerMoveDestination = null;
+                player.path = null;
+                clearTimeout(player.pathTimeout);
+                return;
+            }
+            
             if (nextStep < path.length) {
+                this.gameState.playerMoved = false;
                 let move = { x: path[nextStep].x - player.position.x, y: path[nextStep].y - player.position.y };
                 this.networkManager.socket.send(JSON.stringify({type: "move", playerId: this.gameState.currentPlayerId, move: move, position: path[nextStep]}));
                 player.pathStep = nextStep++;                
     
                 // Check if the player is on a road for the next step
-                let roadBonus = this.gameState.isPlayerOnRoad(player.id) ? 1.5 : this.gameState.getTerrainCost(player.position);
+                let roadBonus = player.isOnRoad ? 1.5 : this.gameState.getTerrainCost(player.position);
                 let nextMoveTime = 1000 / (roadBonus * player.stats['move_speed']);
     
                 // Schedule the next move
