@@ -89,9 +89,8 @@ export default class InventoryManager {
     
             // Set the background image to the sprite for the item
             const spriteSheetUrl = this.assetManager.assets[item.type].src; // Path to your sprite sheet
-            itemElement.style.backgroundImage = `url('${spriteSheetUrl}')`;
-            itemElement.style.backgroundPosition = `${backgroundPosX} ${backgroundPosY}`;
-            itemElement.style.backgroundSize = 'cover'; // Adjust if needed
+            itemElement.style.background = `url('${spriteSheetUrl}') ${backgroundPosX} ${backgroundPosY}`;
+            itemElement.style.backgroundSize = `${this.assetManager.assets[item.type].width * 2}px`;
             itemElement.style.width = `${spriteWidth}px`;
             itemElement.style.height = `${spriteHeight}px`;
     

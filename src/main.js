@@ -89,6 +89,7 @@ async function loadAssets(assetManager) {
     'mountain1': './tiles/4_mountain/1.png',
     'mountain2': './tiles/4_mountain/2.png',
     'mountain3': './tiles/4_mountain/3.png',
+    'road0': './tiles/5_road/0.png',
     'box_selector': './images/ui/BoxSelector.png',
     'house': './images/Buildings/Wood/huts.png',
     'blacksmith': './images/Buildings/Wood/Workshops.png',

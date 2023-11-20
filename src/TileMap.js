@@ -53,8 +53,7 @@ class TileAnalysis {
 };
 
 class TileMap {
-	constructor(gameState, assetManager, canvas, tileSize, layers) {
-		this.gameState = gameState;
+	constructor(assetManager, canvas, tileSize, layers) {
 		this.assetManager = assetManager;
 		this.canvas = canvas;
 		this.tileSize = tileSize;
@@ -64,8 +63,8 @@ class TileMap {
 		this.canvasUtility = new CanvasUtility();
 
 	}
-    load(){
-		this.tileMap = this.gameState.terrain.map;
+    load(map){
+		this.tileMap = map;
 		this.numColumns = this.tileMap.length;
 		// Load all textures
 
@@ -77,7 +76,7 @@ class TileMap {
 				textures[index] = [];
 				for (const key in atomTextures) {
 					let tempKey = key;
-					if( layer == 'water' && key > 0 ) {//only use the first sprite for base layer
+					if( (layer == 'water' || layer == 'road') && key > 0 ) {//only use the first sprite for base layer
 						tempKey = 0;
 					} 
 
@@ -222,10 +221,10 @@ class TileMap {
 		
 		tunnelTileCtx.fillStyle = 'black';
 		tunnelTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
-		tunnelTileCtx.putImageData(twoCornerBottomImageData, 0, 0);
-		tunnelTileCtx.putImageData(twoCornerBottomImageData, spriteResolution, 0);
-		tunnelTileCtx.putImageData(twoCornerTopImageData, 0, spriteResolution);
-		tunnelTileCtx.putImageData(twoCornerTopImageData, spriteResolution, spriteResolution);
+		tunnelTileCtx.putImageData(twoCornerTopImageData, 0, 0);
+		tunnelTileCtx.putImageData(twoCornerTopImageData, spriteResolution, 0);
+		tunnelTileCtx.putImageData(twoCornerBottomImageData, 0, spriteResolution);
+		tunnelTileCtx.putImageData(twoCornerBottomImageData, spriteResolution, spriteResolution);
 		
 		twoSidesTileCtx.fillStyle = 'black';
 		twoSidesTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);

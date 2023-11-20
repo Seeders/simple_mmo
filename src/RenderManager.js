@@ -55,7 +55,6 @@ export default class RenderManager {
         this.minimapTerrainCtx = this.minimapTerrainCanvas.getContext('2d');
         this.minimapTerrainCanvas.width = CONFIG.miniMapSize; // Match the CSS size
         this.minimapTerrainCanvas.height = CONFIG.miniMapSize; // Match the CSS size
-        this.tileMap = new TileMap(gameState, assetManager, this.terrainCanvas, CONFIG.tileSize, CONFIG.tileTypes);
 
         this.viewCanvas = document.getElementById('viewCanvas');
         this.viewCtx = this.viewCanvas.getContext('2d');
@@ -74,14 +73,16 @@ export default class RenderManager {
         };
 
         // Define the order in which to draw terrain types (adjust as needed)
-        this.drawOrder = [...CONFIG.tileTypes, 'road'];
+        this.drawOrder = [...CONFIG.tileTypes];
+        this.drawOrder.splice(CONFIG.roadTileIndex,0,'road');
+        this.tileMap = new TileMap(assetManager, this.terrainCanvas, CONFIG.tileSize, this.drawOrder);
 
     }
     renderGame() {
         this.gameState.context.clearRect(0, 0, this.gameState.canvas.width, this.gameState.canvas.height);
         const player = this.gameState.getCurrentPlayer();
         if (player) {
-               this.gameState.canvas.width = window.innerWidth;
+            this.gameState.canvas.width = window.innerWidth;
             this.gameState.canvas.height = window.innerHeight - document.getElementById('uiContainer').offsetHeight;
             const halfCanvasWidth = this.gameState.canvas.width / 2;
             const halfCanvasHeight = this.gameState.canvas.height / 2;
@@ -102,14 +103,33 @@ export default class RenderManager {
             this.gameState.offsetY = halfCanvasHeight - desiredCenterY;
             // Render each layer to its off-screen canvas if not done yet
             if (!this.terrainRendered) {
-                this.tileMap.load();
+                let tempTerrain = [];
+                for(let i = 0; i < this.gameState.terrain.map.length; i++ ) {
+                    tempTerrain[i] = [];
+                    for(let j = 0; j < this.gameState.terrain.map[i].length; j++ ) {
+                        if( this.gameState.roads.some(roadSegment => 
+                            roadSegment.some(roadPos => 
+                                roadPos.x === j && roadPos.y === i
+                            )
+                        )) {
+                            tempTerrain[i][j] = CONFIG.roadTileIndex;
+                        } else {
+                            tempTerrain[i][j] = this.gameState.terrain.map[i][j] + 1;
+                            for(let k = 0; k < CONFIG.roadTileIndex; k++ ) {
+                                if( tempTerrain[i][j] == k + 1 ) tempTerrain[i][j] = k;
+                            }
+                        }
+                    }
+                }
+
+                this.tileMap.load(tempTerrain);
                 let minimapWidth = this.minimapCanvas.width;
                 let minimapHeight = this.minimapCanvas.height;
 
                 // Draw the terrain canvas onto the minimap canvas, scaling it down
                 this.minimapTerrainCtx.drawImage(this.terrainCanvas, 0, 0, this.terrainCanvas.width, this.terrainCanvas.height, 0, 0, minimapWidth, minimapHeight);
                         
-                this.renderRoads();
+               // this.renderRoads();
                 this.renderRamps();
                 this.terrainRendered = true;
             }
@@ -324,27 +344,26 @@ export default class RenderManager {
     renderTrees() {
         this.gameState.trees.forEach(tree => {
             // Check if the tree's position overlaps with a road
-            if (!this.roadCoordinates.has(`${tree.position.x},${tree.position.y}`)) {
-                const treeImg = this.assetManager.assets[`${tree.type}_tree`]; // Replace with your tree sprite key               
-                const spritePosition = { x: tree.type == 'stump' ? 0 : CONFIG.unitSize, y: 0};
-                if(tree.type == 'palm'){
-                    spritePosition.x = CONFIG.unitSize * (tree.position.x % 2 == 0 ? 2 : 4);
-                }
-                this.renderSprite(this.gameState.context, treeImg, tree.position.x, tree.position.y, spritePosition.x, spritePosition.y, CONFIG.unitSize);
-                this.renderMiniMapImg(this.minimapTerrainCanvas, tree.position.x, tree.position.y, CONFIG.unitSize, spritePosition, treeImg);
+
+            const treeImg = this.assetManager.assets[`${tree.type}_tree`]; // Replace with your tree sprite key               
+            const spritePosition = { x: tree.type == 'stump' ? 0 : CONFIG.unitSize, y: 0};
+            if(tree.type == 'palm'){
+                spritePosition.x = CONFIG.unitSize * (tree.position.x % 2 == 0 ? 2 : 4);
             }
+            this.renderSprite(this.gameState.context, treeImg, tree.position.x, tree.position.y, spritePosition.x, spritePosition.y, CONFIG.unitSize);
+            this.renderMiniMapImg(this.minimapTerrainCanvas, tree.position.x, tree.position.y, CONFIG.unitSize, spritePosition, treeImg);
+        
         });
     }
 
     renderStones() {
         this.gameState.stones.forEach(stone => {
             // Check if the stone's position overlaps with a road
-            if (!this.roadCoordinates.has(`${stone.position.x},${stone.position.y}`)) {
-                const stoneImg = this.assetManager.assets[`stone`]; // Replace with your stone sprite key
-                const spritePosition = { x: 0, y: 0 };
-                this.renderSprite(this.gameState.context, stoneImg, stone.position.x, stone.position.y, spritePosition.x, spritePosition.y, CONFIG.unitSize);
-                this.renderMiniMapImg(this.minimapTerrainCanvas, stone.position.x, stone.position.y, CONFIG.unitSize, spritePosition, stoneImg);
-            }
+            const stoneImg = this.assetManager.assets[`stone`]; // Replace with your stone sprite key
+            const spritePosition = { x: 0, y: 0 };
+            this.renderSprite(this.gameState.context, stoneImg, stone.position.x, stone.position.y, spritePosition.x, spritePosition.y, CONFIG.unitSize);
+            this.renderMiniMapImg(this.minimapTerrainCanvas, stone.position.x, stone.position.y, CONFIG.unitSize, spritePosition, stoneImg);
+        
         });
     }
     renderRamps() {
@@ -372,8 +391,7 @@ export default class RenderManager {
         });
     }
     renderRoads() {
-        this.roadCoordinates = new Set(); // Initialize the set to store road coordinates
-    
+
         this.gameState.roads.forEach((roadSegment, roadIndex) => {
             roadSegment.forEach((point, index) => {
                 const roadImg = this.assetManager.assets[`road`]; // Replace with your road sprite key
@@ -407,7 +425,6 @@ export default class RenderManager {
                 }
     
                 this.renderMiniMapImg(this.minimapTerrainCanvas, point.x, point.y, CONFIG.tileSize, spritePosition, roadImg, 1);
-                this.roadCoordinates.add(`${point.x},${point.y}`);
             });
         });
     }
@@ -598,7 +615,7 @@ export default class RenderManager {
             this.viewCtx.textAlign = 'center';
             this.viewCtx.textBaseline = 'middle';
 
-            this.viewCtx.fillText(`${CONFIG.tileTypes[tileType]} - ${buildingType ? buildingType.type : 'none'}`, posX, posY);
+          //  this.viewCtx.fillText(`${CONFIG.tileTypes[tileType]} - ${buildingType ? buildingType.type : 'none'}`, posX, posY);
             
         }
     }
