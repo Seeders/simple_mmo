@@ -221,6 +221,7 @@ class GameManager:
                             player.stats['health'] = player.stats['max_health']  # Reset health
                             player.last_attack_time = current_time
                             self.world.spacial_grid.move_entity(player, {"x": self.world.towns[0]['center'][0], "y": self.world.towns[0]['center'][1]} )
+                            enemy.exit_combat()
                             await broadcast({
                                 "type": "player_respawn",
                                 "playerId": player_id,
