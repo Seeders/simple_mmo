@@ -4,15 +4,17 @@ from utils.broadcast import broadcast
 
 # Define a base class for items
 class Item:
-    def __init__(self, item_id, item_type, item_name, position=None):
+    def __init__(self, item_id, item_type, item_key, item_name, position=None):
         self.id = item_id
-        self.type = item_type
+        self.item_type = item_type
+        self.type = item_key
         self.name = item_name
         self.position = position  # The position where the item is dropped
 
     def to_dict(self):
         return {
             "id": self.id,
+            "item_type": self.item_type,
             "type": self.type,
             "name": self.name,
             "position": self.position
@@ -25,7 +27,7 @@ class Item:
 # Define a subclass for Health Potions
 class HealthPotion(Item):
     def __init__(self, item_id, position=None):
-        super().__init__(item_id, "health_potion", "Health Potion", position)
+        super().__init__(item_id, "potion", "health", "Health Potion", position)
 
     def use(self, game_manager, player, item_index):
         # Define the effect of the health potion
@@ -41,8 +43,8 @@ class HealthPotion(Item):
     
 
 class Resource(Item):
-    def __init__(self, item_id, item_type, item_name, position=None):
-        super().__init__(item_id, item_type, item_name, position)
+    def __init__(self, item_id, item_key, item_name, position=None):
+        super().__init__(item_id, "resource", item_key, item_name, position)
     
     def use(self, game_manager, player, item_index):
         # Define the effect of the health potion
@@ -98,104 +100,55 @@ def generate_item_id():
     return random.randint(1000, 9999)
 
 tech_tree = {
-    "resources": {
-        "wood": {},
-        "stone": {},
-        "metal_ore": {},
-        "herbs": {},
-        "food_ingredients": {}
+    "axe": {
+        "requires": {"wood": 2, "stone": 1}
     },
-    "tools": {
-        "axe": {
-            "requires": {"wood": 2, "stone": 1}
-        },
-        "pickaxe": {
-            "requires": {"wood": 2, "stone": 1}
-        },
-        "hammer": {
-            "requires": {"wood": 1, "stone": 1}
-        },
-        "cooking_pot": {
-            "requires": {"metal": 2}
-        }
+    "pickaxe": {
+        "requires": {"wood": 2, "stone": 1}
     },
-    "weapons": {
-        "sword": {
-            "requires": {"metal": 3, "wood": 1}
-        },
-        "bow": {
-            "requires": {"wood": 3, "string": 1}
-        }
+    "hammer": {
+        "requires": {"wood": 1, "stone": 1}
     },
-    "armor": {
-        "leather_armor": {
-            "requires": {"leather": 5}
-        },
-        "chainmail": {
-            "requires": {"metal": 10}
-        }
+    "sword": {
+        "requires": {"metal": 3, "wood": 1}
     },
-    "food": {
-        "bread": {
-            "requires": {"flour": 2, "water": 1}
-        },
-        "stew": {
-            "requires": {"meat": 2, "herbs": 1, "water": 1}
-        }
+    "bow": {
+        "requires": {"wood": 3, "string": 1}
     },
-    "structures": {
-        "house": {
-            "requires": {"wood": 20, "stone": 10}
-        },
-        "blacksmith": {
-            "requires": {"wood": 15, "stone": 15, "metal": 5}
-        },
-        "tavern": {
-            "requires": { "wood": 30, "stone": 15, "metal": 5, "glass": 10, "cloth": 5 }
-        },
-        "docks": {
-            "requires": { "wood": 50, "stone": 20, "metal": 10, "rope": 15 }
-        },
-        "temple": {
-            "requires": { "stone": 50, "wood": 20, "metal": 15, "glass": 20, "cloth": 10 }
-        },
-        "market": {
-            "requires": { "wood": 25, "stone": 10, "cloth": 20, "metal": 5 }
-        },
-        "barracks": {
-            "requires": { "stone": 40, "wood": 30, "metal": 20, "cloth": 15, "leather": 10 }
-        }
+    "leather_armor": {
+        "requires": {"leather": 5}
     },
-    "magic": {
-        "spellbook": {
-            "requires": {"paper": 5, "magic_essence": 3}
-        },
-        "health_potion": {
-            "requires": {"herbs": 1, "water": 1, "magic_essence": 1}
-        }
+    "chainmail": {
+        "requires": {"metal": 10}
     },
-    "exploration": {
-        "map": {
-            "requires": {"paper": 2, "ink": 1}
-        },
-        "compass": {
-            "requires": {"metal": 2, "glass": 1}
-        }
+    "house": {
+        "requires": {"wood": 20, "stone": 10}
     },
-    "infrastructure": {
-        "road": {
-            "requires": {"stone": 10}
-        },
-        "bridge": {
-            "requires": {"wood": 15, "rope": 5}
-        }
+    "blacksmith": {
+        "requires": {"wood": 15, "stone": 15, "metal": 5}
     },
-    "miscellaneous": {
-        "fishing_rod": {
-            "requires": {"wood": 2, "string": 1}
-        },
-        "lantern": {
-            "requires": {"metal": 1, "glass": 1, "oil": 1}
-        }
+    "tavern": {
+        "requires": { "wood": 30, "stone": 15, "metal": 5, "glass": 10, "cloth": 5 }
+    },
+    "docks": {
+        "requires": { "wood": 50, "stone": 20, "metal": 10, "rope": 15 }
+    },
+    "temple": {
+        "requires": { "stone": 50, "wood": 20, "metal": 15, "glass": 20, "cloth": 10 }
+    },
+    "market": {
+        "requires": { "wood": 25, "stone": 10, "cloth": 20, "metal": 5 }
+    },
+    "barracks": {
+        "requires": { "stone": 40, "wood": 30, "metal": 20, "cloth": 15, "leather": 10 }
+    },
+    "spellbook": {
+        "requires": {"paper": 5, "magic_essence": 3}
+    },
+    "health_potion": {
+        "requires": {"herbs": 1, "water": 1, "magic_essence": 1}
+    },
+    "road": {
+        "requires": {"stone": 10}
     }
 }

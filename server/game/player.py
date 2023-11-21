@@ -74,6 +74,7 @@ class Player:
             "item": {
                 "id": item.id,
                 "type": item.type,
+                "item_type": item.item_type,
                 "name": item.name,
                 "position": item.position
             }

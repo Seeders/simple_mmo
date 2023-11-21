@@ -74,38 +74,28 @@ class GameManager:
         player = self.connected[player_id]
         try:
             async with aiosqlite.connect(self.db_file) as db:
-                serialized_inventory = [item.to_dict() for item in player.inventory]
+                serialized_inventory = json.dumps([item.to_dict() for item in player.inventory])
+                serialized_stats = json.dumps(player.stats)
                 await db.execute(
-                    'REPLACE INTO players (player_id, position_x, position_y, health, max_health, experience, level, inventory) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                    (player_id, player.position['x'], player.position['y'], player.stats['health'], player.stats['max_health'], player.stats['experience'], player.stats['level'], json.dumps(serialized_inventory))
+                    'REPLACE INTO players (player_id, position_x, position_y, stats, inventory) VALUES (?, ?, ?, ?, ?)',
+                    (player_id, player.position['x'], player.position['y'], serialized_stats, serialized_inventory)
                 )
                 await db.commit()
         except Exception as e:
             print(f"Error saving player state: {e}")
+
 
     async def load_player_state(self, player_id):
         try:
             async with aiosqlite.connect(self.db_file) as db:
                 async with db.execute('SELECT * FROM players WHERE player_id = ?', (player_id,)) as cursor:
                     row = await cursor.fetchone()
-
-                    if row:
-                        player_data = {
-                            'position': {'x': row[1], 'y': row[2]},
-                            'stats': {
-                                'health': row[3],
-                                'max_health': row[4],
-                                'experience': row[5],
-                                'level': row[6]
-                            },
-                            'inventory': json.loads(row[7])
-                        }
-                        def item_from_dict(item_dict):
+                    def item_from_dict(item_dict):
                             item_classes = {
                                 "wood": Wood,
                                 "stone": Stone,
                                 "gold": Gold,
-                                "health_potion": HealthPotion
+                                "health": HealthPotion
                                 # Add other item types here
                             }
                             item_type = item_dict["type"]
@@ -113,10 +103,13 @@ class GameManager:
                                 return item_classes[item_type](item_dict["id"], item_dict.get("position"))
                             else:
                                 raise ValueError(f"Unknown item type: {item_type}")
-
-                        # When loading items from inventory
-                        inventory = [item_from_dict(item) for item in player_data['inventory']]
-                        return Player(self.world, player_id, { "x": self.world.towns[0]['center'][0], "y": self.world.towns[0]['center'][1] }, player_data['stats'], inventory)
+                    if row:
+                        player_data = {
+                            'position': {'x': row[1], 'y': row[2]},
+                            'stats': json.loads(row[3]),
+                            'inventory': [item_from_dict(item) for item in json.loads(row[4])]
+                        }
+                        return Player(self.world, player_id, player_data['position'], player_data['stats'], player_data['inventory'])
                     else:
                         return None
         except Exception as e:
@@ -257,6 +250,7 @@ class GameManager:
                                     "item": {
                                         "id": item.id,
                                         "type": item.type,
+                                        "item_type": item.item_type,
                                         "name": item.name,
                                         "position": item.position
                                     }

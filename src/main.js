@@ -49,7 +49,7 @@ async function loadAssets(assetManager) {
     'mega_green_slime': 'images/Characters/Monsters/Slimes/MegaSlimeGreen.png',
     'necromancer': 'images/Characters/Monsters/Undead/Necromancer.png',
     'skeleton': 'images/Characters/Monsters/Undead/Skeleton-Soldier.png',
-    'health_potion': 'images/Objects/potions.png',
+    'potion_health': 'images/Objects/potions.png',
     'terrain': './images/Ground/Grass.png',
     'town': './images/Buildings/Wood/Keep.png',
     'pine_tree': './images/Nature/Trees.png',
@@ -110,7 +110,9 @@ async function loadAssets(assetManager) {
     'dock_bg_1': './images/backgrounds/dock.png',
     'dock_bg_2': './images/backgrounds/dock.png',
     'road_bg_1': './images/backgrounds/road.png',
-    'ramp': './images/Ground/ramp.png'
+    'ramp': './images/Ground/ramp.png',
+    'resource_wood': './images/ui/wood.png',
+    'resource_stone': './images/ui/stone.png'
 };
 
 

@@ -77,20 +77,27 @@ export default class InventoryManager {
             itemElement.className = 'item';
             itemElement.id = `item-${item.id}`;
     
+
+            
+            let key = `${item.item_type}_${item.type}`;
+            if(!item.item_type){
+                console.log(`${key} -> ${item.type}`);
+                key = item.type;
+            }
+            const sprite = this.assetManager.assets[key]; // Path to your sprite sheet
+            const spriteSheetUrl = sprite.src; // Path to your sprite sheet
             // Sprite sheet information
-            const spriteWidth = CONFIG.tileSize; // Width of a single sprite
-            const spriteHeight = CONFIG.tileSize; // Height of a single sprite
+            const spriteWidth = sprite.width; // Width of a single sprite
+            const spriteHeight = sprite.width; // Height of a single sprite
             const spriteRow = 0; // Row of the sprite in the sprite sheet
             const spriteColumn = 0; // Column of the sprite in the sprite sheet
     
             // Calculate background position
             const backgroundPosX = -(spriteColumn * spriteWidth) + 'px';
             const backgroundPosY = -(spriteRow * spriteHeight) + 'px';
-    
             // Set the background image to the sprite for the item
-            const spriteSheetUrl = this.assetManager.assets[item.type].src; // Path to your sprite sheet
             itemElement.style.background = `url('${spriteSheetUrl}') ${backgroundPosX} ${backgroundPosY}`;
-            itemElement.style.backgroundSize = `${this.assetManager.assets[item.type].width * 2}px`;
+            itemElement.style.backgroundSize = `${spriteWidth}px`;
             itemElement.style.width = `${spriteWidth}px`;
             itemElement.style.height = `${spriteHeight}px`;
     

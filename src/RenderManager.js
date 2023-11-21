@@ -15,37 +15,6 @@ export default class RenderManager {
         this.terrainCanvas.height = CONFIG.worldSize * CONFIG.tileSize;
         this.terrainRendered = false;
 
-        this.waterCanvas = document.createElement('canvas');
-        this.waterCanvas.width = this.terrainCanvas.width;
-        this.waterCanvas.height = this.terrainCanvas.height;
-        this.waterCtx = this.waterCanvas.getContext('2d');
-
-        this.sandCanvas = document.createElement('canvas');
-        this.sandCanvas.width = this.terrainCanvas.width;
-        this.sandCanvas.height = this.terrainCanvas.height;
-        this.sandCtx = this.sandCanvas.getContext('2d');
-
-        this.grassCanvas = document.createElement('canvas');
-        this.grassCanvas.width = this.terrainCanvas.width;
-        this.grassCanvas.height = this.terrainCanvas.height;
-        this.grassCtx = this.grassCanvas.getContext('2d');
-
-        this.forestCanvas = document.createElement('canvas');
-        this.forestCanvas.width = this.terrainCanvas.width;
-        this.forestCanvas.height = this.terrainCanvas.height;
-        this.forestCtx = this.forestCanvas.getContext('2d');
-
-        this.mountainCanvas = document.createElement('canvas');
-        this.mountainCanvas.width = this.terrainCanvas.width;
-        this.mountainCanvas.height = this.terrainCanvas.height;
-        this.mountainCtx = this.mountainCanvas.getContext('2d');
-
-        this.roadCanvas = document.createElement('canvas');
-        this.roadCanvas.width = this.terrainCanvas.width;
-        this.roadCanvas.height = this.terrainCanvas.height;
-        this.roadCtx = this.roadCanvas.getContext('2d');
-
-
         this.minimapCanvas = document.getElementById('minimapCanvas');
         this.minimapCtx = this.minimapCanvas.getContext('2d');
         this.minimapCanvas.width = CONFIG.miniMapSize; // Match the CSS size
@@ -80,12 +49,52 @@ export default class RenderManager {
         this.gameState.debugCanvas.width = window.innerWidth;
     }
     renderGame() {
-        this.gameState.context.clearRect(0, 0, this.gameState.canvas.width, this.gameState.canvas.height);
+        this.gameState.canvas.width = window.innerWidth;
+        this.gameState.canvas.height = window.innerHeight - document.getElementById('uiContainer').offsetHeight;
+        // Clear the minimap
+        this.minimapCanvas.width = this.minimapCanvas.width;
+
+        this.renderTerrain();
+        // Render towns, target circle, minimap, players, enemies, etc.
+        this.renderTowns();
+        this.renderTrees();
+        this.renderStones();
+        this.renderTargetCircle();
+        this.renderMinimap();
+        this.renderPlayers();
+        this.renderEnemies();
+        this.renderPlayerStats();
+        this.renderTargetInfo();
+        this.renderView();
+        this.renderItems();
+        this.renderPath();
+        if(true) {
+            this.paintDebug();
+        }
+    }
+
+    paintDebug() {
+        this.gameState.context.drawImage(this.gameState.debugCanvas, 0, 0);
+    }
+ 
+
+    renderSprite(context, img, dx, dy, sx = 0, sy = 0, size = CONFIG.tileSize, autoScale=true ){ 
+        if(autoScale){
+            dx = dx * CONFIG.tileSize + this.gameState.offsetX;
+            dy = dy * CONFIG.tileSize + this.gameState.offsetY;
+        }
+        if( size != CONFIG.tileSize ) {
+            let difference = size - CONFIG.tileSize;
+            dx -= difference / 2;
+            dy -= difference / 2;
+        }
+        // Draw the image on the canvas
+        context.drawImage(img, sx, sy, size, size, dx, dy, size, size);
+    }
+
+    renderTerrain() {
         const player = this.gameState.getCurrentPlayer();
         if (player) {
-            this.gameState.canvas.width = window.innerWidth;
-            this.gameState.canvas.height = window.innerHeight - document.getElementById('uiContainer').offsetHeight;
-
             const halfCanvasWidth = this.gameState.canvas.width / 2;
             const halfCanvasHeight = this.gameState.canvas.height / 2;
             const worldPixelWidth = this.gameState.terrain.map[0].length * CONFIG.tileSize;
@@ -138,68 +147,9 @@ export default class RenderManager {
          
         }
 
-        // // Apply shadow and draw each off-screen canvas to the main canvas
-        // this.gameState.context.shadowOffsetX = 5;
-        // this.gameState.context.shadowOffsetY = 5;
-        // this.gameState.context.shadowBlur = 10;
-        // this.gameState.context.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        
-        // // Draw the sand layer with shadow
-        // // this.gameState.context.drawImage(this.waterCanvas, this.gameState.offsetX, this.gameState.offsetY);
-        // // this.gameState.context.drawImage(this.sandCanvas, this.gameState.offsetX, this.gameState.offsetY);
-        // // this.gameState.context.drawImage(this.grassCanvas, this.gameState.offsetX, this.gameState.offsetY);
-        // // this.gameState.context.drawImage(this.forestCanvas, this.gameState.offsetX, this.gameState.offsetY);
-        // // this.gameState.context.drawImage(this.mountainCanvas, this.gameState.offsetX, this.gameState.offsetY);
-      
-
-        // // ... draw other layers ...
-
-        // // Reset shadow effects after drawing all layers
-        // this.gameState.context.shadowColor = 'transparent';
-
-        // Clear the minimap
-        this.minimapCtx.clearRect(0, 0, this.minimapCanvas.width, this.minimapCanvas.height);
-
-        this.renderTerrain();
-        // Render towns, target circle, minimap, players, enemies, etc.
-        this.renderTowns();
-        this.renderTrees();
-        this.renderStones();
-        this.renderTargetCircle();
-        this.renderMinimap();
-        this.renderPlayers();
-        this.renderEnemies();
-        this.renderPlayerStats();
-        this.renderTargetInfo();
-        this.renderView();
-        this.renderItems();
-        this.renderPath();
-        if(true) {
-            this.renderDebug();
-        }
+        this.paintTerrain();
     }
-
-    renderDebug() {
-        this.gameState.context.drawImage(this.gameState.debugCanvas, 0, 0);
-
-    }
- 
-
-    renderSprite(context, img, dx, dy, sx = 0, sy = 0, size = CONFIG.tileSize, autoScale=true ){ 
-        if(autoScale){
-            dx = dx * CONFIG.tileSize + this.gameState.offsetX;
-            dy = dy * CONFIG.tileSize + this.gameState.offsetY;
-        }
-        if( size != CONFIG.tileSize ) {
-            let difference = size - CONFIG.tileSize;
-            dx -= difference / 2;
-            dy -= difference / 2;
-        }
-        // Draw the image on the canvas
-        context.drawImage(img, sx, sy, size, size, dx, dy, size, size);
-    }
-
-    renderTerrain() {
+    paintTerrain() {
         // Calculate the offset based on the player's position to center the player on the screen
 
             this.gameState.context.drawImage(this.terrainCanvas, this.gameState.offsetX, this.gameState.offsetY);
@@ -519,6 +469,9 @@ export default class RenderManager {
             // this.gameState.context.fillText(`Level: ${player.stats.level} Health: ${player.stats.health}`, 10, this.gameState.canvas.height - 10);
             const expPercentage = player.stats.experience / player.stats.next_level_exp;
             this.renderExperienceBar(10, this.gameState.canvas.height - 50, 200, 10, expPercentage);    
+
+            document.getElementById('player-resources-wood').innerHTML = player.stats.resources.wood;
+            document.getElementById('player-resources-stone').innerHTML = player.stats.resources.stone;            
         }
     }
 
@@ -659,14 +612,17 @@ export default class RenderManager {
     renderItems() {
         for (const id in this.gameState.items) {
             const item = this.gameState.items[id];
-            const itemImg = this.assetManager.assets[item.type];
+
+               
+            let key = `${item.item_type}_${item.type}`;
+            const itemImg = this.assetManager.assets[key]; // Path to your sprite sheet
             const itemX = item.position.x;
             const itemY = item.position.y;
 
             const spritePosition = { x: 0, y: 0};
             // Check if the potion's position is within the canvas bounds
             if (itemX >= 0 && itemX <= this.gameState.canvas.width && itemY >= 0 && itemY <= this.gameState.canvas.height) {
-                this.renderSprite(this.gameState.context, itemImg, itemX, itemY, spritePosition.x, spritePosition.y, CONFIG.unitSize);
+                this.renderSprite(this.gameState.context, itemImg, itemX, itemY, spritePosition.x, spritePosition.y, itemImg.width);
             } else {
                 console.log(`Item with ID ${id} is out of bounds: ${itemX}, ${itemY}`);
             }

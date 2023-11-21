@@ -46,30 +46,67 @@
     
     <div id="uiContainer">
         <div id="ui-row">
-            <div id="view-container">
-                <canvas id="viewCanvas"></canvas>                
+
+            <div id="view-minimap-container" class="tab-container">
+                <div class="tab">
+                    <button class="tablinks active" onclick="openTab(event, 'view-container')">View</button>
+                    <button class="tablinks" onclick="openTab(event, 'stats-container')">Stats</button>
+                    <button class="tablinks" onclick="openTab(event, 'minimap-container')">Map</button>
+                </div>      
+                <div id="view-container" class="tabcontent" style="display: block">
+                    <canvas id="viewCanvas"></canvas>                
+                </div>    
+                <div id="minimap-container" class="tabcontent">
+                    <canvas id="minimapCanvas"></canvas>
+                    <canvas id="minimapTerrainCanvas"></canvas>
+                </div>           
+                <div id="stats-container" class="tabcontent" >
+                    <div id="resources-container">
+                        <div id="resources-wood-container">
+                            <div id="player-resources-wood" class="player-stat"></div>
+                        </div>
+                        <div id="resources-wood-container">
+                            <div id="player-resources-stone" class="player-stat"></div>
+                        </div>
+                    </div>                                  
+                </div>  
             </div>
-            <div id="minimap-container">
-                <canvas id="minimapCanvas"></canvas>
-                <canvas id="minimapTerrainCanvas"></canvas>
-            </div>
-            <div id="inventory" class="inventory-grid">
-                <!-- Inventory items will be dynamically added here -->
+            <div id="stats-minimap-container" class="tab-container">
+                <div class="tab">
+                    <button class="tablinks active" onclick="openTab(event, 'inventory-container')">Inventory</button>
+                    <button class="tablinks" onclick="openTab(event, 'craft-container')">Craft</button>
+                    <button class="tablinks" onclick="openTab(event, 'build-container')">Build</button>
+                </div> 
+                <div id="inventory-container" class="tabcontent" style="display: block" >                         
+                    <div id="inventory" class="inventory-grid">
+                        <!-- Inventory items will be dynamically added here -->
+                    </div>         
+                </div>
+                <div id="craft-container" class="tabcontent" >                         
+                    <div id="craft-menu">
+
+                    </div>       
+                </div>
+                <div id="build-container" class="tabcontent" >                         
+                    <div id="build-menu">
+
+                    </div>       
+                </div>
+                
             </div>
         
-            <div id="chat-combat-container">
+            <div id="chat-combat-container" class="tab-container">
                 <div class="tab">
-                    <button class="tablinks" onclick="openTab(event, 'Chat')">Chat</button>
-                    <button class="tablinks" onclick="openTab(event, 'CombatLog')">Combat Log</button>
-                </div>
+                    <button class="tablinks active" onclick="openTab(event, 'combat-log')">Combat Log</button>
+                    <button class="tablinks" onclick="openTab(event, 'chat')">Chat</button>
+                </div>          
             
-                <div id="Chat" class="tabcontent" style="display: block">
+                <div id="combat-log" class="tabcontent" style="display: block">
+                    <div id="combat-log"></div>
+                </div>
+                <div id="chat" class="tabcontent">
                     <div id="chatMessages"></div>
                     <input type="text" id="chatInput" placeholder="Type a message..." />
-                </div>
-            
-                <div id="CombatLog" class="tabcontent">
-                    <div id="combat-log"></div>
                 </div>
             </div>
         </div>
@@ -90,25 +127,26 @@
         modal.style.display = "none";
     }
 
-function openTab(evt, tabName) {
-    var i, tabcontent, tablinks;
+    function openTab(evt, tabName) {
+        // Get the parent element of the clicked tab
+        var parentElement = evt.currentTarget.parentElement.parentElement;
 
-    // Get all elements with class="tabcontent" and hide them
-    tabcontent = document.getElementsByClassName("tabcontent");
-    for (i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = "none";
+        // Get all elements with class="tabcontent" within the parent element and hide them
+        var tabcontent = parentElement.getElementsByClassName("tabcontent");
+        for (var i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+
+        // Get all elements with class="tablinks" within the parent element and remove the class "active"
+        var tablinks = parentElement.getElementsByClassName("tablinks");
+        for (var i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+
+        // Show the current tab, and add an "active" class to the button that opened the tab
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
     }
-
-    // Get all elements with class="tablinks" and remove the class "active"
-    tablinks = document.getElementsByClassName("tablinks");
-    for (i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" active", "");
-    }
-
-    // Show the current tab, and add an "active" class to the button that opened the tab
-    document.getElementById(tabName).style.display = "block";
-    evt.currentTarget.className += " active";
-}
 
 </script>
 </body>

@@ -8,7 +8,8 @@ export default class CombatLogUI {
 
     // Update the combat log
     updateCombatLog(messages) {
-        this.combatLogElement.innerHTML = messages.join('<br>');
+        const formattedMessages = messages.map(message => `<p>${message}</p>`).join('');
+        this.combatLogElement.innerHTML = formattedMessages;
     }
 
     // Update the player stats UI

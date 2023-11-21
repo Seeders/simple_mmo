@@ -324,7 +324,7 @@ export default class GameState {
             let player = this.getCurrentPlayer();
             if (player) {
                 player.removeItemFromInventory(data.itemId);
-                player.resources[data.resourceType] = data.newValue;
+                player.stats.resources[data.resourceType] = data.newValue;
                 console.log(`Player has ${data.newValue} ${data.resourceType}`);
             }
         }
