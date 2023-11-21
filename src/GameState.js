@@ -6,11 +6,12 @@ import Pathfinding from './Utility/Pathfinding';
 import { CONFIG } from './config';
 
 export default class GameState {
-    constructor(context, debugCanvas, assetManager) {
+    constructor(context, assetManager) {
         this.context = context;
         this.canvas = context.canvas;
+        this.debugCanvas = document.createElement('canvas');
+        this.debugCtx = this.debugCanvas.getContext('2d');
         this.canvas.width = window.innerWidth;
-        this.debugCanvas = debugCanvas;
         this.assetManager = assetManager;
         this.playerManager = new PlayerManager(this);
         this.enemyManager = new EnemyManager(this);
@@ -55,6 +56,7 @@ export default class GameState {
    
     }
     findPath(start, goal) {
+        this.debugCanvas.width = this.debugCanvas.width;
         let type1 = "forest";
         let type2 = "grass";
         if( CONFIG.tileTypes[this.terrain.map[start.y][start.x]] == "forest" ) {
@@ -82,6 +84,7 @@ export default class GameState {
                                 // Check if the neighboring tile is grass
                                 if (CONFIG.tileTypes[this.terrain.map[i + dx][j + dy]] === type2) {
                                     tempTerrain[i][j] = 8; // Update the current tile type to 8
+                                   // this.renderManager.renderRoundedRect(this.debugCtx, (j) * CONFIG.tileSize + this.offsetX, (i) * CONFIG.tileSize + this.offsetY, CONFIG.tileSize, CONFIG.tileSize, 2, 'red');
                                     break; // No need to check other neighbors once we find grass
                                 }
                             }
@@ -109,7 +112,8 @@ export default class GameState {
                         // Check if the neighboring tile is grass
                         if (CONFIG.tileTypes[this.terrain.map[ramp.y + dx][ramp.x + dy]] === "grass") {
                             tempTerrain[ramp.y + dx][ramp.x + dy] = CONFIG.tileTypes.indexOf("grass"); // Update the current tile type to 8
-                            break; // No need to check other neighbors once we find grass
+
+                          //  this.renderManager.renderRoundedRect(this.debugCtx, (ramp.x + dy) * CONFIG.tileSize + this.offsetX, (ramp.y + dx) * CONFIG.tileSize + this.offsetY, CONFIG.tileSize, CONFIG.tileSize, 2, 'green');
                         }
                     }
                 }

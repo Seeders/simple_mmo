@@ -6,7 +6,7 @@ import bcrypt
 import json
 from game.player import Player
 from game.world import World
-from game.item import generate_random_item, generate_specific_item
+from game.item import generate_random_item, generate_specific_item, Wood, Stone, Gold, HealthPotion
 from utils.broadcast import broadcast, broadcastCombatLog
 
 class GameManager:
@@ -41,7 +41,7 @@ class GameManager:
             await db.commit()
 
         # Create and save the new player object
-        new_player = Player(self, new_player_id)  # removed default_position argument
+        new_player = Player(self.world, new_player_id)  # removed default_position argument
         self.connected[new_player_id] = new_player
         await self.save_player_state(new_player_id)
 
@@ -74,9 +74,10 @@ class GameManager:
         player = self.connected[player_id]
         try:
             async with aiosqlite.connect(self.db_file) as db:
+                serialized_inventory = [item.to_dict() for item in player.inventory]
                 await db.execute(
                     'REPLACE INTO players (player_id, position_x, position_y, health, max_health, experience, level, inventory) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                    (player_id, player.position['x'], player.position['y'], player.stats['health'], player.stats['max_health'], player.stats['experience'], player.stats['level'], json.dumps(player.inventory))
+                    (player_id, player.position['x'], player.position['y'], player.stats['health'], player.stats['max_health'], player.stats['experience'], player.stats['level'], json.dumps(serialized_inventory))
                 )
                 await db.commit()
         except Exception as e:
@@ -99,7 +100,23 @@ class GameManager:
                             },
                             'inventory': json.loads(row[7])
                         }
-                        return Player(self, player_id, player_data['position'], player_data['stats'], player_data['inventory'])
+                        def item_from_dict(item_dict):
+                            item_classes = {
+                                "wood": Wood,
+                                "stone": Stone,
+                                "gold": Gold,
+                                "health_potion": HealthPotion
+                                # Add other item types here
+                            }
+                            item_type = item_dict["type"]
+                            if item_type in item_classes:
+                                return item_classes[item_type](item_dict["id"], item_dict.get("position"))
+                            else:
+                                raise ValueError(f"Unknown item type: {item_type}")
+
+                        # When loading items from inventory
+                        inventory = [item_from_dict(item) for item in player_data['inventory']]
+                        return Player(self.world, player_id, { "x": self.world.towns[0]['center'][0], "y": self.world.towns[0]['center'][1] }, player_data['stats'], inventory)
                     else:
                         return None
         except Exception as e:
@@ -114,7 +131,7 @@ class GameManager:
             self.connections[player_id] = websocket
             return existing_player
         else:
-            new_player = Player(self, player_id, { "x": self.world.towns[0].center[0], "y": self.world.towns[0].center[1] })
+            new_player = Player(self.world, player_id, { "x": self.world.towns[0]['center'][0], "y": self.world.towns[0]['center'][1] })
             self.connected[player_id] = new_player
             self.connections[player_id] = websocket
             await self.save_player_state(player_id)  # Save the new player state
@@ -150,7 +167,8 @@ class GameManager:
 
             for player_id, player in list(self.connected.items()):
                 player.in_combat = False
-                for enemy_id, enemy in list(self.world.enemies.items()):
+                nearby_enemies = self.world.spacial_grid.get_nearby_entities(player.position, 2, 1)
+                for enemy in nearby_enemies:                
                     if player.is_in_combat(enemy.position):
                         player.in_combat = True
                         enemy.in_combat = True
@@ -170,7 +188,7 @@ class GameManager:
                             await broadcast({
                                 "type": "combat_update",
                                 "playerId": player_id,
-                                "enemyId": enemy_id,
+                                "enemyId": enemy.id,
                                 "playerHealth": player.stats['health'],
                                 "enemyHealth": enemy.stats['health']
                             }, self.connected, self.connections)
@@ -180,7 +198,7 @@ class GameManager:
                             enemy.attacking = True
                             await broadcast({
                                 "type": "start_attack",
-                                "enemyId": enemy_id,
+                                "enemyId": enemy.id,
                                 "targetPosition": player.position
                             }, self.connected, self.connections)
                         elif current_time - enemy.last_attack_time >= 1 / enemy.stats['attack_speed']:
@@ -192,7 +210,7 @@ class GameManager:
                             await broadcast({
                                 "type": "combat_update",
                                 "playerId": player_id,
-                                "enemyId": enemy_id,
+                                "enemyId": enemy.id,
                                 "playerHealth": player.stats['health'],
                                 "enemyHealth": enemy.stats['health']
                             }, self.connected, self.connections)
@@ -200,9 +218,9 @@ class GameManager:
                         if player.stats['health'] <= 0:
                             # Handle player death and respawn
                             await broadcastCombatLog(self.combat_logs, player_id, f"{player_id} was killed by {enemy.stats['name']}.", self.connected, self.connections)
-                            player.position = {"x": self.world.towns[0].center[0], "y": self.world.towns[0].center[1]}  # Respawn position
                             player.stats['health'] = player.stats['max_health']  # Reset health
                             player.last_attack_time = current_time
+                            self.world.spacial_grid.move_entity(player, {"x": self.world.towns[0]['center'][0], "y": self.world.towns[0]['center'][1]} )
                             await broadcast({
                                 "type": "player_respawn",
                                 "playerId": player_id,
@@ -214,10 +232,11 @@ class GameManager:
                             await broadcastCombatLog(self.combat_logs, player_id, f"{player_id} killed {enemy.stats['name']}.", self.connected, self.connections)
                             player = self.connected[player_id]
                             player.stats['experience'] += 50  # Award experience points, adjust value as needed
-                            del self.world.enemies[enemy_id]
+                            self.world.spacial_grid.remove_entity(enemy)
+                            del self.world.enemies[enemy.id]
                             await broadcast({
                                 "type": "enemy_death",
-                                "enemyId": enemy_id,
+                                "enemyId": enemy.id,
                                 "playerId": player_id,  # Include the player ID who killed the enemy
                                 "level": player.stats['level'],
                                 "experience": player.stats['experience'],
@@ -286,6 +305,6 @@ class GameManager:
             # Broadcast enemy movement to all connected players
             await broadcast({
                 "type": "enemy_move",
-                "enemyId": enemy_id,
+                "enemyId": enemy.id,
                 "position": enemy.position
             }, self.connected, self.connections)

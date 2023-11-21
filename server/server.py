@@ -81,9 +81,9 @@ async def game_server(websocket, path, game_manager:GameManager):
                         break  # Assuming only one item can be picked up at a time
             elif data["type"] == "item_used":
                 
-                item_id = data["itemId"]
-
+                item_id = data["itemId"]        
                 # Find the index of the item with the matching 'id'
+                print(player.inventory[0])
                 item_index = next((index for (index, d) in enumerate(player.inventory) if d.id == item_id), None)
                 if item_index is not None:
                     item = player.inventory[item_index]
@@ -99,6 +99,7 @@ async def game_server(websocket, path, game_manager:GameManager):
                         "success": True,
                         "player_id": player_id
                     }))
+
                     # Send initial game state to the connected player
                     await websocket.send(json.dumps({
                         "type": "init",
@@ -110,11 +111,11 @@ async def game_server(websocket, path, game_manager:GameManager):
                         "ramps": game_manager.world.ramps,
                         "towns": [town for town in game_manager.world.towns],
                         "roads": [[{"x": point[0], "y": point[1]} for point in road] for road in game_manager.world.roads],  # Adjusted for new road structure
-                        "players": [{"id": pid, "color": p.color, "position": {"x": game_manager.world.towns[0]["center"][0], "y": game_manager.world.towns[0]["center"][1]}, "stats": p.stats} for pid, p in game_manager.connected.items()],
+                        "players": [{"id": pid, "color": p.color, "position": {"x": player.position['x'], "y": player.position['y']}, "stats": p.stats, "inventory": [item.to_dict() for item in p.inventory]} for pid, p in game_manager.connected.items()],
                         "chat": [],
                         "enemies": [{"id": enemy_id, "position": e.position, "stats": e.stats} for enemy_id, e in game_manager.world.enemies.items()]
                     }))
-
+                    
                     # Notify other players of the new player
                     await broadcast({
                         "type": "new_player",

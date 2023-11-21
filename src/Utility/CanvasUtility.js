@@ -3,6 +3,10 @@ export default class CanvasUtility {
         this.canvas = document.createElement('canvas');
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
 		this.ctx.globalCompositeOperation = 'destination-over';// Set the composite operation to preserve transparency
+        
+		this.tempCanvas = document.createElement('canvas');
+        this.tempCtx = this.tempCanvas.getContext('2d', { willReadFrequently: true });
+		this.tempCtx.globalCompositeOperation = 'destination-over';// Set the composite operation to preserve transparency
     }
 
     setSize(width, height) {
@@ -11,81 +15,81 @@ export default class CanvasUtility {
     }
     paintTexture(imageData) {
         this.setSize(imageData.width, imageData.height);
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.putImageData(imageData, 0, 0);
         return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
     }
 	rotateTexture(imageData, angle) {
-		const tempCanvas = document.createElement("canvas");
-		tempCanvas.width = imageData.width;
-		tempCanvas.height = imageData.height;
-		const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
-		tempCtx.putImageData(imageData, 0, 0);
+        // Set the canvas size to accommodate the rotated image
+        // Note: If the rotation results in a change in width/height, adjust these values accordingly
+        this.setSize(imageData.width, imageData.height);
 
-		const rotatedTexture = document.createElement("canvas");
-		rotatedTexture.width = imageData.width;
-		rotatedTexture.height = imageData.height;
-		const rotatedCtx = rotatedTexture.getContext("2d", { willReadFrequently: true });
+        // Draw the original imageData to the canvas
+        this.ctx.putImageData(imageData, 0, 0);
 
-		rotatedCtx.translate(rotatedTexture.width / 2, rotatedTexture.height / 2);
-		rotatedCtx.rotate(angle);
-		rotatedCtx.translate(-rotatedTexture.width / 2, -rotatedTexture.height / 2);
+        // Apply the rotation
+        this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.rotate(angle);
+        this.ctx.translate(-this.canvas.width / 2, -this.canvas.height / 2);
 
-		rotatedCtx.drawImage(tempCanvas, 0, 0);
+        // Create a temporary canvas to hold the current state
+        this.tempCanvas.width = this.canvas.width;
+        this.tempCanvas.height = this.canvas.height;
+        this.tempCtx.drawImage(this.canvas, 0, 0);
 
-		return rotatedCtx.getImageData(0, 0, rotatedTexture.width, rotatedTexture.height);
-	}
-    flipTextureVertical(imageData) {
-		const tempCanvas = document.createElement("canvas");
-		tempCanvas.width = imageData.width;
-		tempCanvas.height = imageData.height;
-		const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
-		tempCtx.putImageData(imageData, 0, 0);
+        // Clear the main canvas and draw the rotated image
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.drawImage(this.tempCanvas, 0, 0);
 
-		const canvas = document.createElement("canvas");
-		canvas.width = imageData.width;
-		canvas.height = imageData.height;
-		const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        // Capture the rotated image data
+        let rotatedData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+ 
 
-		ctx.translate(0, canvas.height);
-		ctx.scale(1, -1);
-		ctx.drawImage(tempCanvas, 0, 0);
+        return rotatedData;
+    }
+	flipTextureVertical(imageData) {
+        this.setSize(imageData.width, imageData.height);
 
-		return ctx.getImageData(0, 0, imageData.width, imageData.height);
-	}
+        // Draw the original image data to the canvas
+        this.ctx.putImageData(imageData, 0, 0);
 
-	flipTextureHorizontal(imageData) {
-		const tempCanvas = document.createElement("canvas");
-		tempCanvas.width = imageData.width;
-		tempCanvas.height = imageData.height;
-		const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
-		tempCtx.putImageData(imageData, 0, 0);
+        // Use an off-screen canvas to perform the flip
+        this.tempCanvas.width = imageData.width;
+        this.tempCanvas.height = imageData.height;
+  
+        // Apply the flip on the off-screen canvas
+        this.tempCtx.translate(0, this.tempCanvas.height);
+		this.tempCtx.scale(1, -1);
+		this.tempCtx.drawImage(this.canvas, 0, 0);
 
-		const canvas = document.createElement("canvas");
-		canvas.width = imageData.width;
-		canvas.height = imageData.height;
-		const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        // Extract the flipped image data
+        return this.tempCtx.getImageData(0, 0, this.tempCanvas.width, this.tempCanvas.height);
+    }
 
-		ctx.translate(canvas.width, 0);
-		ctx.scale(-1, 1);
-		ctx.drawImage(tempCanvas, 0, 0);
+    flipTextureHorizontal(imageData) {
+        this.setSize(imageData.width, imageData.height);
 
-		return ctx.getImageData(0, 0, imageData.width, imageData.height);
-	}
+        // Draw the original image data to the canvas
+        this.ctx.putImageData(imageData, 0, 0);
 
+        // Use an off-screen canvas to perform the flip
+        this.tempCanvas.width = imageData.width;
+        this.tempCanvas.height = imageData.height;
+        // Apply the flip on the off-screen canvas
+		this.tempCtx.translate(this.tempCanvas.width, 0);
+		this.tempCtx.scale(-1, 1);
+		this.tempCtx.drawImage(this.canvas, 0, 0);
+
+        // Extract the flipped image data
+        return this.tempCtx.getImageData(0, 0, this.tempCanvas.width, this.tempCanvas.height);
+    }
 	drawImage(image) {
         this.setSize(image.width, image.height);
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.drawImage(image, 0, 0);
         return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
     }
 
 	rotateImage(image, angle) {
 		this.setSize(image.width, image.height);
-	
-		// Clear the canvas with a transparent color
-		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
 		// Set up the rotation
 		this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
 		this.ctx.rotate(angle);
@@ -100,7 +104,6 @@ export default class CanvasUtility {
 
     flipImageVertical(image) {
         this.setSize(image.width, image.height);
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.translate(0, this.canvas.height);
         this.ctx.scale(1, -1);
         this.ctx.drawImage(image, 0, 0);
@@ -109,7 +112,6 @@ export default class CanvasUtility {
 
     flipImageHorizontal(image) {
         this.setSize(image.width, image.height);
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.translate(this.canvas.width, 0);
         this.ctx.scale(-1, 1);
         this.ctx.drawImage(image, 0, 0);

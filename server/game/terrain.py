@@ -12,13 +12,13 @@ class Terrain:
             row = []
             for x in range(width):
                 noise_value = pnoise2(x * scale, y * scale)
-                if noise_value < -0.05:
+                if noise_value < -0.3:
                     tile = 0
-                elif -0.05 <= noise_value < 0.06:
+                elif noise_value < -0.2:
                     tile = 1
-                elif 0.06 <= noise_value < 0.4:
+                elif noise_value < 0.2:
                     tile = 2
-                elif 0.4 <= noise_value < 0.6:
+                elif noise_value < 0.5:
                     tile = 3
                 else:
                     tile = 4

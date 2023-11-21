@@ -3,17 +3,20 @@ from .enemy import Enemy, enemy_types
 import heapq
 import random
 from .terrain import Terrain
+from utils.SpatialGrid import SpatialGrid
+
 class World:
     def __init__(self, game_manager):
         self.game_manager = game_manager
         self.players = {}
         self.terrain = Terrain(100, 100) 
+        self.spacial_grid = SpatialGrid(100, 100, 1)
         self.terrainLayers = ["water", "sand", "grass", "forest", "mountain"]
         self.enemy_spawns = ['green_slime', 'mammoth', 'giant_crab', 'pirate_grunt', 'pirate_gunner', 'pirate_captain']
         self.building_types = ['house', 'market', 'tavern', 'blacksmith', 'temple', 'barracks', 'dock']
         self.trees = self.spawn_trees(self.terrain.terrain)
         self.stones = self.spawn_stones(self.terrain.terrain, 'stone')
-        self.enemies = self.spawn_enemies(50, 100, 100, self.terrain.terrain)       
+        self.enemies = self.spawn_enemies(1, 100, 100, self.terrain.terrain)       
         self.items_on_ground = {}
         self.towns = self.place_towns()
         self.roads = [] 
@@ -173,7 +176,7 @@ class World:
                     patrol_route = self.generate_patrol_route(enemy_position)  # Pass dictionary directly
                     full_path = self.generate_full_path(patrol_route)
                     full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
-                    enemies[enemy_id] = Enemy(self.game_manager, enemy_id, random_enemy_type, enemy_position, full_path_coords)
+                    enemies[enemy_id] = Enemy(self, enemy_id, random_enemy_type, enemy_position, full_path_coords)
                     enemies[enemy_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
                     break
         return enemies
@@ -198,7 +201,11 @@ class World:
                         continue
                     tree_type = 'pine'
                 if tileType == "forest":
-                    if random.randint(0, 10) > 9:
+                    if random.randint(0, 10) > 5:
+                        continue                    
+                    tree_type = 'pine'
+                if tileType == "mountain":
+                    if random.randint(0, 10) > 3:
                         continue                    
                     tree_type = 'pine'
                 if tileType == "sand":
@@ -227,6 +234,10 @@ class World:
                 if tileType == "sand" and random.randint(0, 30) > 0:
                     continue   
                 if tileType == "grass" and random.randint(0, 20) > 0:
+                    continue  
+                if tileType == "forest" and random.randint(0, 10) > 0:
+                    continue  
+                if tileType == "mountain" and random.randint(0, 5) > 0:
                     continue   
                 stone = {
                     "type": type,
@@ -236,53 +247,82 @@ class World:
                 stones.append(stone)
         return stones
     
-    def place_towns(self, num_towns=5):
+    def place_towns(self):
+        # Define corner positions for the towns
+        padding = min(10, self.terrain.width // 2, self.terrain.height // 2)
+
+        # Define corner positions with padding
+        opposing_town_1 = (padding, self.terrain.height - 1 - padding)  # Bottom left
+        opposing_town_2 = (self.terrain.width - 1 - padding, padding)  # Top right
+        neutral_town_1 = (padding, padding)  # Top left
+        neutral_town_2 = (self.terrain.width - 1 - padding, self.terrain.height - 1 - padding)  # Bottom right
+        bandit_town = (int(self.terrain.width / 2), int(self.terrain.height / 2))  # Bottom right
+
+        town_positions = [opposing_town_1, opposing_town_2, neutral_town_1, neutral_town_2, bandit_town]
         towns = []
-        min_distance = 20  # Minimum distance between towns
-
-        while len(towns) < num_towns:
-            x = random.randint(0, self.terrain.width - 1)
-            y = random.randint(0, self.terrain.height - 1)
-
-            if all(self.heuristic((x, y), (town["center"])) >= min_distance for town in towns):
-                tileType = self.terrainLayers[self.terrain.terrain[y][x]]
-                if tileType == 'grass' or tileType == 'sand':
-                    town_center = (x, y)
-                    town_width = 10
-                    town_height = 10
-                    total_buildings = 15
-                    building_counts = {
-                        'house': 10,
-                        'market': 2,
-                        'tavern': 2,
-                        'blacksmith': 1,
-                        'temple': 1,
-                        'barracks': 1,
-                        'dock': 3
-                    }
-
-                    town_layout = self.generate_town(town_center, town_width, town_height, total_buildings, building_counts)
-                    towns.append({'center': town_center, 'layout': town_layout})
+        town_type = 0
+        for position in town_positions:
+            town_center = position
+            town_width = 10
+            town_height = 10
+            total_buildings = 15
+            building_counts = {
+                'house': 10,
+                'market': 2,
+                'tavern': 2,
+                'blacksmith': 1,
+                'temple': 1,
+                'barracks': 1,
+                'dock': 3
+            }
+            if position == opposing_town_1 or position == opposing_town_2:
+                town_layout = [] 
+            else:
+                town_layout = self.generate_town(town_center, town_width, town_height, total_buildings, building_counts)
+            towns.append({'center': town_center, 'type': town_type, 'layout': town_layout})
+            town_type += 1
 
         return towns
     
     def generate_roads(self):
         roads = []
-        for town in self.towns:
-            nearest_neighbors = self.find_nearest_neighbors(town["center"], 2)  # Find two nearest neighbors
-            for neighbor in nearest_neighbors:
-                if not self.is_road_exists(town["center"], neighbor, roads):
-                    new_road = self.connect_towns(town["center"], neighbor)
-                    for road in new_road:                                                
-                        tree_index = self.is_tree_at_position({'x': road[0], 'y': road[1]})
-                        if tree_index >= 0:
-                            del self.trees[tree_index]
-                        
-                        stone_index = self.is_stone_at_position({'x': road[0], 'y': road[1]})
-                        if stone_index >= 0:
-                            del self.stones[stone_index]
-                    roads.append(new_road)
+
+        # Assuming the first town is bottom left and second is top right (opposing towns),
+        # and the third is top left and fourth is bottom right (neutral towns)
+        bottom_left_opposing = self.towns[0]
+        top_right_opposing = self.towns[1]
+        top_left_neutral = self.towns[2]
+        bottom_right_neutral = self.towns[3]
+        center_bandit = self.towns[4]
+
+        # Connect the bottom left opposing town to the top left neutral town
+        road_bottom_left_to_top_left = self.connect_towns(bottom_left_opposing["center"], top_left_neutral["center"])
+        self.add_road_and_remove_obstacles(road_bottom_left_to_top_left, roads)
+
+        # Connect the top right opposing town to the bottom right neutral town
+        road_top_right_to_bottom_right = self.connect_towns(top_right_opposing["center"], bottom_right_neutral["center"])
+        self.add_road_and_remove_obstacles(road_top_right_to_bottom_right, roads)
+
+        # Generate a road between the two opposing towns by connecting them both to the center
+        road_between_opposing1 = self.connect_towns(bottom_left_opposing["center"], center_bandit["center"])
+        self.add_road_and_remove_obstacles(road_between_opposing1, roads)
+
+        road_between_opposing2 = self.connect_towns(top_right_opposing["center"], center_bandit["center"])
+        self.add_road_and_remove_obstacles(road_between_opposing2, roads)
+
         return roads
+
+    def add_road_and_remove_obstacles(self, road, roads):
+        for road_segment in road:
+            tree_index = self.is_tree_at_position({'x': road_segment[0], 'y': road_segment[1]})
+            if tree_index >= 0:
+                del self.trees[tree_index]
+
+            stone_index = self.is_stone_at_position({'x': road_segment[0], 'y': road_segment[1]})
+            if stone_index >= 0:
+                del self.stones[stone_index]
+
+        roads.append(road)
 
     def find_nearest_neighbors(self, town, count):
         distances = [(self.heuristic(town, other_town["center"]), other_town["center"]) for other_town in self.towns if other_town != town]
@@ -412,9 +452,9 @@ class World:
                 patrol_route = self.generate_patrol_route(enemy_position)  # Pass dictionary directly
                 full_path = self.generate_full_path(patrol_route)
                 full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
-                self.enemies[enemy_id] = Enemy(self.game_manager, enemy_id, random_enemy_type, enemy_position, full_path_coords)
+                self.enemies[enemy_id] = Enemy(self, enemy_id, random_enemy_type, enemy_position, full_path_coords)
                 self.enemies[enemy_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
-                print(f"Spawned enemy {enemy_id}[{random_enemy_type}] at ({x}, {y}) with {self.enemies[enemy_id].stats['health']}/{self.enemies[enemy_id].stats['max_health']} hp")  
+                print(f"Spawned enemy {enemy_id}[{random_enemy_type}] at ({x}, {y}) with {self.enemies[enemy_id].stats['health']}/{self.enemies[enemy_id].stats['max_health']} hp")                  
                 return self.enemies[enemy_id]
             attempts += 1
             print(f"Attempt {attempts}: Failed to find land for enemy")

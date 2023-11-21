@@ -4,9 +4,10 @@ import asyncio
 from utils.broadcast import broadcast
 
 class Enemy:
-    def __init__(self, game_manager, enemy_id, enemy_type, position, full_path):
-        self.game_manager = game_manager
+    def __init__(self, world, enemy_id, enemy_type, position, full_path):
+        self.world = world
         self.id = enemy_id
+        self.faction = 1
         self.position = position
         self.attacking = False
         self.last_attack_time = asyncio.get_event_loop().time()
@@ -22,7 +23,11 @@ class Enemy:
         self.last_stopped_combat = None  # Time when the enemy last stopped attacking
         self.health_regeneration_delay = 5  # 5 seconds delay for health regeneration
         self.in_combat = False
+        self.world.spacial_grid.add_entity(self)
 
+    def __eq__(self, other):
+        return self.id == other.id if other else False
+    
     def update(self, current_time):
         if not self.in_combat:
           if current_time - self.last_patrol_update >= self.patrol_delay and len(self.paths) > 0:
@@ -61,13 +66,13 @@ class Enemy:
         self.path_index = max(0, min(self.path_index, len(self.paths) - 1))
 
         # Update position
-        self.position = self.paths[self.path_index]
+        self.world.spacial_grid.move_entity(self, self.paths[self.path_index])
 
     def patrol_movement(self):      
         next_index = self.path_index + self.patrol_direction
         if 0 <= next_index < len(self.paths):
             next_position = self.paths[next_index]
-            if self.game_manager.world.is_position_valid(next_position):
+            if self.world.is_position_valid(next_position):
                 self.move_along_path()
                 
 
@@ -78,19 +83,19 @@ class Enemy:
             "type": "health_regeneration",
             "enemyId": self.id,
             "newHealth": int(self.stats['health'])
-        }, self.game_manager.connected, self.game_manager.connections))
+        }, self.world.game_manager.connected, self.world.game_manager.connections))
             
     def wander_movement(self):
         # Example of a simple wander behavior
         x = self.position["x"] + random.randint(-1, 1)
         y = self.position["y"] + random.randint(-1, 1)
         new_position = {"x": x, "y": y}
-        if self.game_manager.world.is_position_valid(new_position):
-            if self.game_manager.world.tile_type_at_position(new_position) == "forest" and self.game_manager.world.tile_type_at_position(self.position) == "grass" and self.game_manager.world.is_ramp_at_position(new_position) == -1:
+        if self.world.is_position_valid(new_position):
+            if self.world.tile_type_at_position(new_position) == "forest" and self.world.tile_type_at_position(self.position) == "grass" and self.world.is_ramp_at_position(new_position) == -1:
                 return False # Player must use ramp to go to forest from grass
-            if self.game_manager.world.tile_type_at_position(new_position) == "grass" and self.game_manager.world.tile_type_at_position(self.position) == "forest" and self.game_manager.world.is_ramp_at_position(self.position) == -1:
+            if self.world.tile_type_at_position(new_position) == "grass" and self.world.tile_type_at_position(self.position) == "forest" and self.world.is_ramp_at_position(self.position) == -1:
                 return False # Player must use ramp to go to grass from forest
-            self.position = new_position
+            self.world.spacial_grid.move_entity(self, new_position)
 
 def get_enemy_stats(enemy_type):
     if enemy_type in enemy_types:

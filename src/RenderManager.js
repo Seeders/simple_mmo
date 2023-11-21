@@ -76,7 +76,8 @@ export default class RenderManager {
         this.drawOrder = [...CONFIG.tileTypes];
         this.drawOrder.splice(CONFIG.roadTileIndex,0,'road');
         this.tileMap = new TileMap(assetManager, this.terrainCanvas, CONFIG.tileSize, this.drawOrder);
-
+        this.gameState.debugCanvas.height = window.innerHeight - document.getElementById('uiContainer').offsetHeight;
+        this.gameState.debugCanvas.width = window.innerWidth;
     }
     renderGame() {
         this.gameState.context.clearRect(0, 0, this.gameState.canvas.width, this.gameState.canvas.height);
@@ -84,6 +85,7 @@ export default class RenderManager {
         if (player) {
             this.gameState.canvas.width = window.innerWidth;
             this.gameState.canvas.height = window.innerHeight - document.getElementById('uiContainer').offsetHeight;
+
             const halfCanvasWidth = this.gameState.canvas.width / 2;
             const halfCanvasHeight = this.gameState.canvas.height / 2;
             const worldPixelWidth = this.gameState.terrain.map[0].length * CONFIG.tileSize;
@@ -172,6 +174,14 @@ export default class RenderManager {
         this.renderView();
         this.renderItems();
         this.renderPath();
+        if(true) {
+            this.renderDebug();
+        }
+    }
+
+    renderDebug() {
+        this.gameState.context.drawImage(this.gameState.debugCanvas, 0, 0);
+
     }
  
 
@@ -344,13 +354,14 @@ export default class RenderManager {
     renderTrees() {
         this.gameState.trees.forEach(tree => {
             // Check if the tree's position overlaps with a road
-
-            const treeImg = this.assetManager.assets[`${tree.type}_tree`]; // Replace with your tree sprite key               
-            const spritePosition = { x: tree.type == 'stump' ? 0 : CONFIG.unitSize, y: 0};
-            if(tree.type == 'palm'){
-                spritePosition.x = CONFIG.unitSize * (tree.position.x % 2 == 0 ? 2 : 4);
-            }
-            this.renderSprite(this.gameState.context, treeImg, tree.position.x, tree.position.y, spritePosition.x, spritePosition.y, CONFIG.unitSize);
+          //  console.log(1 + (parseInt((Math.sin(tree.position.x) + Math.cos(tree.position.y)) * 5)) % 4);
+            const treeImg = this.assetManager.assets[`tree`]; // Replace with your tree sprite key               
+            const spritePosition = { x: tree.type == 'stump' ? 0 : 1 + (Math.abs(parseInt((Math.sin(tree.position.x) + Math.cos(tree.position.y)) * 5))) % 5, y: Math.max(0, Math.min(3, this.gameState.terrain.map[tree.position.y][tree.position.x] - 1) ) };
+            // if(tree.type == 'palm'){
+            //     spritePosition.x = (tree.position.x % 2 == 0 ? 2 : 4);
+            //     spritePosition.y = 0;
+            // }
+            this.renderSprite(this.gameState.context, treeImg, tree.position.x, tree.position.y, spritePosition.x * CONFIG.unitSize, spritePosition.y * CONFIG.unitSize, CONFIG.unitSize);
             this.renderMiniMapImg(this.minimapTerrainCanvas, tree.position.x, tree.position.y, CONFIG.unitSize, spritePosition, treeImg);
         
         });
@@ -360,8 +371,8 @@ export default class RenderManager {
         this.gameState.stones.forEach(stone => {
             // Check if the stone's position overlaps with a road
             const stoneImg = this.assetManager.assets[`stone`]; // Replace with your stone sprite key
-            const spritePosition = { x: 0, y: 0 };
-            this.renderSprite(this.gameState.context, stoneImg, stone.position.x, stone.position.y, spritePosition.x, spritePosition.y, CONFIG.unitSize);
+            const spritePosition = { x: (Math.abs(parseInt((Math.sin(stone.position.x) + Math.cos(stone.position.y)) * 3))) % 3, y: Math.max(0, Math.min(3, this.gameState.terrain.map[stone.position.y][stone.position.x] - 1) ) };
+            this.renderSprite(this.gameState.context, stoneImg, stone.position.x, stone.position.y, spritePosition.x * CONFIG.unitSize, spritePosition.y * CONFIG.unitSize, CONFIG.unitSize);
             this.renderMiniMapImg(this.minimapTerrainCanvas, stone.position.x, stone.position.y, CONFIG.unitSize, spritePosition, stoneImg);
         
         });

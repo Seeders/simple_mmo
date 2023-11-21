@@ -72,8 +72,8 @@ export default class NetworkManager {
                     if(data.id == this.gameState.currentPlayerId){
                         this.gameState.playerMoved = true;
                     }
-                    player.isOnRoad = this.gameState.isPlayerOnRoad(player.id);
                     player.position = data.position;
+                    player.isOnRoad = this.gameState.isPlayerOnRoad(player.id);
                 }
                 break;
             case "player_disconnect":
@@ -135,7 +135,6 @@ export default class NetworkManager {
                 this.gameState.healthRegeneration(data);                
                 break;
             case "item_drop":
-                console.log("item_drop");
                 this.gameState.addItem(data);
                 break;
             case "item_pickup":

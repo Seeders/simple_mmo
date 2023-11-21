@@ -11,6 +11,9 @@ export default class Player extends Unit {
             "ore": 0,
             "gold": 0
         }
+        this.inventory.forEach((item) => {            
+            window.game.inventoryUI.addItemToInventory(item);
+        });
     } 
    
 

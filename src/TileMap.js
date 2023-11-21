@@ -9,14 +9,14 @@ class TileAnalysis {
       this.leftLess = false;
       this.rightLess = false;
       this.botLess = false;
-      this.c1Less = false;
-      this.c2Less = false;
-      this.c3Less = false;
-      this.c4Less = false;
-      this.c1Less2 = false;
-      this.c2Less2 = false;
-      this.c3Less2 = false;
-      this.c4Less2 = false;
+      this.cornerTopLeftLess = false;
+      this.cornerTopRightLess = false;
+      this.cornerBottomLeftLess = false;
+      this.cornerBottomRightLess = false;
+      this.cornerTopLeftLess2 = false;
+      this.cornerTopRightLess2 = false;
+      this.cornerBottomLeftLess2 = false;
+      this.cornerBottomRightLess2 = false;
     }
   }
   
@@ -334,7 +334,7 @@ class TileMap {
 				tileAnalysis[propertyLess] = true;
 				if(['topLess', 'leftLess', 'rightLess', 'botLess'].indexOf(propertyLess) >= 0 ) {
 					tileAnalysis.neighborLowerCount++;
-				} else if(['c1Less', 'c2Less', 'c3Less', 'c4Less'].indexOf(propertyLess) >= 0 || ['c1Less2', 'c2Less2', 'c3Less2', 'c4Less2'].indexOf(propertyLess2) >= 0 ) {
+				} else if(['cornerTopLeftLess', 'cornerTopRightLess', 'cornerBottomLeftLess', 'cornerBottomRightLess'].indexOf(propertyLess) >= 0 || ['cornerTopLeftLess2', 'cornerTopRightLess2', 'cornerBottomLeftLess2', 'cornerBottomRightLess2'].indexOf(propertyLess2) >= 0 ) {
 					tileAnalysis.cornerLowerCount++;
 				}
 			}
@@ -344,10 +344,10 @@ class TileMap {
 		checkAndUpdate(row, col - 1, this.numColumns, 'leftLess');
 		checkAndUpdate(row, col + 1, this.numColumns, 'rightLess');
 		checkAndUpdate(row + 1, col, this.numColumns, 'botLess');
-		checkAndUpdate(row - 1, col - 1, this.numColumns, 'c1Less', 'c1Less2');
-		checkAndUpdate(row - 1, col + 1, this.numColumns, 'c2Less', 'c2Less2');
-		checkAndUpdate(row + 1, col - 1, this.numColumns, 'c3Less', 'c3Less2');
-		checkAndUpdate(row + 1, col + 1, this.numColumns, 'c4Less', 'c4Less2');
+		checkAndUpdate(row - 1, col - 1, this.numColumns, 'cornerTopLeftLess', 'cornerTopLeftLess2');
+		checkAndUpdate(row - 1, col + 1, this.numColumns, 'cornerTopRightLess', 'cornerTopRightLess2');
+		checkAndUpdate(row + 1, col - 1, this.numColumns, 'cornerBottomLeftLess', 'cornerBottomLeftLess2');
+		checkAndUpdate(row + 1, col + 1, this.numColumns, 'cornerBottomRightLess', 'cornerBottomRightLess2');
 
 		return tileAnalysis;
 	}
@@ -499,8 +499,8 @@ class TileMap {
 		let heightIndex = tileAnalysis.heightIndex;
 	
 		if (tileAnalysis.cornerLowerCount > 0) {
-			if (tileAnalysis.c1Less && ((!tileAnalysis.topLess && !tileAnalysis.leftLess) || tileAnalysis.c1Less2)) {
-				if (tileAnalysis.c1Less2 && tileAnalysis.heightIndex > 0) {
+			if (tileAnalysis.cornerTopLeftLess && ((!tileAnalysis.topLess && !tileAnalysis.leftLess) || tileAnalysis.cornerTopLeftLess2)) {
+				if (tileAnalysis.cornerTopLeftLess2 && tileAnalysis.heightIndex > 0) {
 					cornerTexture = this.layerTextures[heightLessIndex][TileMolecule.Corner][TileTransforms.FlipHorizontal];
 					return this.colorCornerTextureRoutine(imageData, 0, 0, cornerTexture, tileAnalysis, true);
 				} else {
@@ -509,8 +509,8 @@ class TileMap {
 				}
 			}
 			// Assuming tileAnalysis, textureDict, and other variables are already defined
-			if (tileAnalysis.c2Less && ((!tileAnalysis.topLess && !tileAnalysis.rightLess) || tileAnalysis.c2Less2)) {
-				if (tileAnalysis.c2Less2 && tileAnalysis.heightIndex > 0) {
+			if (tileAnalysis.cornerTopRightLess && ((!tileAnalysis.topLess && !tileAnalysis.rightLess) || tileAnalysis.cornerTopRightLess2)) {
+				if (tileAnalysis.cornerTopRightLess2 && tileAnalysis.heightIndex > 0) {
 					cornerTexture = this.layerTextures[heightLessIndex][TileMolecule.Corner][TileTransforms.None];
 					return this.colorCornerTextureRoutine(imageData, cornerSize, 0, cornerTexture, tileAnalysis, true);
 				} else {
@@ -519,8 +519,8 @@ class TileMap {
 				}
 			}
 
-			if (tileAnalysis.c3Less && ((!tileAnalysis.botLess && !tileAnalysis.leftLess) || tileAnalysis.c3Less2)) {
-				if (tileAnalysis.c3Less2 && tileAnalysis.heightIndex > 0) {
+			if (tileAnalysis.cornerBottomLeftLess && ((!tileAnalysis.botLess && !tileAnalysis.leftLess) || tileAnalysis.cornerBottomLeftLess2)) {
+				if (tileAnalysis.cornerBottomLeftLess2 && tileAnalysis.heightIndex > 0) {
 					cornerTexture = this.layerTextures[heightLessIndex][TileMolecule.Corner][TileTransforms.Rotate180];
 					return this.colorCornerTextureRoutine(imageData, 0, cornerSize, cornerTexture, tileAnalysis, true);
 				} else {
@@ -529,8 +529,8 @@ class TileMap {
 				}
 			}
 
-			if (tileAnalysis.c4Less && ((!tileAnalysis.botLess && !tileAnalysis.rightLess) || tileAnalysis.c4Less2)) {
-				if (tileAnalysis.c4Less2 && tileAnalysis.heightIndex > 0) {
+			if (tileAnalysis.cornerBottomRightLess && ((!tileAnalysis.botLess && !tileAnalysis.rightLess) || tileAnalysis.cornerBottomRightLess2)) {
+				if (tileAnalysis.cornerBottomRightLess2 && tileAnalysis.heightIndex > 0) {
 					cornerTexture = this.layerTextures[heightLessIndex][TileMolecule.Corner][TileTransforms.FlipVertical];
 					return this.colorCornerTextureRoutine(imageData, cornerSize, cornerSize, cornerTexture, tileAnalysis, true);
 				} else {

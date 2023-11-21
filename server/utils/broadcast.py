@@ -7,7 +7,7 @@ async def broadcast(message, connected, websockets_map, sender_websocket=None):
     # Convert the message to a JSON string
     message_json = json.dumps(message)
     
-    if message["type"] != "enemy_move" and message["type"] != "health_regeneration":
+    if message["type"] != "enemy_move" and message["type"] != "health_regeneration" and message["type"] != "player_move":
         print(message["type"])
     if message["type"] == "item_drop":
         print("item_drop")

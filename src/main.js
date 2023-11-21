@@ -10,7 +10,6 @@ import { CONFIG } from './config';
 import '../styles.css';
 
 const canvas = document.getElementById('gameCanvas');
-const debugCanvas = document.getElementById('debugCanvas');
 const ctx = canvas.getContext('2d');
 
 async function loadAssets(assetManager) {
@@ -53,9 +52,9 @@ async function loadAssets(assetManager) {
     'health_potion': 'images/Objects/potions.png',
     'terrain': './images/Ground/Grass.png',
     'town': './images/Buildings/Wood/Keep.png',
-    'pine_tree': './images/Nature/PineTrees.png',
-    'palm_tree': './images/Nature/CoconutTrees.png',
-    'stump_tree': './images/Nature/PineTrees.png',
+    'pine_tree': './images/Nature/Trees.png',
+    'tree': './images/Nature/Trees.png',
+    'stump_tree': './images/Nature/Trees.png',
     'wood': './images/Nature/PineTrees.png',
     'stone': './images/Nature/Rocks.png',
     'gold': './images/Nature/PineTrees.png',
@@ -128,7 +127,7 @@ async function loadAssets(assetManager) {
   }
 }
 const assetManager = new AssetManager();
-const gameState = new GameState(ctx, debugCanvas, assetManager);
+const gameState = new GameState(ctx, assetManager);
 const networkManager = new NetworkManager(CONFIG.serverUrl, gameState, connectedCallback);
 
 function setupGame(assetManager) {
@@ -160,9 +159,7 @@ async function main() {
     try {
       loginModal.style.display = "none";
       await loadAssets(assetManager);
-      await networkManager.login(username, password);
-      gameLoop(gameState);
-
+      
       window.game = {
         gameState,
         networkManager,
@@ -170,6 +167,10 @@ async function main() {
         combatLogUI,
         inventoryUI
       };
+
+      await networkManager.login(username, password);
+      gameLoop(gameState);
+
     } catch (error) {
       console.error("Login failed:", error);
       loginModal.style.display = "block"; // Show login modal on login failure
