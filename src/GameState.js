@@ -31,6 +31,12 @@ export default class GameState {
         this.renderManager = new RenderManager(this, assetManager);    
         this.terrainCosts = [20, 10, 5, 10, 10, 1, 0, 0, 0];    
         this.playerMoved = true;
+        this.techTree = {};
+        this.activeOnCursor = null;
+        this.cursorX = 0;
+        this.cursorY = 0;
+        this.cursorTileX = 0;
+        this.cursorTileY = 0;
     }
 
     init(data) {
@@ -44,9 +50,11 @@ export default class GameState {
         this.trees = data.trees;
         this.ramps = data.ramps;
         this.stones = data.stones;
-     
+        this.techTree = data.tech_tree;
+
         this.playerManager.initPlayers(data.players);
         this.enemyManager.initEnemies(data.enemies);
+        this.renderManager.initTechTree();
         this.adjustViewToCurrentPlayer();
     }
     getTerrainCost(position) {
@@ -54,6 +62,20 @@ export default class GameState {
  
         return 1 / ((cost + 1) / 3);
    
+    }
+    buildActiveItem() {
+        const buildX = this.cursorTileX;
+        const buildY = this.cursorTileY;
+        window.game.networkManager.send('item_built', {                        
+            playerId: this.currentPlayerId,
+            item: this.activeOnCursor, // Assuming the ID is prefixed with 'item-'
+            position: { x: buildX, y: buildY }, // Send the slot ID to the server as well
+            faction: 0
+        });
+        this.activeOnCursor = null;
+    }
+    activateBuildStructure(item) {
+        this.activeOnCursor = item;
     }
     findPath(start, goal) {
         this.debugCanvas.width = this.debugCanvas.width;
@@ -214,6 +236,13 @@ export default class GameState {
         this.stones = data.stones;
        // this.renderManager.terrainRendered = false;
     }
+    updateTowns(data) {
+        this.towns = data.towns;
+        this.towns.forEach((town) => {
+            town.center = { x: town.center[0], y: town.center[1] };
+        });
+       // this.renderManager.terrainRendered = false;
+    }
     levelUp(data) {
         this.playerManager.playerLevelUp(data.playerId, data);
     }
@@ -325,7 +354,19 @@ export default class GameState {
             if (player) {
                 player.removeItemFromInventory(data.itemId);
                 player.stats.resources[data.resourceType] = data.newValue;
+                this.renderManager.updateTechTree();
                 console.log(`Player has ${data.newValue} ${data.resourceType}`);
+            }
+        }
+    }
+
+    updatePlayerResources(data) {
+        
+        if (data.playerId === this.currentPlayerId) {
+            let player = this.getCurrentPlayer();
+            if (player) {
+                player.stats.resources = data.resources;
+                this.renderManager.updateTechTree();
             }
         }
     }

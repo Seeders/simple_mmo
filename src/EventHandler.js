@@ -14,8 +14,16 @@ export default class EventHandler {
 
         // Function to handle mouse clicks for selecting targets
         this.gameState.canvas.addEventListener('click', this.handleClick.bind(this));
-        
+        this.gameState.canvas.addEventListener('mousemove', (event) => {
+            const canvasCoords = this.getCanvasCoordinates(event);
+            const gameCoords = this.gridCoordsFromCanvas(canvasCoords.x, canvasCoords.y);
+            this.gameState.cursorX = canvasCoords.x;
+            this.gameState.cursorY = canvasCoords.y;
+            this.gameState.cursorTileX = gameCoords.x;
+            this.gameState.cursorTileY = gameCoords.y;
+        });
     }
+   
     getCanvasCoordinates(event) {
         const rect = this.gameState.canvas.getBoundingClientRect();
         const scaleX = this.gameState.canvas.width / rect.width;  // ratio of actual width to CSS width
@@ -26,6 +34,14 @@ export default class EventHandler {
     
         return { x: canvasX, y: canvasY };
     }
+    
+    gridCoordsFromCanvas(canvasX, canvasY) {
+        // Convert canvas coordinates to grid coordinates
+        const x = Math.floor((canvasX - this.gameState.offsetX) / CONFIG.tileSize);
+        const y = Math.floor((canvasY - this.gameState.offsetY) / CONFIG.tileSize);
+        return { x, y };
+    }
+
     drawDebugClick(ctx, x, y, color='red') {
         ctx.save(); // Save the current state of the canvas
         ctx.beginPath();
@@ -35,6 +51,11 @@ export default class EventHandler {
         ctx.restore(); // Restore the state of the canvas
     }
     handleClick(event) {
+        const item = this.gameState.activeOnCursor;
+        if( item ) {
+            this.gameState.buildActiveItem();
+            return;
+        }
         const coords = this.getCanvasCoordinates(event);
         const clickX = coords.x;
         const clickY = coords.y;
@@ -112,13 +133,6 @@ export default class EventHandler {
             if(destination.y > player.position.y) move.y = 1;
             this.networkManager.socket.send(JSON.stringify({type: "move", playerId: this.gameState.currentPlayerId, move: move, position: { x: player.position.x + move.x, y: player.position.y + move.y }}));
         }
-    }
-
-    gridCoordsFromCanvas(canvasX, canvasY) {
-        // Convert canvas coordinates to grid coordinates
-        const x = Math.floor((canvasX - this.gameState.offsetX) / CONFIG.tileSize);
-        const y = Math.floor((canvasY - this.gameState.offsetY) / CONFIG.tileSize);
-        return { x, y };
     }
 
     movePlayerAlongPath(player, path) {

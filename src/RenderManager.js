@@ -68,6 +68,7 @@ export default class RenderManager {
         this.renderView();
         this.renderItems();
         this.renderPath();
+        this.renderActiveOnCursor()
         if(true) {
             this.paintDebug();
         }
@@ -291,7 +292,7 @@ export default class RenderManager {
             town.layout.forEach((building) => {
                 if(this.assetManager.assets[building.type]){
                     const buildingImg = this.assetManager.assets[building.type]; // Replace with your town sprite key
-                    this.renderSprite(this.gameState.context, buildingImg, building.position.x, building.position.y, spritePosition.x, CONFIG.unitSize, CONFIG.unitSize);
+                    this.renderSprite(this.gameState.context, buildingImg, building.position.x, building.position.y, CONFIG.unitSize, spritePosition.y, CONFIG.unitSize);
                 } else {
                   //  console.log(building.type, 'not found');
                 }
@@ -311,7 +312,8 @@ export default class RenderManager {
             //     spritePosition.x = (tree.position.x % 2 == 0 ? 2 : 4);
             //     spritePosition.y = 0;
             // }
-            this.renderSprite(this.gameState.context, treeImg, tree.position.x, tree.position.y, spritePosition.x * CONFIG.unitSize, spritePosition.y * CONFIG.unitSize, CONFIG.unitSize);
+            const treeSize = treeImg.width / 4;
+            this.renderSprite(this.gameState.context, treeImg, tree.position.x, tree.position.y, spritePosition.x * treeSize, spritePosition.y * treeSize, treeSize);
             this.renderMiniMapImg(this.minimapTerrainCanvas, tree.position.x, tree.position.y, CONFIG.unitSize, spritePosition, treeImg);
         
         });
@@ -642,7 +644,86 @@ export default class RenderManager {
         });
     }
 
+    renderActiveOnCursor() {
+        const item = this.gameState.activeOnCursor;
+        if( item ) {
+            let key = `${item.name}`;
+            const itemImg = this.assetManager.assets[key]; // Path to your sprite sheet
+            if( itemImg ) {
+                const buildX = this.gameState.cursorTileX;
+                const buildY = this.gameState.cursorTileY;
+            
+                const spritePosition = { x: 0, y: 0 };
+                // Check if the cursor's position is within the canvas bounds
+                this.renderSprite(this.gameState.context, itemImg, buildX, buildY, spritePosition.x, spritePosition.y, CONFIG.unitSize);
+            }
+        }
+    }
 
+    initTechTree() {
+        let techTreeContainer = document.getElementById('build-menu');
+        this.gameState.techTree.forEach((item) => {
+            const buildElement = document.createElement('div');
+            buildElement.className = 'build-item';
+    
+            const itemElement = document.createElement('div');
+            itemElement.className = 'build-item-image';
+    
+            const nameElement = document.createElement('span');
+            nameElement.innerText = `${item.name}`;
+            nameElement.className = 'build-item-name';
+    
+            let key = `${item.name}`;
+            const sprite = this.assetManager.assets[key];
+            if (sprite) {
+                itemElement.style.backgroundImage = `url('${sprite.src}')`;
+                buildElement.appendChild(itemElement)
+                buildElement.appendChild(nameElement)
+    
+                const requiresElement = document.createElement('div');
+                requiresElement.className = 'build-item-requirements';
+                item.requires.forEach((requirement) => {
+                    const amountElement = document.createElement('span');
+                    amountElement.innerText = `${requirement.amount} ${requirement.type}`;
+                    amountElement.className = 'build-item-requirement';
+    
+                    if (!(requirement.type in this.gameState.getCurrentPlayer().stats.resources) || this.gameState.getCurrentPlayer().stats.resources[requirement.type] < requirement.amount) {
+                        amountElement.classList.add('missing-resource'); // Highlight missing resource
+                    }
+    
+                    requiresElement.appendChild(amountElement);
+                });
+                buildElement.appendChild(requiresElement);
+    
+                if (this.canAfford(item)) {
+                    buildElement.onclick = () => {
+                        this.gameState.activateBuildStructure(item);
+                    };
+                } else {
+                    buildElement.classList.add('unaffordable');
+                    buildElement.onclick = null;
+                }
+    
+                techTreeContainer.appendChild(buildElement);
+            } else {
+                console.log(`${key} asset not found`);
+            }
+        });
+    }
+    
+    canAfford(item) {
+        const resources = this.gameState.getCurrentPlayer().stats.resources;
+        return item.requires.every(requirement => {
+            return (requirement.type in resources) && (resources[requirement.type] >= requirement.amount);
+        });
+    }
+    
+    updateTechTree() {
+        // Clear the current tech tree
+        document.getElementById('build-menu').innerHTML = '';
+        // Reinitialize the tech tree
+        this.initTechTree();
+    }
     // Function to render a rounded rectangle with overlapping
     renderRoundedRect(ctx, x, y, width, height, radius, fillStyle) {
         ctx.beginPath();

@@ -268,3 +268,42 @@ body, button, input {
     text-decoration: none;
     cursor: pointer;
 }
+
+#build-container {    
+    overflow-y: auto;
+}
+
+#build-menu {
+    padding-top: 1em;
+}
+
+
+.build-item {
+    background-color: #222;
+    padding: 1em;
+    border-radius: 1em;
+    margin: 0 1em 1em;
+    line-height: 1.5em;
+    cursor: pointer;
+}
+.build-item.unaffordable {
+    color: #666;
+    cursor: not-allowed;
+}
+.missing-resource {
+    color: #933; /* or any style to highlight the missing resource */
+}
+.build-item-image {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    margin-right: 1em;
+}
+
+.build-item-requirement {
+    background-color: #333;
+    margin: .2em;
+    padding: .3em .5em;
+    border-radius: 1em;
+    font-size: .75em
+}

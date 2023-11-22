@@ -7,7 +7,7 @@ import re
 import time
 from utils.broadcast import broadcast
 from game_manager import GameManager
-
+from game.config.tech_tree import tech_tree
 
 def sanitize_chat_message(message):
     # Remove potentially dangerous characters
@@ -87,7 +87,13 @@ async def game_server(websocket, path, game_manager:GameManager):
                 item_index = next((index for (index, d) in enumerate(player.inventory) if d.id == item_id), None)
                 if item_index is not None:
                     item = player.inventory[item_index]
-                    item.use(game_manager, player, item_index)                      
+                    item.use(game_manager, player, item_index)          
+            elif data["type"] == "item_built":
+                
+                item = data["item"]  
+                position = data["position"]        
+                # Find the index of the item with the matching 'id'
+                game_manager.world.build_structure(data)                                
             elif data["type"] == "login":
                 username = data["username"]
                 password = data["password"]
@@ -104,12 +110,12 @@ async def game_server(websocket, path, game_manager:GameManager):
                     await websocket.send(json.dumps({
                         "type": "init",
                         "id": player.id,
-                        "color": player.color,
+                        "tech_tree": tech_tree(),
                         "terrain": game_manager.world.terrain.terrain,
                         "trees": game_manager.world.trees,
                         "stones": game_manager.world.stones,
                         "ramps": game_manager.world.ramps,
-                        "towns": [town for town in game_manager.world.towns],
+                        "towns": game_manager.world.towns,
                         "roads": [[{"x": point[0], "y": point[1]} for point in road] for road in game_manager.world.roads],  # Adjusted for new road structure
                         "players": [{"id": pid, "color": p.color, "position": {"x": player.position['x'], "y": player.position['y']}, "stats": p.stats, "inventory": [item.to_dict() for item in p.inventory]} for pid, p in game_manager.connected.items()],
                         "chat": [],

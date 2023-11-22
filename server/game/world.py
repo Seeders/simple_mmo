@@ -2,6 +2,7 @@ import asyncio
 from .enemy import Enemy, enemy_types
 import heapq
 import random
+from utils.broadcast import broadcast
 from .terrain import Terrain
 from utils.SpatialGrid import SpatialGrid
 
@@ -536,6 +537,43 @@ class World:
                     return (tindex, bindex)
         return (-1, -1)
     
+    def build_structure(self, data):
+        faction = data["faction"]
+        structure = data["item"]
+        position = data["position"]
+        requires = structure["requires"]
+        player = self.game_manager.connected[data["playerId"]]
+        canAfford = True
+        for price in requires:
+            type = price["type"]
+            amount = price["amount"]
+            if player.stats["resources"][type] < amount:
+                canAfford = False
+
+
+        if canAfford:
+            for price in requires:
+                type = price["type"]
+                amount = price["amount"]            
+                player.stats["resources"][type] = player.stats["resources"][type] - amount
+
+            if faction < len(self.towns):
+                town = self.towns[faction]
+                print("before", town)
+                if town:
+                    town["layout"].append({'type': structure["name"], 'position': position})
+                    print("after", town["layout"])
+            asyncio.create_task(broadcast({
+                "type": "update_towns",
+                "towns": self.towns
+            }, self.game_manager.connected, self.game_manager.connections))
+
+            asyncio.create_task(broadcast({
+                "type": "update_player_resources",
+                "playerId": player.id,
+                "resources": player.stats["resources"]
+            }, self.game_manager.connected, self.game_manager.connections))
+
     def generate_town(self, town_center, town_width, town_height, total_buildings, building_counts):
         town_layout = []
         building_locations = []

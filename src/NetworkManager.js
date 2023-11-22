@@ -153,10 +153,17 @@ export default class NetworkManager {
             case 'update_stones':
                 this.gameState.updateStones(data);
                 break;
+            case 'update_towns':
+                this.gameState.updateTowns(data);
+                break;
             case 'update_resource':
                 console.log(`update_resource ${data}`);
                 this.gameState.updateResource(data);
                 break;
+            case 'update_player_resources':
+                console.log(`update_player_resources ${data}`);
+                this.gameState.updatePlayerResources(data);
+                break;                
         }
       
     }
