@@ -97,6 +97,19 @@ def tech_tree ():
             ]
         },
         {
+            "name": "tower",
+            "requires": [
+                {
+                    "type": "wood",
+                    "amount": 0
+                },
+                {
+                    "type": "stone",
+                    "amount": 0
+                }
+            ]
+        },
+        {
             "name": "blacksmith",
             "requires": [
                 {

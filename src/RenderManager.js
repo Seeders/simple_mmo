@@ -15,6 +15,12 @@ export default class RenderManager {
         this.terrainCanvas.height = CONFIG.worldSize * CONFIG.tileSize;
         this.terrainRendered = false;
 
+        this.objectCanvas = document.createElement('canvas');
+        this.objectCtx = this.objectCanvas.getContext('2d');
+        this.objectCanvas.width = CONFIG.worldSize * CONFIG.tileSize;
+        this.objectCanvas.height = CONFIG.worldSize * CONFIG.tileSize;
+        this.objectsRendered = false;
+
         this.minimapCanvas = document.getElementById('minimapCanvas');
         this.minimapCtx = this.minimapCanvas.getContext('2d');
         this.minimapCanvas.width = CONFIG.miniMapSize; // Match the CSS size
@@ -55,10 +61,9 @@ export default class RenderManager {
         this.minimapCanvas.width = this.minimapCanvas.width;
 
         this.renderTerrain();
+        this.renderStaticObjects();
         // Render towns, target circle, minimap, players, enemies, etc.
         this.renderTowns();
-        this.renderTrees();
-        this.renderStones();
         this.renderTargetCircle();
         this.renderMinimap();
         this.renderPlayers();
@@ -70,7 +75,7 @@ export default class RenderManager {
         this.renderPath();
         this.renderActiveOnCursor()
         if(true) {
-            this.paintDebug();
+           // this.paintDebug();
         }
     }
 
@@ -148,13 +153,37 @@ export default class RenderManager {
          
         }
 
-        this.paintTerrain();
+        this.gameState.context.drawImage(this.terrainCanvas, this.gameState.offsetX, this.gameState.offsetY);
+
     }
-    paintTerrain() {
-        // Calculate the offset based on the player's position to center the player on the screen
 
-            this.gameState.context.drawImage(this.terrainCanvas, this.gameState.offsetX, this.gameState.offsetY);
 
+    renderStaticObjects() {
+        if( !this.objectsRendered ) {
+            this.objectCanvas.width = this.objectCanvas.width;
+            this.gameState.trees.forEach(tree => {
+                // Check if the tree's position overlaps with a road
+            //  console.log(1 + (parseInt((Math.sin(tree.position.x) + Math.cos(tree.position.y)) * 5)) % 4);
+                const treeImg = this.assetManager.assets[`tree`]; // Replace with your tree sprite key               
+                const spritePosition = { x: tree.type == 'stump' ? 0 : 1 + (Math.abs(parseInt((Math.sin(tree.position.x) + Math.cos(tree.position.y)) * 5))) % 3, y: Math.max(0, Math.min(3, this.gameState.terrain.map[tree.position.y][tree.position.x] - 1) ) };
+                // if(tree.type == 'palm'){
+                //     spritePosition.x = (tree.position.x % 2 == 0 ? 2 : 4);
+                //     spritePosition.y = 0;
+                // }
+                const treeSize = treeImg.width / 4;
+                this.renderSprite(this.objectCtx, treeImg, tree.position.x * CONFIG.tileSize, tree.position.y * CONFIG.tileSize, spritePosition.x * treeSize, spritePosition.y * treeSize, treeSize, false);            
+            });
+
+            this.gameState.stones.forEach(stone => {
+                // Check if the stone's position overlaps with a road
+                const stoneImg = this.assetManager.assets[`stone`]; // Replace with your stone sprite key
+                const spritePosition = { x: (Math.abs(parseInt((Math.sin(stone.position.x) + Math.cos(stone.position.y)) * 3))) % 3, y: Math.max(0, Math.min(3, this.gameState.terrain.map[stone.position.y][stone.position.x] - 1) ) };
+                this.renderSprite(this.objectCtx, stoneImg, stone.position.x * CONFIG.tileSize, stone.position.y * CONFIG.tileSize, spritePosition.x * CONFIG.unitSize, spritePosition.y * CONFIG.unitSize, CONFIG.unitSize, false);            
+            });
+            this.objectsRendered = true;
+        }
+       // this.gameState.context.drawImage(this.terrainCanvas, this.gameState.offsetX, this.gameState.offsetY);
+        this.gameState.context.drawImage(this.objectCanvas, this.gameState.offsetX, this.gameState.offsetY);
     }
 
     renderPath() {
@@ -167,7 +196,7 @@ export default class RenderManager {
             for (let i = player.pathStep + 1; i < player.path.length - 1; i++) {
                 const node = player.path[i];
                 const circleSize = CONFIG.unitSize / 2;
-                this.renderRoundedRect(this.gameState.context, node.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2 - circleSize / 2, node.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2 - circleSize / 2, circleSize, circleSize, circleSize / 2, '#F4C430');
+                this.renderRoundedRect(this.gameState.context, node.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2 - circleSize / 2, node.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2 - circleSize / 2, circleSize, circleSize, circleSize / 2, '#e4943a');
             }
         // this.drawDebugHitbox(this.gameState.context, player.position.x, player.position.y);
         }
@@ -299,34 +328,6 @@ export default class RenderManager {
            
             });
 
-        });
-    }
-
-    renderTrees() {
-        this.gameState.trees.forEach(tree => {
-            // Check if the tree's position overlaps with a road
-          //  console.log(1 + (parseInt((Math.sin(tree.position.x) + Math.cos(tree.position.y)) * 5)) % 4);
-            const treeImg = this.assetManager.assets[`tree`]; // Replace with your tree sprite key               
-            const spritePosition = { x: tree.type == 'stump' ? 0 : 1 + (Math.abs(parseInt((Math.sin(tree.position.x) + Math.cos(tree.position.y)) * 5))) % 5, y: Math.max(0, Math.min(3, this.gameState.terrain.map[tree.position.y][tree.position.x] - 1) ) };
-            // if(tree.type == 'palm'){
-            //     spritePosition.x = (tree.position.x % 2 == 0 ? 2 : 4);
-            //     spritePosition.y = 0;
-            // }
-            const treeSize = treeImg.width / 4;
-            this.renderSprite(this.gameState.context, treeImg, tree.position.x, tree.position.y, spritePosition.x * treeSize, spritePosition.y * treeSize, treeSize);
-            this.renderMiniMapImg(this.minimapTerrainCanvas, tree.position.x, tree.position.y, CONFIG.unitSize, spritePosition, treeImg);
-        
-        });
-    }
-
-    renderStones() {
-        this.gameState.stones.forEach(stone => {
-            // Check if the stone's position overlaps with a road
-            const stoneImg = this.assetManager.assets[`stone`]; // Replace with your stone sprite key
-            const spritePosition = { x: (Math.abs(parseInt((Math.sin(stone.position.x) + Math.cos(stone.position.y)) * 3))) % 3, y: Math.max(0, Math.min(3, this.gameState.terrain.map[stone.position.y][stone.position.x] - 1) ) };
-            this.renderSprite(this.gameState.context, stoneImg, stone.position.x, stone.position.y, spritePosition.x * CONFIG.unitSize, spritePosition.y * CONFIG.unitSize, CONFIG.unitSize);
-            this.renderMiniMapImg(this.minimapTerrainCanvas, stone.position.x, stone.position.y, CONFIG.unitSize, spritePosition, stoneImg);
-        
         });
     }
     renderRamps() {
@@ -660,7 +661,11 @@ export default class RenderManager {
         }
     }
 
-    initTechTree() {
+    gameLoop() {
+        this.renderGame();
+        requestAnimationFrame(() => this.gameLoop());
+    }
+    buildTechTree(){
         let techTreeContainer = document.getElementById('build-menu');
         this.gameState.techTree.forEach((item) => {
             const buildElement = document.createElement('div');
@@ -710,6 +715,10 @@ export default class RenderManager {
             }
         });
     }
+    init() {      
+        this.buildTechTree();
+        this.gameLoop();
+    }
     
     canAfford(item) {
         const resources = this.gameState.getCurrentPlayer().stats.resources;
@@ -722,7 +731,7 @@ export default class RenderManager {
         // Clear the current tech tree
         document.getElementById('build-menu').innerHTML = '';
         // Reinitialize the tech tree
-        this.initTechTree();
+        this.buildTechTree();
     }
     // Function to render a rounded rectangle with overlapping
     renderRoundedRect(ctx, x, y, width, height, radius, fillStyle) {

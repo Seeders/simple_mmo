@@ -37,7 +37,7 @@ class SpatialGrid:
         for r in range(max(0, row - radius), min(self.rows, row + radius + 1)):
             for c in range(max(0, col - radius), min(self.columns, col + radius + 1)):
                 for e in self.grid[r][c]:
-                    if e.faction == faction:
+                    if e.faction != faction:
                         nearby_entities.append(e)
         return nearby_entities
 

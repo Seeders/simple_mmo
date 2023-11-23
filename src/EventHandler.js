@@ -113,6 +113,11 @@ export default class EventHandler {
                     playerId: this.gameState.currentPlayerId  // Make sure you have the player's ID available here
                 }));
             }
+            console.log(event.code);
+            if (event.code === "Escape") {
+                // Send a message to the server to use a potion
+                this.gameState.activeOnCursor = null;
+            }
         }
     }
 

@@ -54,9 +54,10 @@ export default class GameState {
 
         this.playerManager.initPlayers(data.players);
         this.enemyManager.initEnemies(data.enemies);
-        this.renderManager.initTechTree();
-        this.adjustViewToCurrentPlayer();
+        this.renderManager.init();
+        this.adjustViewToCurrentPlayer();        
     }
+    
     getTerrainCost(position) {
         let cost = this.terrainCosts[this.terrain.map[position.y][position.x]] ;
  
@@ -182,29 +183,70 @@ export default class GameState {
     }
 
     combatUpdate(data) {
-        if (data.playerId) {
-            let player = this.playerManager.getPlayer(data.playerId);
+        if (data.unitType == "player") {
+            let player = this.playerManager.getPlayer(data.unitId);
             if (player) {
-                player.stats.health = data.playerHealth;
+                player.stats.health = data.unitHealth;
             }
-        }
-        if (data.enemyId) {
-            let enemy = this.enemyManager.getEnemy(data.enemyId);
-            if (enemy) {
-                enemy.stats.health = data.enemyHealth;
-                this.selectedTarget = { type: 'enemy', id: data.enemyId, stats: enemy.stats };
-                if (data.enemyHealth <= 0) {
-                    this.enemyManager.removeEnemy(data.enemyId);
+            if(data.targetType == "unit") {
+                let target = this.enemyManager.getEnemy(data.targetId);
+                if (target) {
+                    target.stats.health = data.targetHealth;
+                    this.selectedTarget = { type: 'enemy', id: target.id, stats: target.stats };
+                    if ( target.stats.health <= 0) {
+                        this.enemyManager.removeEnemy(target.id);
+                    }
+                }
+            }
+        } else if( data.unitType == "unit" ) {
+            if (data.unitFaction == 1) {
+                let player = this.playerManager.getPlayer(data.targetId);
+                if (player) {
+                    player.stats.health = data.targetHealth;
+                }
+                let target = this.enemyManager.getEnemy(data.unitId);
+                if (target) {
+                    target.stats.health = data.unitHealth;
+                    this.selectedTarget = { type: 'enemy', id: data.unitId, stats: target.stats };
+                }
+            }
+        } else if( data.unitType == "structure" ) {
+            if (data.unitFaction == 0) {
+                let building = this.towns[data.unitFaction].layout[data.unitId];
+                if (building) {
+                    building.stats.health = data.unitHealth;
+                }
+                let target = this.enemyManager.getEnemy(data.targetId);
+                if (target) {
+                    target.stats.health = data.targetHealth;
+                    this.selectedTarget = { type: 'enemy', id: target.id, stats: target.stats };
+                }
+            } else if (data.unitFaction == 1) {
+                if(data.targetType == "player"){
+                    let player = this.playerManager.getPlayer(data.targetId);
+                    if (player) {
+                        player.stats.health = data.targetHealth;
+                    }
+                } else if(data.targetType == "unit"){
+                   
+                } else if(data.targetType == "structure"){
+                    let target = this.towns[data.targetFaction].layout[data.targetId];
+                    if (target) {
+                        target.stats.health = data.targetHealth;
+                    }
+                }
+                let building = this.towns[data.unitFaction].layout[data.unitId];
+                if (building) {
+                    building.stats.health = data.unitHealth;
                 }
             }
         }
     }
 
     combatLogUpdate(data) {
-        if (data.playerId === this.currentPlayerId) {
-            this.combatLog = data.combatLog;
-            window.game.combatLogUI.updateCombatLog(data.combatLog);
-        }
+        this.combatLog = data.combatLog;
+        window.game.combatLogUI.updateCombatLog(data.combatLog);
+    
     }
 
     playerRespawn(data) {
@@ -247,15 +289,28 @@ export default class GameState {
         this.playerManager.playerLevelUp(data.playerId, data);
     }
 
-    enemyDeath(data) {
-        this.enemyManager.removeEnemy(data.enemyId);
-        if (data.playerId === this.currentPlayerId) {
-            let player = this.getCurrentPlayer();
-            if (player) {
-                player.stats.experience = data.experience;
-                player.stats.level = data.level;
-                player.stats.next_level_exp = data.next_level_exp;
-            }
+    targetDeath(data) {
+        if( data.targetType == "unit" ) {
+            this.enemyManager.removeEnemy(data.targetId);
+           // if (data.unitType == "player") {
+                //let player =  this.playerManager.getPlayer(data.unitId);
+                // if (player) {
+                //     player.stats.experience = data.experience;
+                //     player.stats.level = data.level;
+                //     player.stats.next_level_exp = data.next_level_exp;
+                // }
+           // }
+        } else if( data.targetType == "structure" ) {
+            delete this.towns[data.targetFaction].layout[data.targetId];
+            this.enemyManager.removeEnemy(data.targetId);
+            //if (data.unitType == "player") {
+               // let player =  this.playerManager.getPlayer(data.unitId);
+                // if (player) {
+                //     player.stats.experience = data.experience;
+                //     player.stats.level = data.level;
+                //     player.stats.next_level_exp = data.next_level_exp;
+                // }
+           // }
         }
     }    
     
@@ -355,7 +410,6 @@ export default class GameState {
                 player.removeItemFromInventory(data.itemId);
                 player.stats.resources[data.resourceType] = data.newValue;
                 this.renderManager.updateTechTree();
-                console.log(`Player has ${data.newValue} ${data.resourceType}`);
             }
         }
     }

@@ -124,7 +124,7 @@ class GameManager:
             self.connections[player_id] = websocket
             return existing_player
         else:
-            new_player = Player(self.world, player_id, { "x": self.world.towns[0]['center'][0], "y": self.world.towns[0]['center'][1] })
+            new_player = Player(self.world, player_id, self.world.towns[0].position )
             self.connected[player_id] = new_player
             self.connections[player_id] = websocket
             await self.save_player_state(player_id)  # Save the new player state
@@ -147,6 +147,134 @@ class GameManager:
             "id": player_id
         }, self.connected, self.connections)
 
+
+    async def attack_routine(self, current_time, unit, target):
+        unit_type = unit.unit_type
+        target_type = target.unit_type
+        player_id = 0
+        if unit_type == "player":
+            player_id = unit.id
+        elif target_type == "player":
+            player_id = target.id
+
+
+        if unit.attacker.is_in_range_to_attack(target.position):
+            unit.attacker.in_combat = True
+            if target.attacker != {}:
+                target.attacker.in_combat = True
+            if unit.attacker.attacking == False:
+                unit.attacker.attacking = True
+                await broadcast({
+                    "type": "start_attack",
+                    "unitId": unit.id,
+                    "unitType": unit_type,
+                    "targetPosition": target.position
+                }, self.connected, self.connections)
+            elif current_time - unit.attacker.last_attack_time >= 1 / unit.attacker.stats['attack_speed']:
+                # Update combat log for player
+                await broadcastCombatLog(self.combat_logs, player_id, f"{unit.name} attacked {target.name} for {unit.attacker.stats['damage']} damage.", self.connected, self.connections )
+                unit.attacking = False
+                target.stats['health'] -= unit.attacker.stats['damage']
+                unit.attacker.last_attack_time = current_time
+                await broadcast({
+                    "type": "combat_update",
+                    "unitId": unit.id,
+                    "targetId": target.id,
+                    "unitType": unit_type,
+                    "unitFaction": unit.faction,
+                    "targetFaction": target.faction,
+                    "targetType": target_type,
+                    "unitHealth": unit.stats['health'],
+                    "targetHealth": target.stats['health']
+                }, self.connected, self.connections)
+            
+            if unit_type == "player" and unit.stats['health'] <= 0:
+                # Handle player death and respawn
+                await broadcastCombatLog(self.combat_logs, player_id, f"{unit.name} was killed by {target.name}.", self.connected, self.connections)
+                unit.attacker.last_attack_time = current_time
+                if target.attacker != {}:
+                    target.attacker.exit_combat()
+                self.world.spacial_grid.move_entity(unit, self.world.towns[0].position )
+                unit.stats['health'] = unit.stats['max_health']  # Reset health
+                await broadcast({
+                    "type": "player_respawn",
+                    "playerId": unit.id,
+                    "position": unit.position,
+                    "health": unit.stats['health']
+                }, self.connected, self.connections)
+
+            if target.stats['health'] <= 0:
+                await broadcastCombatLog(self.combat_logs, player_id, f"{unit.name} killed {target.name}.", self.connected, self.connections)
+                
+                if unit.unit_type == "player":
+                    player = self.connected[unit.id]
+                    player.stats['experience'] += 50  # Award experience points, adjust value as needed                    
+                    
+                if target.unit_type == "unit" and target.id in self.world.enemies:
+                    del self.world.enemies[target.id]
+
+                if target.unit_type != "player":
+                    self.world.spacial_grid.remove_entity(target)
+
+                if target.unit_type == "structure":
+                    print("target.id:", target.id)
+                    print("target.faction:", target.faction)
+                    print(self.world.towns[target.faction].layout)
+                if target.unit_type == "structure":    
+                    print("update_towns")     
+                    del self.world.towns[target.faction].layout[target.id]           
+                    towns = []
+                    for town in self.world.towns:
+                        towns.append(town.to_dict())
+                    asyncio.create_task(broadcast({
+                        "type": "update_towns",
+                        "towns": towns
+                    }, self.connected, self.connections))
+
+                await broadcast({
+                    "type": "target_death",
+                    "unitId": unit.id,  # Include the player ID who killed the enemy
+                    "targetId": target.id,
+                    "unitFaction": unit.faction,
+                    "targetFaction": target.faction,
+                    "unitType": unit_type,
+                    "targetType": target_type
+                }, self.connected, self.connections)
+                
+                # Determine if an item should drop
+                if unit.unit_type == "player" and random.random() < 0.5:  # 50% chance for an item to drop
+                    item_id = self.next_item_id
+                    self.next_item_id += 1  # Increment the ID for the next item
+
+                    item = generate_random_item(item_id, target.position)                                
+                    self.world.items_on_ground[item_id] = item
+                    await broadcast({
+                        "type": "item_drop",
+                        "itemId": item_id,
+                        "item": {
+                            "id": item.id,
+                            "type": item.type,
+                            "item_type": item.item_type,
+                            "name": item.name,
+                            "position": item.position
+                        }
+                    }, self.connected, self.connections)
+
+                if unit.unit_type == "player" and unit.stats['experience'] >= unit.stats['next_level_exp']:
+                    unit.level_up()
+                    # save_player_state(unit.id, player)
+                    # Broadcast level up information    
+                    await broadcast({
+                        "type": "level_up",
+                        "playerId": unit.id,
+                        "level": unit.stats['level'],
+                        "max_health": unit.stats['max_health'],
+                        "health": unit.stats['health']
+                    }, self.connected, self.connections)
+        else:            
+            if unit.attacker != {} and unit.attacker.in_combat:
+                unit.attacker.exit_combat()
+            
     async def combat_handler(self):
         while True:
             current_time = asyncio.get_event_loop().time()
@@ -158,117 +286,31 @@ class GameManager:
                     "enemy": {"id": spawnedEnemy.id, "position": spawnedEnemy.position, "stats": spawnedEnemy.stats}
                 }, self.connected, self.connections)
 
+            
+            for town_index, town in enumerate(self.world.towns):
+                faction = town_index
+                for building_index, building_id in enumerate(town.layout):
+                    building = town.layout[building_id]
+                    if building.attacker != {}:
+                        nearby_targets = self.world.spacial_grid.get_nearby_entities(building.position, 5, faction)                        
+                        if len(nearby_targets) > 0:
+                            target = nearby_targets[0]                         
+                            await self.attack_routine(current_time, building, target)
+
+
             for player_id, player in list(self.connected.items()):
-                player.in_combat = False
-                nearby_enemies = self.world.spacial_grid.get_nearby_entities(player.position, 2, 1)
-                for enemy in nearby_enemies:                
-                    if player.is_in_combat(enemy.position):
-                        player.in_combat = True
-                        enemy.in_combat = True
-                        if player.attacking == False:
-                            player.attacking = True
-                            await broadcast({
-                                "type": "start_attack",
-                                "playerId": player_id,
-                                "targetPosition": enemy.position
-                            }, self.connected, self.connections)
-                        elif current_time - player.last_attack_time >= 1 / player.stats['attack_speed']:
-                            # Update combat log for player
-                            await broadcastCombatLog(self.combat_logs, player_id, f"{player_id} attacked {enemy.stats['name']} for {player.stats['damage']} damage.", self.connected, self.connections )
-                            player.attacking = False
-                            enemy.stats['health'] -= player.stats['damage']
-                            player.last_attack_time = current_time
-                            await broadcast({
-                                "type": "combat_update",
-                                "playerId": player_id,
-                                "enemyId": enemy.id,
-                                "playerHealth": player.stats['health'],
-                                "enemyHealth": enemy.stats['health']
-                            }, self.connected, self.connections)
-                        
+                nearby_targets = self.world.spacial_grid.get_nearby_entities(player.position, 1, 0)
+                if len(nearby_targets) > 0:
+                    target = nearby_targets[0]               
+                    await self.attack_routine(current_time, player, target)
 
-                        if enemy.attacking == False:
-                            enemy.attacking = True
-                            await broadcast({
-                                "type": "start_attack",
-                                "enemyId": enemy.id,
-                                "targetPosition": player.position
-                            }, self.connected, self.connections)
-                        elif current_time - enemy.last_attack_time >= 1 / enemy.stats['attack_speed']:
-                            # Update combat log for enemy attack
-                            await broadcastCombatLog(self.combat_logs, player_id, f"{enemy.stats['name']} attacked {player_id} for {enemy.stats['damage']} damage.", self.connected, self.connections)
-                            enemy.attacking = False
-                            player.stats['health'] -= enemy.stats['damage']
-                            enemy.last_attack_time = current_time
-                            await broadcast({
-                                "type": "combat_update",
-                                "playerId": player_id,
-                                "enemyId": enemy.id,
-                                "playerHealth": player.stats['health'],
-                                "enemyHealth": enemy.stats['health']
-                            }, self.connected, self.connections)
-
-                        if player.stats['health'] <= 0:
-                            # Handle player death and respawn
-                            await broadcastCombatLog(self.combat_logs, player_id, f"{player_id} was killed by {enemy.stats['name']}.", self.connected, self.connections)
-                            player.stats['health'] = player.stats['max_health']  # Reset health
-                            player.last_attack_time = current_time
-                            self.world.spacial_grid.move_entity(player, {"x": self.world.towns[0]['center'][0], "y": self.world.towns[0]['center'][1]} )
-                            enemy.exit_combat()
-                            await broadcast({
-                                "type": "player_respawn",
-                                "playerId": player_id,
-                                "position": player.position,
-                                "health": player.stats['health']
-                            }, self.connected, self.connections)
-
-                        if enemy.stats['health'] <= 0:
-                            await broadcastCombatLog(self.combat_logs, player_id, f"{player_id} killed {enemy.stats['name']}.", self.connected, self.connections)
-                            player = self.connected[player_id]
-                            player.stats['experience'] += 50  # Award experience points, adjust value as needed
-                            self.world.spacial_grid.remove_entity(enemy)
-                            del self.world.enemies[enemy.id]
-                            await broadcast({
-                                "type": "enemy_death",
-                                "enemyId": enemy.id,
-                                "playerId": player_id,  # Include the player ID who killed the enemy
-                                "level": player.stats['level'],
-                                "experience": player.stats['experience'],
-                                "next_level_exp": player.stats['next_level_exp']
-                            }, self.connected, self.connections)
-                            
-                            # Determine if an item should drop
-                            if random.random() < 0.5:  # 50% chance for an item to drop
-                                item_id = self.next_item_id
-                                self.next_item_id += 1  # Increment the ID for the next item
-
-                                item = generate_random_item(item_id, enemy.position)                                
-                                self.world.items_on_ground[item_id] = item
-                                await broadcast({
-                                    "type": "item_drop",
-                                    "itemId": item_id,
-                                    "item": {
-                                        "id": item.id,
-                                        "type": item.type,
-                                        "item_type": item.item_type,
-                                        "name": item.name,
-                                        "position": item.position
-                                    }
-                                }, self.connected, self.connections)
-
-                            if player.stats['experience'] >= player.stats['next_level_exp']:
-                                player.level_up()
-                                # save_player_state(player_id, player)
-                                # Broadcast level up information    
-                                await broadcast({
-                                    "type": "level_up",
-                                    "playerId": player_id,
-                                    "level": player.stats['level'],
-                                    "max_health": player.stats['max_health'],
-                                    "health": player.stats['health']
-                                }, self.connected, self.connections)
-                    elif enemy.in_combat:
-                        enemy.exit_combat()
+            for enemy_index, enemy_id in enumerate(self.world.enemies):
+                enemy = self.world.enemies[enemy_id]
+                nearby_targets = self.world.spacial_grid.get_nearby_entities(enemy.position, 1, 1)
+                if len(nearby_targets) > 0:
+                    target = nearby_targets[0]   
+                    if target.stats["health"] > 0:        
+                        await self.attack_routine(current_time, enemy, target)
 
             await asyncio.sleep(0.1)  # Sleep to prevent a tight loop
 
@@ -280,7 +322,7 @@ class GameManager:
             if current_time - last_regeneration_time >= 1:
                 
                 for player_id, player in self.connected.items():  # Ensure this is iterating over Player objects
-                    if player.stats['health'] < player.stats['max_health'] and not player.in_combat:
+                    if player.stats['health'] < player.stats['max_health'] and not player.attacker.in_combat:
                         player.stats['health'] += player.stats['max_health'] * .01  # Regenerate 1% health
                         player.stats['health'] = min(player.stats['health'], player.stats['max_health'])  # Cap at max health
                         await broadcast({

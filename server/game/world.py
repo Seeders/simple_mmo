@@ -4,6 +4,8 @@ import heapq
 import random
 from utils.broadcast import broadcast
 from .terrain import Terrain
+from .structure import Structure
+from .town import Town
 from utils.SpatialGrid import SpatialGrid
 
 class World:
@@ -259,11 +261,10 @@ class World:
         neutral_town_2 = (self.terrain.width - 1 - padding, self.terrain.height - 1 - padding)  # Bottom right
         bandit_town = (int(self.terrain.width / 2), int(self.terrain.height / 2))  # Bottom right
 
-        town_positions = [opposing_town_1, opposing_town_2, neutral_town_1, neutral_town_2, bandit_town]
+        town_centers = [opposing_town_1, opposing_town_2, neutral_town_1, neutral_town_2, bandit_town]
         towns = []
         town_type = 0
-        for position in town_positions:
-            town_center = position
+        for town_center in town_centers:
             town_width = 10
             town_height = 10
             total_buildings = 15
@@ -276,11 +277,14 @@ class World:
                 'barracks': 1,
                 'dock': 3
             }
-            if position == opposing_town_1 or position == opposing_town_2:
-                town_layout = [] 
+            town = Town(self, town_type, town_type, town_center)
+            if town_center == opposing_town_1 or town_center == opposing_town_2:
+                town_layout = {} 
             else:
-                town_layout = self.generate_town(town_center, town_width, town_height, total_buildings, building_counts)
-            towns.append({'center': town_center, 'type': town_type, 'layout': town_layout})
+                town_layout = self.generate_town(town, town_center, town_type, town_width, town_height, total_buildings, building_counts)
+            
+            town.set_layout(town_layout)
+            towns.append(town)
             town_type += 1
 
         return towns
@@ -297,18 +301,18 @@ class World:
         center_bandit = self.towns[4]
 
         # Connect the bottom left opposing town to the top left neutral town
-        road_bottom_left_to_top_left = self.connect_towns(bottom_left_opposing["center"], top_left_neutral["center"])
+        road_bottom_left_to_top_left = self.connect_towns(bottom_left_opposing.center, top_left_neutral.center)
         self.add_road_and_remove_obstacles(road_bottom_left_to_top_left, roads)
 
         # Connect the top right opposing town to the bottom right neutral town
-        road_top_right_to_bottom_right = self.connect_towns(top_right_opposing["center"], bottom_right_neutral["center"])
+        road_top_right_to_bottom_right = self.connect_towns(top_right_opposing.center, bottom_right_neutral.center)
         self.add_road_and_remove_obstacles(road_top_right_to_bottom_right, roads)
 
         # Generate a road between the two opposing towns by connecting them both to the center
-        road_between_opposing1 = self.connect_towns(bottom_left_opposing["center"], center_bandit["center"])
+        road_between_opposing1 = self.connect_towns(bottom_left_opposing.center, center_bandit.center)
         self.add_road_and_remove_obstacles(road_between_opposing1, roads)
 
-        road_between_opposing2 = self.connect_towns(top_right_opposing["center"], center_bandit["center"])
+        road_between_opposing2 = self.connect_towns(top_right_opposing.center, center_bandit.center)
         self.add_road_and_remove_obstacles(road_between_opposing2, roads)
 
         return roads
@@ -326,7 +330,7 @@ class World:
         roads.append(road)
 
     def find_nearest_neighbors(self, town, count):
-        distances = [(self.heuristic(town, other_town["center"]), other_town["center"]) for other_town in self.towns if other_town != town]
+        distances = [(self.heuristic(town, other_town.center), other_town.center) for other_town in self.towns if other_town != town]
         distances.sort()
         return [town for _, town in distances[:count]]
 
@@ -501,9 +505,7 @@ class World:
     
     def is_town_at_position(self, position):
         for town in self.towns:
-            # Convert position dictionary to a tuple for comparison
-            position_tuple = (position['x'], position['y'])
-            if position_tuple == town['center']:
+            if position == town.position:
                 return True
         return False
 
@@ -532,9 +534,10 @@ class World:
         for tindex, town in enumerate(self.towns):
             # Convert position dictionary to a tuple for comparison
             coordinate = {'x': position['x'], 'y': position['y']}
-            for bindex, building in enumerate(town['layout']):
-                if coordinate == building['position']:
-                    return (tindex, bindex)
+            for building_index, building_id in enumerate(town.layout):
+                building = town.layout[building_id]
+                if coordinate == building.position:
+                    return (tindex, building_id)
         return (-1, -1)
     
     def build_structure(self, data):
@@ -559,13 +562,17 @@ class World:
 
             if faction < len(self.towns):
                 town = self.towns[faction]
-                print("before", town)
                 if town:
-                    town["layout"].append({'type': structure["name"], 'position': position})
-                    print("after", town["layout"])
+                    building = Structure(self, town.structure_counter, faction, structure["name"], position)
+                    town.structure_counter = town.structure_counter + 1
+                    town.layout[building.id] = building
+
+            towns = []
+            for town in self.towns:
+                towns.append(town.to_dict())
             asyncio.create_task(broadcast({
                 "type": "update_towns",
-                "towns": self.towns
+                "towns": towns
             }, self.game_manager.connected, self.game_manager.connections))
 
             asyncio.create_task(broadcast({
@@ -574,8 +581,8 @@ class World:
                 "resources": player.stats["resources"]
             }, self.game_manager.connected, self.game_manager.connections))
 
-    def generate_town(self, town_center, town_width, town_height, total_buildings, building_counts):
-        town_layout = []
+    def generate_town(self, town, town_center, faction, town_width, town_height, total_buildings, building_counts):
+        town_layout = {}
         building_locations = []
 
         # Generate building positions
@@ -596,11 +603,16 @@ class World:
         # Assign building types based on neighboring tiles
         for position in building_locations:
             building_type = self.determine_building_type(town_center, position, building_counts)
+            building = {}
             if counts[building_type] > 0:
-                counts[building_type] = counts[building_type] - 1
-                town_layout.append({'type': self.building_types[building_type], 'position': position})
+                counts[building_type] = counts[building_type] - 1                
+                building = Structure(self, town.structure_counter, faction, self.building_types[building_type], position)
+                town.structure_counter = town.structure_counter + 1
             else:
-                town_layout.append({'type': self.building_types[0], 'position': position})# default to hut
+                building = Structure(self, town.structure_counter, faction, self.building_types[0], position)
+                town.structure_counter = town.structure_counter + 1
+                
+            town_layout[building.id] = building# default to hut
 
         return town_layout
 

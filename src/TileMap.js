@@ -645,7 +645,7 @@ class TileMap {
 		const canvasUtility = new CanvasUtility();
 		canvasUtility.setSize(imageData.width, imageData.height);
 	
-		if (img && Math.random() < .5) {
+		if (img && Math.random() < .25) {
 			
 			
 			// Paint the existing imageData onto the canvas
@@ -653,7 +653,7 @@ class TileMap {
 	
 			// Assuming img is a loaded Image object and you want to draw it at (0,0)
 			// Draw the img over the imageData
-			canvasUtility.ctx.drawImage(img, 0, 0);
+			canvasUtility.ctx.drawImage(img, (imageData.width / 2) - img.width / 2,  (imageData.width / 2) - img.width / 2);
 	
 			// Get the updated imageData from the canvas
 			let updatedImageData = canvasUtility.ctx.getImageData(0, 0, imageData.width, imageData.height);

@@ -106,6 +106,10 @@ async def game_server(websocket, path, game_manager:GameManager):
                         "player_id": player_id
                     }))
 
+                    towns = []
+                    for town in game_manager.world.towns:           
+                        towns.append(town.to_dict())
+
                     # Send initial game state to the connected player
                     await websocket.send(json.dumps({
                         "type": "init",
@@ -115,9 +119,9 @@ async def game_server(websocket, path, game_manager:GameManager):
                         "trees": game_manager.world.trees,
                         "stones": game_manager.world.stones,
                         "ramps": game_manager.world.ramps,
-                        "towns": game_manager.world.towns,
+                        "towns": towns,
                         "roads": [[{"x": point[0], "y": point[1]} for point in road] for road in game_manager.world.roads],  # Adjusted for new road structure
-                        "players": [{"id": pid, "color": p.color, "position": {"x": player.position['x'], "y": player.position['y']}, "stats": p.stats, "inventory": [item.to_dict() for item in p.inventory]} for pid, p in game_manager.connected.items()],
+                        "players": [{"id": pid, "position": {"x": player.position['x'], "y": player.position['y']}, "stats": p.stats, "inventory": [item.to_dict() for item in p.inventory]} for pid, p in game_manager.connected.items()],
                         "chat": [],
                         "enemies": [{"id": enemy_id, "position": e.position, "stats": e.stats} for enemy_id, e in game_manager.world.enemies.items()]
                     }))
@@ -126,7 +130,6 @@ async def game_server(websocket, path, game_manager:GameManager):
                     await broadcast({
                         "type": "new_player",
                         "id": player.id,
-                        "color": player.color,
                         "position": player.position,
                         "stats": player.stats
                     }, game_manager.connected, game_manager.connections, websocket)

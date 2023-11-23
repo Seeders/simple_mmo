@@ -5,10 +5,10 @@ conn = sqlite3.connect('game.db')
 cursor = conn.cursor()
 
 # Step 3: Drop the old table
-cursor.execute("DROP TABLE players;")
+cursor.execute("DROP TABLE IF EXISTS players;")
 # Step 1: Create a new table with the desired schema
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS nplayers (
+CREATE TABLE IF NOT EXISTS players (
     player_id TEXT PRIMARY KEY,
     position_x INTEGER,
     position_y INTEGER,

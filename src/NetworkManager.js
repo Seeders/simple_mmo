@@ -62,7 +62,7 @@ export default class NetworkManager {
                 this.gameState.init(data); 
                 break;
             case "new_player":
-                this.gameState.playerManager.addPlayer({ id: data.id, color: data.color, position: data.position, stats: data.stats});
+                this.gameState.playerManager.addPlayer({ id: data.id, position: data.position, stats: data.stats});
                 break;
             case "player_move":
                 player = this.gameState.playerManager.getPlayer(data.id);
@@ -93,14 +93,14 @@ export default class NetworkManager {
                 break;
             case "start_attack":
                 let id, unit, targetPosition;
-                if( data.playerId ) {
+                if( data.unit_type == "player" ) {
                     id = data.playerId;
                     unit = this.gameState.playerManager.getPlayer(id);
                     if( data.targetPosition ) {
                         targetPosition = data.targetPosition;
                     }
-                } else if( data.enemyId ) {
-                    id = data.enemyId;
+                } else if( data.unit_type == "unit" && data.faction == 1 ) {
+                    id = data.unit_id;
                     unit = this.gameState.enemyManager.enemies[id];       
                     if( data.targetPosition ) {
                         targetPosition = data.targetPosition;
@@ -122,8 +122,8 @@ export default class NetworkManager {
                     unit.attack();
                 }                
                 break;
-            case "enemy_death":
-                this.gameState.enemyDeath(data);
+            case "target_death":
+                this.gameState.targetDeath(data);
                 break;
             case "enemy_move":
                 this.gameState.enemyMove(data);

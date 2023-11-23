@@ -2,34 +2,33 @@ import random
 import copy
 import asyncio
 from utils.broadcast import broadcast
-
+from .attacker import Attacker
 class Enemy:
     def __init__(self, world, enemy_id, enemy_type, position, full_path):
         self.world = world
         self.id = enemy_id
         self.faction = 1
         self.position = position
-        self.attacking = False
-        self.last_attack_time = asyncio.get_event_loop().time()
         self.stats = copy.deepcopy(get_enemy_stats(enemy_type))
+        self.name = self.stats["name"]
+        self.attacker = Attacker(self, self.stats)
         self.paths = full_path
-        self.path_index = 0
+        self.path_index = 0        
+        self.unit_type = "unit"
         self.type = enemy_type
         self.last_patrol_update = 0  # Time of the last patrol update
         self.patrol_delay = 5 / self.stats["move_speed"]  # Delay in seconds
         self.current_waypoint_index = 0
         self.moving_to_waypoint = False
         self.patrol_direction = 1  # 1 for forward, -1 for reverse
-        self.last_stopped_combat = None  # Time when the enemy last stopped attacking
         self.health_regeneration_delay = 5  # 5 seconds delay for health regeneration
-        self.in_combat = False
         self.world.spacial_grid.add_entity(self)
 
     def __eq__(self, other):
         return self.id == other.id if other else False
     
     def update(self, current_time):
-        if not self.in_combat:
+        if not self.attacker.in_combat:
           if current_time - self.last_patrol_update >= self.patrol_delay and len(self.paths) > 0:
             self.last_patrol_update = current_time
             # Select movement behavior based on enemy type
@@ -41,16 +40,11 @@ class Enemy:
                 self.wander_movement()
 
             # Check if the enemy should start regenerating health
-          if self.last_stopped_combat is not None:
-              if current_time - self.last_stopped_combat >= self.health_regeneration_delay:
+          if self.attacker.last_stopped_combat is not None:
+              if current_time - self.attacker.last_stopped_combat >= self.health_regeneration_delay:
                   self.regenerate_health()
         else:
           self.last_patrol_update = current_time + self.health_regeneration_delay
-                
-    def exit_combat(self):
-        # Call this method when the enemy stops attacking
-        self.in_combat = False
-        self.last_stopped_combat = asyncio.get_event_loop().time()
 
     def move_along_path(self):
         # Check if at the end of the path and reverse direction if needed

@@ -74,6 +74,8 @@ async function loadAssets(assetManager) {
     'sand1': './tiles/1_sand/1.png',
     'sand2': './tiles/1_sand/2.png',
     'sand3': './tiles/1_sand/3.png',
+    'sand0_1': './tiles/1_sand/0_1.png',
+    'sand0_2': './tiles/1_sand/0_2.png',
     'grass0_1': './tiles/2_grass/0_1.png',
     'grass0_2': './tiles/2_grass/0_2.png',
     'grass0': './tiles/2_grass/0.png',
@@ -84,6 +86,8 @@ async function loadAssets(assetManager) {
     'forest1': './tiles/3_forest/1.png',
     'forest2': './tiles/3_forest/2.png',
     'forest3': './tiles/3_forest/3.png',
+    'forest0_1': './tiles/3_forest/0_1.png',
+    'forest0_2': './tiles/3_forest/0_2.png',
     'mountain0': './tiles/4_mountain/0.png',
     'mountain1': './tiles/4_mountain/1.png',
     'mountain2': './tiles/4_mountain/2.png',
@@ -97,6 +101,7 @@ async function loadAssets(assetManager) {
     'tavern': './images/Buildings/Wood/Taverns.png',
     'temple': './images/Buildings/Wood/Chapels.png',
     'dock': './images/Buildings/Wood/Docks.png',
+    'tower': './images/Buildings/Wood/Tower.png',
     'blacksmith_bg_1': './images/backgrounds/blacksmith.png',
     'blacksmith_bg_2': './images/backgrounds/blacksmith.png',
     'barracks_bg_1': './images/backgrounds/barracks.png',
@@ -142,10 +147,6 @@ function setupGame(assetManager) {
   return { gameState, networkManager, combatLogUI, chatUI, inventoryUI: inventoryUI };
 }
 
-function gameLoop(gameState) {
-  gameState.renderManager.renderGame();
-  requestAnimationFrame(() => gameLoop(gameState));
-}
 
 // Optionally, if you need to export anything from this module
 
@@ -171,7 +172,6 @@ async function main() {
       };
 
       await networkManager.login(username, password);
-      gameLoop(gameState);
 
     } catch (error) {
       console.error("Login failed:", error);

@@ -5,6 +5,7 @@ BASE_HEALTH = 100
 HEALTH_INCREMENT = 20  # Additional health per level
 from utils.broadcast import broadcast, broadcastCombatLog
 from .item import generate_specific_item
+from .attacker import Attacker
 class Player:
 
     def __init__(self, world, player_id, position={"x": 50, "y": 50}, stats=None, inventory=[]):
@@ -12,13 +13,12 @@ class Player:
         self.faction = 0
         self.world = world
         self.position = position
-        self.in_combat = False
-        self.attacking = False
-        self.inventory = inventory
-        self.color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
-        self.last_attack_time = asyncio.get_event_loop().time()
+        self.inventory = inventory     
+        self.unit_type = "player"   
         default_stats = self.generate_player_stats()
         self.stats = {**default_stats, **(stats or {})}
+        self.name = player_id
+        self.attacker = Attacker(self, self.stats)
         self.world.spacial_grid.add_entity(self)
 
     def level_up(self):
@@ -29,11 +29,6 @@ class Player:
         # Increase health with level
         self.stats['max_health'] += HEALTH_INCREMENT
         self.stats['health'] = self.stats['max_health']  # Heal the player to full health on level up
-
-    def is_in_combat(self, enemy_position):
-        dx = abs(self.position['x'] - enemy_position['x'])
-        dy = abs(self.position['y'] - enemy_position['y'])
-        return dx <= 1 and dy <= 1
 
     def move(self, new_position):
         if self.world.is_position_valid(new_position):
@@ -171,6 +166,7 @@ class Player:
             "next_level_exp": 100,
             "type": "player",
             "attack_speed": 1,  # Attacks every 1 seconds
+            "attack_range": 2, 
             "move_speed": 3,
             "abilities": [],
             "damage": 15,  # Removed the duplicate 'damage' key
