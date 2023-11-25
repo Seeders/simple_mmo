@@ -207,7 +207,7 @@ export default class GameState {
                 let target = this.enemyManager.getEnemy(data.unitId);
                 if (target) {
                     target.stats.health = data.unitHealth;
-                    this.selectedTarget = { type: 'enemy', id: data.unitId, stats: target.stats };
+                  //  this.selectedTarget = { type: 'enemy', id: data.unitId, stats: target.stats };
                 }
             }
         } else if( data.unitType == "structure" ) {
@@ -219,7 +219,7 @@ export default class GameState {
                 let target = this.enemyManager.getEnemy(data.targetId);
                 if (target) {
                     target.stats.health = data.targetHealth;
-                    this.selectedTarget = { type: 'enemy', id: target.id, stats: target.stats };
+                   // this.selectedTarget = { type: 'enemy', id: target.id, stats: target.stats };
                 }
             } else if (data.unitFaction == 1) {
                 if(data.targetType == "player"){
@@ -270,8 +270,14 @@ export default class GameState {
         }
     }
     
-    updateTrees(data) {
-        this.trees = data.trees;
+    updateTree(data) {
+        let tree = this.trees[data.tree_index];
+        if( tree ) {
+            tree.position = data.tree_position;
+            tree.type = data.tree_type;
+            tree.health = data.tree_health;
+            this.renderManager.updateTree(tree);
+        }
        // this.renderManager.terrainRendered = false;
     }
     updateStones(data) {
@@ -290,19 +296,27 @@ export default class GameState {
     }
 
     targetDeath(data) {
+        console.log("targetDeath", data);
         if( data.targetType == "unit" ) {
             this.enemyManager.removeEnemy(data.targetId);
-           // if (data.unitType == "player") {
-                //let player =  this.playerManager.getPlayer(data.unitId);
-                // if (player) {
-                //     player.stats.experience = data.experience;
-                //     player.stats.level = data.level;
-                //     player.stats.next_level_exp = data.next_level_exp;
-                // }
-           // }
+            if (data.unitType == "player") {
+                    let player =  this.playerManager.getPlayer(data.unitId);
+                    if (player) {
+                        player.stats.experience = data.experience;
+                        player.stats.level = data.level;
+                        player.stats.next_level_exp = data.next_level_exp;
+                    }
+            }
         } else if( data.targetType == "structure" ) {
-            delete this.towns[data.targetFaction].layout[data.targetId];
-            this.enemyManager.removeEnemy(data.targetId);
+            let structure_index = 0;
+            for(let i = 0; i < this.towns[data.targetFaction].layout.length; i++ ) {
+                let structure = this.towns[data.targetFaction].layout[i];                
+                if( structure.id == data.targetId ) {
+                    structure_index = i;
+                    break;
+                }                
+            }
+            this.towns[data.targetFaction].layout.splice(structure_index, 1);
             //if (data.unitType == "player") {
                // let player =  this.playerManager.getPlayer(data.unitId);
                 // if (player) {

@@ -97,15 +97,33 @@ def tech_tree ():
             ]
         },
         {
-            "name": "tower",
+            "name": "wood_barricade",
             "requires": [
                 {
                     "type": "wood",
-                    "amount": 0
+                    "amount": 3
+                }
+            ]
+        },
+        {
+            "name": "stone_wall",
+            "requires": [
+                {
+                    "type": "stone",
+                    "amount": 3
+                }
+            ]
+        },
+        {
+            "name": "arrow_tower",
+            "requires": [
+                {
+                    "type": "wood",
+                    "amount": 3
                 },
                 {
                     "type": "stone",
-                    "amount": 0
+                    "amount": 3
                 }
             ]
         },

@@ -117,6 +117,7 @@ class Player:
 
 
     def attack_tree(self, position):
+        tree_index = 0
         # Reduce the health of the tree
         for tree in self.world.trees:
             if tree["position"] == position and tree["type"] != "stump":
@@ -146,10 +147,15 @@ class Player:
 
                 # Broadcast tree update
                 asyncio.create_task(broadcast({
-                    "type": "update_trees",                
-                    "trees": self.world.trees
+                    "type": "update_tree",                
+                    "tree_position": position,   
+                    "tree_index": tree_index,
+                    "tree_health": tree["health"],   
+                    "tree_type": tree["type"]              
                 }, self.world.game_manager.connected, self.world.game_manager.connections))
                 break  # Exit the loop once the tree is found and processed
+            else:
+                tree_index = tree_index + 1
 
     @staticmethod
     def calculate_next_level_exp(level):

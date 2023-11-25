@@ -57,20 +57,41 @@ def get_stats(type):
         
 
 structure_types = {
-  "tower": {
-    "type": "tower",
-    "name": "Tower",
-    "health": 100,
-    "attack_speed": 1,            
-    "damage": 6,
-    "defense": 10,    
-    "attack_frames": 6,
-    "attack_animation_order": ["down", "up", "right", "left"],    
-  },
-  "house": {
-    "type": "house",
-    "name": "House",
-    "health": 100,
-    "defense": 10
-  }
+    
+    "wood_barricade": {
+        "type": "wood_barricade",
+        "name": "Wood Barricade",
+        "health": 250,
+        "attack_speed": 0,            
+        "damage": 0,
+        "defense": 4,    
+        "attack_frames": 0,
+        "attack_animation_order": ["down", "up", "right", "left"],    
+    },
+    "stone_wall": {
+        "type": "stone_wall",
+        "name": "Stone Wall",
+        "health": 500,
+        "attack_speed": 0,            
+        "damage": 0,
+        "defense": 5,    
+        "attack_frames": 0,
+        "attack_animation_order": ["down", "up", "right", "left"],    
+    },
+    "arrow_tower": {
+        "type": "arrow_tower",
+        "name": "Arrow Tower",
+        "health": 150,
+        "attack_speed": 1,            
+        "damage": 15,
+        "defense": 8,    
+        "attack_frames": 6,
+        "attack_animation_order": ["down", "up", "right", "left"],    
+    },
+    "house": {
+        "type": "house",
+        "name": "House",
+        "health": 100,
+        "defense": 10
+    }
 }

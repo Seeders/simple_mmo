@@ -157,6 +157,22 @@ export default class RenderManager {
 
     }
 
+    updateTree(tree) {
+        
+        const treeImg = this.assetManager.assets[`tree`]; // Replace with your tree sprite key          
+        const treeSize = treeImg.width / 4;
+        const treePosX = tree.position.x * CONFIG.tileSize;
+        const treePosY = tree.position.y * CONFIG.tileSize;
+        this.objectCtx.clearRect(treePosX, treePosY, treeSize, treeSize);     
+        const spritePosition = this.getTreeSpritePosition(tree);
+        this.renderSprite(this.objectCtx, treeImg, treePosX, treePosY, spritePosition.x * treeSize, spritePosition.y * treeSize, treeSize, false);            
+
+    }
+
+    getTreeSpritePosition(tree){
+        return { x: tree.type == 'stump' ? 0 : 1 + (Math.abs(parseInt((Math.sin(tree.position.x) + Math.cos(tree.position.y)) * 5))) % 3, y: Math.max(0, Math.min(3, this.gameState.terrain.map[tree.position.y][tree.position.x] - 1) ) };
+    }
+
 
     renderStaticObjects() {
         if( !this.objectsRendered ) {
@@ -165,11 +181,7 @@ export default class RenderManager {
                 // Check if the tree's position overlaps with a road
             //  console.log(1 + (parseInt((Math.sin(tree.position.x) + Math.cos(tree.position.y)) * 5)) % 4);
                 const treeImg = this.assetManager.assets[`tree`]; // Replace with your tree sprite key               
-                const spritePosition = { x: tree.type == 'stump' ? 0 : 1 + (Math.abs(parseInt((Math.sin(tree.position.x) + Math.cos(tree.position.y)) * 5))) % 3, y: Math.max(0, Math.min(3, this.gameState.terrain.map[tree.position.y][tree.position.x] - 1) ) };
-                // if(tree.type == 'palm'){
-                //     spritePosition.x = (tree.position.x % 2 == 0 ? 2 : 4);
-                //     spritePosition.y = 0;
-                // }
+                const spritePosition = this.getTreeSpritePosition(tree);
                 const treeSize = treeImg.width / 4;
                 this.renderSprite(this.objectCtx, treeImg, tree.position.x * CONFIG.tileSize, tree.position.y * CONFIG.tileSize, spritePosition.x * treeSize, spritePosition.y * treeSize, treeSize, false);            
             });

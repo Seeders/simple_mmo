@@ -187,10 +187,14 @@ class GameManager:
         """
         Executes an attack and broadcasts the result.
         """
-        player_id = attacker.id if attacker.unit_type == "player" else defender.id
-        await broadcastCombatLog(self.combat_logs, player_id, f"{attacker.name} attacked {defender.name} for {attacker.attacker.stats['damage']} damage.", self.connected, self.connections)
+        if attacker.unit_type == "player": 
+            player_id = attacker.id 
+            await broadcastCombatLog(self.combat_logs, player_id, f"{attacker.name} attacked {defender.name} for {attacker.attacker.stats['damage']} damage.", self.connected, self.connections)
         attacker.attacking = False
-        defender.stats['health'] -= attacker.attacker.stats['damage']
+        damage = attacker.attacker.stats['damage'] - defender.stats['defense']
+        if damage <= 0: 
+            damage = 1
+        defender.stats['health'] -= damage
         attacker.attacker.last_attack_time = current_time                
         await self.broadcast_combat_update(attacker, defender)
         if defender.stats['health'] <= 0:
