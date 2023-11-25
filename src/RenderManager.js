@@ -2,6 +2,13 @@
 import { CONFIG } from './config';
 import TileMap from './TileMap';
 import CanvasUtility from './Utility/CanvasUtility';
+
+const FogTileState = {
+    HIDDEN: 0,
+    EXPLORED: 1,
+    VISIBLE: 2
+};
+
 export default class RenderManager {
     constructor(gameState, assetManager) {
         this.gameState = gameState;
@@ -19,7 +26,13 @@ export default class RenderManager {
         this.objectCtx = this.objectCanvas.getContext('2d');
         this.objectCanvas.width = CONFIG.worldSize * CONFIG.tileSize;
         this.objectCanvas.height = CONFIG.worldSize * CONFIG.tileSize;
-        this.objectsRendered = false;
+        this.objectsRendered = false;        
+
+        this.fogOfWarCanvas = document.createElement('canvas');
+        this.fogOfWarCtx = this.fogOfWarCanvas.getContext('2d');
+        this.fogOfWarCanvas.width = CONFIG.worldSize * CONFIG.tileSize;
+        this.fogOfWarCanvas.height = CONFIG.worldSize * CONFIG.tileSize;
+        this.fogOfWarRendered = false;
 
         this.minimapCanvas = document.getElementById('minimapCanvas');
         this.minimapCtx = this.minimapCanvas.getContext('2d');
@@ -53,6 +66,7 @@ export default class RenderManager {
         this.tileMap = new TileMap(assetManager, this.terrainCanvas, CONFIG.tileSize, this.drawOrder);
         this.gameState.debugCanvas.height = window.innerHeight - document.getElementById('uiContainer').offsetHeight;
         this.gameState.debugCanvas.width = window.innerWidth;
+        this.playerPreviousPosition = null;
     }
     renderGame() {
         this.gameState.canvas.width = window.innerWidth;
@@ -64,19 +78,110 @@ export default class RenderManager {
         this.renderStaticObjects();
         // Render towns, target circle, minimap, players, enemies, etc.
         this.renderTowns();
-        this.renderTargetCircle();
         this.renderMinimap();
         this.renderPlayers();
+        this.renderTargetCircle();
         this.renderEnemies();
+        this.renderFogOfWar();
         this.renderPlayerStats();
         this.renderTargetInfo();
         this.renderView();
         this.renderItems();
         this.renderPath();
-        this.renderActiveOnCursor()
+        this.renderActiveOnCursor();
         if(true) {
            // this.paintDebug();
         }
+    }
+    initializeFogOfWar() {
+        let fogMap = [];
+        for (let y = 0; y < CONFIG.worldSize; y++) {
+            fogMap[y] = [];
+            for (let x = 0; x < CONFIG.worldSize; x++) {
+                fogMap[y][x] = FogTileState.HIDDEN;
+            }
+        }
+        this.fogOfWarMap = fogMap;   
+        
+        const player = this.gameState.getCurrentPlayer();
+        
+        this.redrawAffectedFogArea({minX: 0, maxX: CONFIG.worldSize - 1, minY: 0, maxY: CONFIG.worldSize - 1});
+        this.playerPreviousPosition = {...player.position};
+    }
+
+
+    renderFogOfWar() {
+        const player = this.gameState.getCurrentPlayer();
+        if (player && this.playerPreviousPosition !== player.position) {
+            const affectedArea = this.updateFogOfWar(player.position, 10);
+            this.redrawAffectedFogArea(affectedArea);
+            this.playerPreviousPosition = {...player.position};
+        }
+
+
+        this.gameState.context.drawImage(this.fogOfWarCanvas, this.gameState.offsetX, this.gameState.offsetY);
+    }
+
+    redrawAffectedFogArea(affectedArea) {
+        // Clear the affected area
+        this.fogOfWarCtx.clearRect(affectedArea.minX * CONFIG.tileSize, affectedArea.minY * CONFIG.tileSize, (affectedArea.maxX - affectedArea.minX + 1) * CONFIG.tileSize, (affectedArea.maxY - affectedArea.minY + 1) * CONFIG.tileSize);
+        const hiddenColor = 'rgba(0, 0, 0, 1)';
+        const exploredColor = 'rgba(0, 0, 0, 0.4)'; // Optional: Different color for explored areas
+
+        // Redraw the fog in the affected area
+        for (let y = affectedArea.minY; y <= affectedArea.maxY; y++) {
+            for (let x = affectedArea.minX; x <= affectedArea.maxX; x++) {
+                let tileState = this.fogOfWarMap[y][x];
+                if (tileState === FogTileState.HIDDEN) {
+                    this.fogOfWarCtx.fillStyle = hiddenColor;
+                } else if (tileState === FogTileState.EXPLORED) {
+                    this.fogOfWarCtx.fillStyle = exploredColor;
+                } else {
+                    continue; // Skip rendering for visible tiles
+                }
+                this.fogOfWarCtx.fillRect(x * CONFIG.tileSize, y * CONFIG.tileSize, CONFIG.tileSize, CONFIG.tileSize);
+            }
+        }
+
+        this.fogOfWarRendered = true;
+    }
+
+    updateFogOfWar(playerPosition, viewDistance) {
+// Calculate the affected area bounds
+        const affectedArea = this.calculateAffectedArea(playerPosition, viewDistance);
+
+        // Update visibility for the current position
+        for (let x = playerPosition.x - viewDistance; x <= playerPosition.x + viewDistance; x++) {
+            for (let y = playerPosition.y - viewDistance; y <= playerPosition.y + viewDistance; y++) {
+                if (x >= 0 && x < CONFIG.worldSize && y >= 0 && y < CONFIG.worldSize) {
+                    this.fogOfWarMap[y][x] = FogTileState.VISIBLE;
+                }
+            }
+        }
+
+        // Update explored tiles
+        for (let x = affectedArea.minX; x <= affectedArea.maxX; x++) {
+            for (let y = affectedArea.minY; y <= affectedArea.maxY; y++) {
+                if (this.fogOfWarMap[y][x] === FogTileState.VISIBLE && !this.isVisibleToPlayer(x, y, playerPosition, viewDistance)) {
+                    this.fogOfWarMap[y][x] = FogTileState.EXPLORED;
+                }
+            }
+        }
+        this.fogOfWarRendered = false;
+        return affectedArea;
+    }
+    calculateAffectedArea(playerPosition, viewDistance) {
+        const minX = Math.max(Math.min(playerPosition.x, this.playerPreviousPosition?.x) - viewDistance, 0);
+        const maxX = Math.min(Math.max(playerPosition.x, this.playerPreviousPosition?.x) + viewDistance, CONFIG.worldSize - 1);
+        const minY = Math.max(Math.min(playerPosition.y, this.playerPreviousPosition?.y) - viewDistance, 0);
+        const maxY = Math.min(Math.max(playerPosition.y, this.playerPreviousPosition?.y) + viewDistance, CONFIG.worldSize - 1);
+        
+        return { minX, maxX, minY, maxY };
+    }
+    isVisibleToPlayer(tileX, tileY, playerPosition, viewDistance) {
+        const dx = playerPosition.x - tileX;
+        const dy = playerPosition.y - tileY;
+        return (dx * dx + dy * dy) <= (viewDistance * viewDistance);
     }
 
     paintDebug() {
@@ -306,20 +411,23 @@ export default class RenderManager {
     renderEnemies() {
         for (const id in this.gameState.enemyManager.enemies) {
             const enemy = this.gameState.enemyManager.enemies[id];
-            enemy.render();
-            const img = this.assetManager.assets[enemy.spriteSheetKey];     
-            let spritePosition = enemy.currentSprite;  
-            let unitSize = CONFIG.unitSize;
-            if( enemy.stats.size ) {
-                unitSize = enemy.stats.size;
+            if( this.fogOfWarMap[enemy.position.y][enemy.position.x] == FogTileState.VISIBLE ) {
+                enemy.render();
+                const img = this.assetManager.assets[enemy.spriteSheetKey];     
+                let spritePosition = enemy.currentSprite;  
+                let unitSize = CONFIG.unitSize;
+                if( enemy.stats.size ) {
+                    unitSize = enemy.stats.size;
+                }
+                if(!spritePosition){
+                    spritePosition = {x: 0, y: 0};
+                }
+                
+                // Adjust the position to center the larger unit image on the tile
+                this.renderSprite(this.gameState.context, img, enemy.position.x, enemy.position.y, spritePosition.x, spritePosition.y, unitSize);                         
+                this.renderMiniMapImg(this.minimapCanvas, enemy.position.x, enemy.position.y, unitSize, spritePosition, img, 4);
+            //  this.drawDebugHitbox(this.gameState.context, enemy.position.x, enemy.position.y);
             }
-            if(!spritePosition){
-                spritePosition = {x: 0, y: 0};
-            }
-            // Adjust the position to center the larger unit image on the tile
-            this.renderSprite(this.gameState.context, img, enemy.position.x, enemy.position.y, spritePosition.x, spritePosition.y, unitSize);                         
-            this.renderMiniMapImg(this.minimapCanvas, enemy.position.x, enemy.position.y, unitSize, spritePosition, img, 4);
-          //  this.drawDebugHitbox(this.gameState.context, enemy.position.x, enemy.position.y);
         }
     }
 
@@ -729,6 +837,7 @@ export default class RenderManager {
     }
     init() {      
         this.buildTechTree();
+        this.initializeFogOfWar();
         this.gameLoop();
     }
     

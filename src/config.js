@@ -3,6 +3,7 @@ export const CONFIG = {
     unitSize: 16,
     worldSize: 100,
     miniMapSize: 300,
+    zoom: 1,
     serverUrl: "ws://localhost:6789/",    
     tileTypes: ['water', 'sand', 'grass', 'forest', 'mountain'],
     roadTileIndex: 2,

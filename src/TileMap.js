@@ -329,25 +329,28 @@ class TileMap {
 		}
 
 		// Helper function to check and update tile analysis
-		var checkAndUpdate = ((r, c, n, propertyLess, propertyLess2) => {
-			if (isWithinBounds(r, c, n) && this.tileMap[r][c] < tileAnalysis.heightIndex) {
-				tileAnalysis[propertyLess] = true;
-				if(['topLess', 'leftLess', 'rightLess', 'botLess'].indexOf(propertyLess) >= 0 ) {
-					tileAnalysis.neighborLowerCount++;
-				} else if(['cornerTopLeftLess', 'cornerTopRightLess', 'cornerBottomLeftLess', 'cornerBottomRightLess'].indexOf(propertyLess) >= 0 || ['cornerTopLeftLess2', 'cornerTopRightLess2', 'cornerBottomLeftLess2', 'cornerBottomRightLess2'].indexOf(propertyLess2) >= 0 ) {
-					tileAnalysis.cornerLowerCount++;
+		var checkAndUpdate = ((r, c, n, direction, propertyLess, propertyLess2) => {
+			if (isWithinBounds(r, c, n) ) {
+				tileAnalysis[direction] = this.tileMap[r][c];
+				if( this.tileMap[r][c] < tileAnalysis.heightIndex) {
+					tileAnalysis[propertyLess] = true;
+					if(['topLess', 'leftLess', 'rightLess', 'botLess'].indexOf(propertyLess) >= 0 ) {
+						tileAnalysis.neighborLowerCount++;
+					} else if(['cornerTopLeftLess', 'cornerTopRightLess', 'cornerBottomLeftLess', 'cornerBottomRightLess'].indexOf(propertyLess) >= 0 || ['cornerTopLeftLess2', 'cornerTopRightLess2', 'cornerBottomLeftLess2', 'cornerBottomRightLess2'].indexOf(propertyLess2) >= 0 ) {
+						tileAnalysis.cornerLowerCount++;
+					}
 				}
 			}
 		});
 
-		checkAndUpdate(row - 1, col, this.numColumns, 'topLess');
-		checkAndUpdate(row, col - 1, this.numColumns, 'leftLess');
-		checkAndUpdate(row, col + 1, this.numColumns, 'rightLess');
-		checkAndUpdate(row + 1, col, this.numColumns, 'botLess');
-		checkAndUpdate(row - 1, col - 1, this.numColumns, 'cornerTopLeftLess', 'cornerTopLeftLess2');
-		checkAndUpdate(row - 1, col + 1, this.numColumns, 'cornerTopRightLess', 'cornerTopRightLess2');
-		checkAndUpdate(row + 1, col - 1, this.numColumns, 'cornerBottomLeftLess', 'cornerBottomLeftLess2');
-		checkAndUpdate(row + 1, col + 1, this.numColumns, 'cornerBottomRightLess', 'cornerBottomRightLess2');
+		checkAndUpdate(row - 1, col, this.numColumns, 'topHeight', 'topLess');
+		checkAndUpdate(row, col - 1, this.numColumns, 'leftHeight', 'leftLess');
+		checkAndUpdate(row, col + 1, this.numColumns, 'rightHeight', 'rightLess');
+		checkAndUpdate(row + 1, col, this.numColumns, 'botHeight', 'botLess');
+		checkAndUpdate(row - 1, col - 1, this.numColumns, 'topLeftHeight', 'cornerTopLeftLess', 'cornerTopLeftLess2');
+		checkAndUpdate(row - 1, col + 1, this.numColumns, 'topRightHeight', 'cornerTopRightLess', 'cornerTopRightLess2');
+		checkAndUpdate(row + 1, col - 1, this.numColumns, 'botLeftHeight', 'cornerBottomLeftLess', 'cornerBottomLeftLess2');
+		checkAndUpdate(row + 1, col + 1, this.numColumns, 'botRightHeight', 'cornerBottomRightLess', 'cornerBottomRightLess2');
 
 		return tileAnalysis;
 	}
@@ -449,7 +452,26 @@ class TileMap {
 		tempCanvas.height = this.tileSize;
 		var tempCtx = tempCanvas.getContext('2d');
 		var tempImageData = tempCtx.createImageData(this.tileSize, this.tileSize);
-
+		var directions = ['topHeight', 'leftHeight', 'rightHeight', 'botHeight', 'topLeftHeight', 'topRightHeight', 'botLeftHeight', 'botRightHeight'];
+		let heightCounts = {};
+		directions.forEach((direction) => {
+			let height = tileAnalysis[direction];
+			if (height !== tileAnalysis.heightIndex) {
+				if (!heightCounts[height]) {
+					heightCounts[height] = 0;
+				}
+				heightCounts[height]++;
+			}
+		});
+		
+		let lowerNeighborHeight = tileAnalysis.heightIndex - 1;
+		let maxCount = 0;
+		Object.keys(heightCounts).forEach((height) => {
+			if (heightCounts[height] > maxCount && height < tileAnalysis.heightIndex) {
+				lowerNeighborHeight = height;
+				maxCount = heightCounts[height];
+			}
+		});
 		for (let j = 0; j < this.tileSize; j++) {
 			for (let i = 0; i < this.tileSize; i++) {
 				let index = j * this.tileSize + i;
@@ -465,8 +487,8 @@ class TileMap {
 						bColor = { r: baseColors.data[dataIndex], g: baseColors.data[dataIndex + 1], b: baseColors.data[dataIndex + 2], a: baseColors.data[dataIndex + 3] };
 					}
 				}
-				if (tileAnalysis.heightIndex - 1 >= 0) {
-					let neighborColors = this.layerTextures[tileAnalysis.heightIndex - 1][TileMolecule.Full][TileTransforms.None];
+				if (lowerNeighborHeight >= 0) {
+					let neighborColors = this.layerTextures[lowerNeighborHeight][TileMolecule.Full][TileTransforms.None];
 					if (neighborColors.data.length > index) {
 						tColor = { r: neighborColors.data[dataIndex], g: neighborColors.data[dataIndex + 1], b: neighborColors.data[dataIndex + 2], a: neighborColors.data[dataIndex + 3] };
 					}
