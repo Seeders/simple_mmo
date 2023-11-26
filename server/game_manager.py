@@ -222,7 +222,7 @@ class GameManager:
         """
         while True:
             current_time = asyncio.get_event_loop().time()
-            spawnedEnemy = self.world.maintain_enemy_count(50)
+            spawnedEnemy = self.world.maintain_enemy_count(1)
             await self.update_enemy_patrols(current_time)
             if spawnedEnemy:
                 await self.broadcast_enemy_spawn(spawnedEnemy)

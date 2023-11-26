@@ -603,8 +603,9 @@ export default class RenderManager {
             const expPercentage = player.stats.experience / player.stats.next_level_exp;
             this.renderExperienceBar(10, this.gameState.canvas.height - 50, 200, 10, expPercentage);    
 
-            document.getElementById('player-resources-wood').innerHTML = player.stats.resources.wood;
-            document.getElementById('player-resources-stone').innerHTML = player.stats.resources.stone;            
+            let faction = this.gameState.getCurrentPlayer().faction;
+            document.getElementById('player-resources-wood').innerHTML = this.gameState.factions[faction].resources.wood;
+            document.getElementById('player-resources-stone').innerHTML = this.gameState.factions[faction].resources.stone;            
         }
     }
 
@@ -817,12 +818,13 @@ export default class RenderManager {
     
                 const requiresElement = document.createElement('div');
                 requiresElement.className = 'build-item-requirements';
+                let faction = this.gameState.getCurrentPlayer().faction;
                 item.requires.forEach((requirement) => {
                     const amountElement = document.createElement('span');
                     amountElement.innerText = `${requirement.amount} ${requirement.type}`;
                     amountElement.className = 'build-item-requirement';
-    
-                    if (!(requirement.type in this.gameState.getCurrentPlayer().stats.resources) || this.gameState.getCurrentPlayer().stats.resources[requirement.type] < requirement.amount) {
+                    
+                    if (!(requirement.type in this.gameState.factions[faction].resources) || this.gameState.factions[faction].resources[requirement.type] < requirement.amount) {
                         amountElement.classList.add('missing-resource'); // Highlight missing resource
                     }
     
@@ -852,7 +854,8 @@ export default class RenderManager {
     }
     
     canAfford(item) {
-        const resources = this.gameState.getCurrentPlayer().stats.resources;
+        let faction = this.gameState.getCurrentPlayer().faction;
+        const resources = this.gameState.factions[faction].resources;
         return item.requires.every(requirement => {
             return (requirement.type in resources) && (resources[requirement.type] >= requirement.amount);
         });

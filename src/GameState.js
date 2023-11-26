@@ -13,6 +13,10 @@ export default class GameState {
         this.debugCtx = this.debugCanvas.getContext('2d');
         this.canvas.width = window.innerWidth;
         this.assetManager = assetManager;
+        this.factions = [];
+        for( let i = 0; i < 5; i++ ) {
+            this.factions.push(this.getFaction(i));
+        }
         this.playerManager = new PlayerManager(this);
         this.enemyManager = new EnemyManager(this);
         this.terrain = null;
@@ -57,7 +61,15 @@ export default class GameState {
         this.renderManager.init();
         this.adjustViewToCurrentPlayer();        
     }
-    
+    getFaction(faction) {
+        return {
+            "faction": faction,
+            "resources": {
+                "wood": 0,
+                "stone": 0
+            }
+        }
+    }
     getTerrainCost(position) {
         let cost = this.terrainCosts[this.terrain.map[position.y][position.x]] ;
  
@@ -278,7 +290,6 @@ export default class GameState {
             tree.health = data.tree_health;
             this.renderManager.updateTree(tree);
         }
-       // this.renderManager.terrainRendered = false;
     }
     updateStone(data) {
         let stone = this.stones[data.stone_index];
@@ -290,16 +301,13 @@ export default class GameState {
                 this.renderManager.clearStone(stone);
                 this.stones.splice(data.stone_index, 1);
             }
-
         }
-       // this.renderManager.terrainRendered = false;
     }
     updateTowns(data) {
         this.towns = data.towns;
         this.towns.forEach((town) => {
             town.center = { x: town.center[0], y: town.center[1] };
         });
-       // this.renderManager.terrainRendered = false;
     }
     levelUp(data) {
         this.playerManager.playerLevelUp(data.playerId, data);
@@ -432,21 +440,16 @@ export default class GameState {
             let player = this.getCurrentPlayer();
             if (player) {
                 player.removeItemFromInventory(data.itemId);
-                player.stats.resources[data.resourceType] = data.newValue;
+                this.factions[player.faction].resources[data.resourceType] = data.newValue;
                 this.renderManager.updateTechTree();
             }
         }
     }
 
-    updatePlayerResources(data) {
+    updateFactionResources(data) {
         
-        if (data.playerId === this.currentPlayerId) {
-            let player = this.getCurrentPlayer();
-            if (player) {
-                player.stats.resources = data.resources;
-                this.renderManager.updateTechTree();
-            }
-        }
+        this.factions[data['faction']].resources = data.resources;
+        this.renderManager.updateTechTree();
     }
 
     healthRegeneration(data) {

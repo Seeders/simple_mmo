@@ -3,6 +3,7 @@ from .enemy import Enemy, enemy_types
 import heapq
 import random
 from utils.broadcast import broadcast
+from utils.utils import position_to_tuple
 from .terrain import Terrain
 from .structure import Structure
 from .town import Town
@@ -20,11 +21,14 @@ class World:
         self.terrainLayers = ["water", "sand", "grass", "forest", "mountain"]
         self.enemy_spawns = ['green_slime', 'mammoth', 'giant_crab', 'pirate_grunt', 'pirate_gunner', 'pirate_captain']
         self.building_types = ['house', 'market', 'tavern', 'blacksmith', 'temple', 'barracks', 'dock']
-        self.pathfinder = Pathfinding(self.terrain.terrain, self.define_costs())
+        self.pathfinder = Pathfinding(self.terrain.terrain, self.get_terrain_costs())
         self.trees = self.spawn_trees(self.terrain.terrain)
         self.stones = self.spawn_stones(self.terrain.terrain, 'stone')
         self.enemies = self.spawn_enemies(1, 100, 100, self.terrain.terrain)       
         self.items_on_ground = {}
+        self.factions = []
+        for i in range(5):
+            self.factions.append(self.get_faction(i))
         self.towns = self.place_towns()
         self.roads = [] 
         self.roads = self.generate_roads()
@@ -33,10 +37,111 @@ class World:
         self.generate_ramps()
         self.spawn_workers()
 
-    def define_costs(self):
-        # Define costs based on your terrain types
-        return { 0: 1000, 1: 1.5, 2: 1, 3: 2, 4: 3}
+    def get_faction(self, faction):
+         return { 
+                'faction': faction,
+                'resources': self.get_starting_resources()
+            }
+    def get_starting_resources(self):
+        return {
+                    'wood': 0,
+                    'stone': 0
+                }
 
+
+    def find_path(self, start, goal):
+        type1 = "forest"
+        type2 = "grass"
+        if self.terrainLayers[self.terrain.terrain[start['y']][start['x']]] == "forest": 
+            type1 = "grass"
+            type2 = "forest"
+        
+        tempTerrain = []
+        for i in range(len(self.terrain.terrain)):
+            tempTerrain.append([])
+            for j in range(len(self.terrain.terrain[i])):
+                tempTerrain[i].append(self.terrain.terrain[i][j])
+        
+                #Check if the current tile is a forest tile
+                if len(self.terrainLayers) > tempTerrain[i][j] and self.terrainLayers[tempTerrain[i][j]] == type1:
+                    #Check the neighboring tiles in cardinal directions
+                    for dx in range(-1, 1):
+                        for dy in range(-1, 1):
+                            #Skip diagonal neighbors and the current tile itself
+                            if abs(dx) == abs(dy):
+                                continue
+                            
+                
+                            #Ensure we don't go out of bounds
+                            if i + dx >= 0 and i + dx < len(self.terrain.terrain) and j + dy >= 0 and j + dy < len(self.terrain.terrain[i]):
+                                #Check if the neighboring tile is grass
+                                if self.terrainLayers[self.terrain.terrain[i + dx][j + dy]] == type2:
+                                    tempTerrain[i][j] = 8 #Update the current tile type to 8
+                                   #self.renderManager.renderRoundedRect(self.debugCtx, (j) * CONFIG.tileSize + self.offsetX, (i) * CONFIG.tileSize + self.offsetY, CONFIG.tileSize, CONFIG.tileSize, 2, 'red')
+                                    break #No need to check other neighbors once we find grass
+                                
+                            
+                        
+                        if tempTerrain[i][j] == 8:
+                            break #Break the outer loop as well if we've updated the tile
+            
+        
+        for i in range(len(self.ramps)):
+            ramp = self.ramps[i]
+            tempTerrain[ramp['y']][ramp['x']] = self.terrainLayers.index("forest") 
+            for dx in range(-1, 1):
+                for  dy in range(-1, 1):
+                    # Skip diagonal neighbors and the current tile itself
+                    if abs(dx) == abs(dy):
+                        continue
+                    
+        
+                    # Ensure we don't go out of bounds
+                    if ramp['y'] + dx >= 0 and ramp['y'] + dx < len(self.terrain.terrain) and ramp['x'] + dy >= 0 and ramp['x'] + dy < len(self.terrain.terrain[ramp['y']]):
+                        # Check if the neighboring tile is grass
+                        if self.terrainLayers[self.terrain.terrain[ramp['y'] + dx][ramp['x'] + dy]] == "grass":
+                            tempTerrain[ramp['y'] + dx][ramp['x'] + dy] = self.terrainLayers.index("grass") 
+            
+        
+        for i in range(len(self.roads)):
+            for j in range(len(self.roads[i])):
+                road = self.roads[i][j]
+                tempTerrain[road[1]][road[0]] = 5
+            
+        
+        
+        for i in range(len(self.trees)):
+            tree = self.trees[i]
+            if tree['type'] != 'stump' and not tree['position'] == start:
+                tempTerrain[tree['position']['y']][tree['position']['x']] = 6            
+            
+        
+        for i in range(len(self.stones)):
+            stone = self.stones[i]
+            tempTerrain[stone['position']['y']][stone['position']['x']] = 7           
+        
+       
+        self.pathfinder = Pathfinding(tempTerrain, self.get_terrain_costs())
+        path = self.pathfinder.a_star(position_to_tuple(start), position_to_tuple(goal))
+        
+        return path
+    
+
+
+    def get_terrain_costs(self):
+        # Define costs based on your terrain types
+        return { 
+            0: 20, 
+            1: 10, 
+            2: 5, 
+            3: 10, 
+            4: 10, 
+            5: 1, 
+            6: 0, 
+            7: 0, 
+            8: 0
+        }
+    
     def update(self, current_time):
         pass
 
@@ -157,6 +262,8 @@ class World:
             while True:
                 x = random.randint(0, world_width - 1)
                 y = random.randint(0, world_height - 1)
+                if x < world_height / 2 and y > world_height / 2:
+                    continue
                 if self.is_land(x, y, world_map):
                     enemy_id = f"Enemy{self.enemy_counter}"
                     enemy_position = {"x": x, "y": y}
@@ -206,7 +313,8 @@ class World:
                 tree = {
                     "type": tree_type,
                     "position": {"x": x, "y": y},
-                    "health": 20
+                    "health": 20,
+                    "index": len(trees)
                 }
                 trees.append(tree)
         return trees
@@ -434,6 +542,8 @@ class World:
         while attempts < max_attempts:
             x = random.randint(0, self.terrain.width - 1)
             y = random.randint(0, self.terrain.width - 1)
+            if x < self.terrain.width / 2 and y > self.terrain.width / 2:
+                continue
             if self.is_land(x, y, self.terrain.terrain):
                 enemy_id = f"Enemy{self.enemy_counter}"
                 self.enemy_counter += 1  # Increment the counter for each new enemy

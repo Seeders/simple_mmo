@@ -6,6 +6,7 @@ export default class Player extends Unit {
         this.spriteSheetKey = 'champ_okomo';      
         this.inventory = data.inventory || [];
         this.isOnRoad = false;
+        this.faction = 0;
         this.inventory.forEach((item) => {            
             window.game.inventoryUI.addItemToInventory(item);
         });

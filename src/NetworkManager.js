@@ -160,9 +160,9 @@ export default class NetworkManager {
                 console.log(`update_resource ${data}`);
                 this.gameState.updateResource(data);
                 break;
-            case 'update_player_resources':
-                console.log(`update_player_resources ${data}`);
-                this.gameState.updatePlayerResources(data);
+            case 'update_faction_resources':
+                console.log(`update_faction_resources ${data}`);
+                this.gameState.updateFactionResources(data);
                 break;                
         }
       

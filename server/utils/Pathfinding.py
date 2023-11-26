@@ -5,6 +5,15 @@ class Pathfinding:
         self.costs = costs      # Dictionary mapping terrain types to movement costs
 
     def a_star(self, start, goal):
+        goal = self.modify_goal_if_unreachable(start, goal)
+        if start == goal:
+            #print('start is goal', start, goal)
+            return [start]  # or [goal], since they are the same
+
+        # If the goal is an immediate neighbor of the start and is accessible
+        if goal in self.get_neighbors(start):
+            #print('immediate neighbor', start, goal)
+            return [start, goal]
         frontier = PriorityQueue()
         frontier.put(start, 0)
         came_from = {start: None}
@@ -46,6 +55,10 @@ class Pathfinding:
         return neighbors
 
     def reconstruct_path(self, came_from, start, goal):
+        if goal not in came_from:
+        # Handle the case where no path was found
+            return []  # or some other indication that no path was found
+
         current = goal
         path = []
         while current != start:
@@ -55,7 +68,22 @@ class Pathfinding:
         path.reverse()
         return path
 
+    def modify_goal_if_unreachable(self, start, goal):
+        if not self.is_passable(goal):
+            return self.find_nearest_accessible_tile(goal, start)
+        return goal
 
+    def is_passable(self, node):
+        return self.costs[self.terrain[node[1]][node[0]]] > 0
+
+    def find_nearest_accessible_tile(self, target, start):
+        neighbors = self.get_neighbors(target)
+        # Sort neighbors by their distance to the start position
+        neighbors.sort(key=lambda n: self.heuristic(n, start))
+        for neighbor in neighbors:
+            if self.is_passable(neighbor):
+                return neighbor
+        return start  # Fallback in case no accessible neighbors are found
 
 class PriorityQueue:
     def __init__(self):
