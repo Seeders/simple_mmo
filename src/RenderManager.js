@@ -268,14 +268,24 @@ export default class RenderManager {
         const treeSize = treeImg.width / 4;
         const treePosX = tree.position.x * CONFIG.tileSize;
         const treePosY = tree.position.y * CONFIG.tileSize;
-        this.objectCtx.clearRect(treePosX, treePosY, treeSize, treeSize);     
+        this.objectCtx.clearRect(treePosX, treePosY, CONFIG.tileSize, CONFIG.tileSize);     
         const spritePosition = this.getTreeSpritePosition(tree);
         this.renderSprite(this.objectCtx, treeImg, treePosX, treePosY, spritePosition.x * treeSize, spritePosition.y * treeSize, treeSize, false);            
 
     }
+    clearStone(stone) {
+    
+        const stonePosX = stone.position.x * CONFIG.tileSize;
+        const stonePosY = stone.position.y * CONFIG.tileSize;
+        this.objectCtx.clearRect(stonePosX, stonePosY, CONFIG.tileSize, CONFIG.tileSize); 
+    }
 
     getTreeSpritePosition(tree){
         return { x: tree.type == 'stump' ? 0 : 1 + (Math.abs(parseInt((Math.sin(tree.position.x) + Math.cos(tree.position.y)) * 5))) % 3, y: Math.max(0, Math.min(3, this.gameState.terrain.map[tree.position.y][tree.position.x] - 1) ) };
+    }
+
+    getStoneSpritePosition(stone){
+        return { x: (Math.abs(parseInt((Math.sin(stone.position.x) + Math.cos(stone.position.y)) * 3))) % 3, y: Math.max(0, Math.min(3, this.gameState.terrain.map[stone.position.y][stone.position.x] - 1) ) };
     }
 
 
@@ -294,7 +304,7 @@ export default class RenderManager {
             this.gameState.stones.forEach(stone => {
                 // Check if the stone's position overlaps with a road
                 const stoneImg = this.assetManager.assets[`stone`]; // Replace with your stone sprite key
-                const spritePosition = { x: (Math.abs(parseInt((Math.sin(stone.position.x) + Math.cos(stone.position.y)) * 3))) % 3, y: Math.max(0, Math.min(3, this.gameState.terrain.map[stone.position.y][stone.position.x] - 1) ) };
+                const spritePosition = this.getStoneSpritePosition(stone);
                 this.renderSprite(this.objectCtx, stoneImg, stone.position.x * CONFIG.tileSize, stone.position.y * CONFIG.tileSize, spritePosition.x * CONFIG.unitSize, spritePosition.y * CONFIG.unitSize, CONFIG.unitSize, false);            
             });
             this.objectsRendered = true;

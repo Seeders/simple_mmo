@@ -150,8 +150,8 @@ export default class NetworkManager {
             case 'update_tree':
                 this.gameState.updateTree(data);
                 break;
-            case 'update_stones':
-                this.gameState.updateStones(data);
+            case 'update_stone':
+                this.gameState.updateStone(data);
                 break;
             case 'update_towns':
                 this.gameState.updateTowns(data);

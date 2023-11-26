@@ -91,7 +91,6 @@ class TileMap {
 				this.layerTextures[index] = rotationsDict;
 			});
 		}
-		// Example usage
 		let analyzedMap = this.analyzeMap(this.tileMap);
 		this.drawMap(analyzedMap, this.layerTextures, this.canvas);
     }
@@ -169,14 +168,6 @@ class TileMap {
 		const penninsulaTile = document.createElement("canvas");
 		const islandTile = document.createElement("canvas");
 
-		// document.body.appendChild(fullTile);
-		// document.body.appendChild(cornerTile);
-		// document.body.appendChild(edgeTile);
-		// document.body.appendChild(tunnelTile);
-		// document.body.appendChild(twoSidesTile);
-		// document.body.appendChild(penninsulaTile);
-		// document.body.appendChild(islandTile);
-		
 		fullTile.width = finalTileBaseResolution;
 		fullTile.height = finalTileBaseResolution;
 
@@ -261,7 +252,7 @@ class TileMap {
 		return imageDataList;
 	}
 
-	getSpriteRotations(imageDataDict, hasCorners, addNoise = false) {
+	getSpriteRotations(imageDataDict) {
 		let rotationDict = {};
 
 		let requiredTransforms = {};
@@ -277,7 +268,6 @@ class TileMap {
 		Object.keys(imageDataDict).forEach(tileBase => {
 			let rotations = {};
 			let colors = imageDataDict[tileBase];
-			let isCorner = tileBase === TileMolecule.Corner;
 			rotations[TileTransforms.None] = colors;
 
 			if (requiredTransforms[tileBase].includes(TileTransforms.ClockWise90)) {
@@ -447,11 +437,8 @@ class TileMap {
 	}
 
 	colorImageData(imageData, tileAnalysis) {
-		var tempCanvas = document.createElement('canvas');
-		tempCanvas.width = this.tileSize;
-		tempCanvas.height = this.tileSize;
-		var tempCtx = tempCanvas.getContext('2d');
-		var tempImageData = tempCtx.createImageData(this.tileSize, this.tileSize);
+		
+		const data = new Uint8ClampedArray(imageData.data);
 		var directions = ['topHeight', 'leftHeight', 'rightHeight', 'botHeight', 'topLeftHeight', 'topRightHeight', 'botLeftHeight', 'botRightHeight'];
 		let heightCounts = {};
 		directions.forEach((direction) => {
@@ -464,7 +451,7 @@ class TileMap {
 			}
 		});
 		
-		let lowerNeighborHeight = tileAnalysis.heightIndex - 1;
+		let lowerNeighborHeight = Math.max(0, tileAnalysis.heightIndex - 1);
 		let maxCount = 0;
 		Object.keys(heightCounts).forEach((height) => {
 			if (heightCounts[height] > maxCount && height < tileAnalysis.heightIndex) {
@@ -472,40 +459,34 @@ class TileMap {
 				maxCount = heightCounts[height];
 			}
 		});
-		for (let j = 0; j < this.tileSize; j++) {
-			for (let i = 0; i < this.tileSize; i++) {
-				let index = j * this.tileSize + i;
-				let dataIndex = index * 4;
+		const numPixels = this.tileSize * this.tileSize;
+		let baseColors = this.layerTextures[tileAnalysis.heightIndex][TileMolecule.Full][TileTransforms.None].data;
+		let neighborColors = this.layerTextures[lowerNeighborHeight][TileMolecule.Full][TileTransforms.None].data;
 
-				let pColor = { r: imageData.data[dataIndex], g: imageData.data[dataIndex + 1], b: imageData.data[dataIndex + 2], a: imageData.data[dataIndex + 3] };
-				let tColor = { r: 255, g: 0, b: 0, a: 255 }; // Assuming outputTexture[index] is similar to pColor
-				let bColor = { r: 0, g: 255, b: 0, a: 255 }; // Black color
-
-				if (this.layerTextures.length > tileAnalysis.heightIndex) {
-					let baseColors = this.layerTextures[tileAnalysis.heightIndex][TileMolecule.Full][TileTransforms.None];
-					if (baseColors.data.length > index) {
-						bColor = { r: baseColors.data[dataIndex], g: baseColors.data[dataIndex + 1], b: baseColors.data[dataIndex + 2], a: baseColors.data[dataIndex + 3] };
-					}
+		// Iterate over each pixel
+		for (let i = 0; i < numPixels; i++) {
+			const dataIndex = i * 4;
+			let pColor = { r: data[dataIndex], g: data[dataIndex + 1], b: data[dataIndex + 2], a: data[dataIndex + 3] };
+			let bColor = { r: baseColors[dataIndex], g: baseColors[dataIndex + 1], b: baseColors[dataIndex + 2], a: baseColors[dataIndex + 3] };
+			let tColor = { r: neighborColors[dataIndex], g: neighborColors[dataIndex + 1], b: neighborColors[dataIndex + 2], a: neighborColors[dataIndex + 3] };
+	
+			if (this.layerTextures.length > tileAnalysis.heightIndex) {
+				if (baseColors.length > i) {
+					bColor = { r: baseColors[dataIndex], g: baseColors[dataIndex + 1], b: baseColors[dataIndex + 2], a: baseColors[dataIndex + 3] };
 				}
-				if (lowerNeighborHeight >= 0) {
-					let neighborColors = this.layerTextures[lowerNeighborHeight][TileMolecule.Full][TileTransforms.None];
-					if (neighborColors.data.length > index) {
-						tColor = { r: neighborColors.data[dataIndex], g: neighborColors.data[dataIndex + 1], b: neighborColors.data[dataIndex + 2], a: neighborColors.data[dataIndex + 3] };
-					}
-				}
-				let fColor = pColor;
-				if (this.isEqualColor(fColor, { r: 0, g: 0, b: 0, a: 0 })) fColor = tColor;
-				if (this.isEqualColor(fColor, { r: 0, g: 0, b: 0, a: 255 })) fColor = bColor;
-
-				tempImageData.data[dataIndex] = fColor.r;
-				tempImageData.data[dataIndex + 1] = fColor.g;
-				tempImageData.data[dataIndex + 2] = fColor.b;
-				tempImageData.data[dataIndex + 3] = fColor.a;
 			}
-		}
+			if (lowerNeighborHeight >= 0) {
+				if (neighborColors.length > i) {
+					tColor = { r: neighborColors[dataIndex], g: neighborColors[dataIndex + 1], b: neighborColors[dataIndex + 2], a: neighborColors[dataIndex + 3] };
+				}
+			}
+			let fColor = pColor;
+			if (this.isEqualColor(fColor, { r: 0, g: 0, b: 0, a: 0 })) fColor = tColor;
+			if (this.isEqualColor(fColor, { r: 0, g: 0, b: 0, a: 255 })) fColor = bColor;
 
-		tempCtx.putImageData(tempImageData, 0, 0);
-		return tempCtx.getImageData(0, 0, this.tileSize, this.tileSize);
+			data.set([fColor.r, fColor.g, fColor.b, fColor.a], dataIndex);
+		}
+		return new ImageData(data, this.tileSize, this.tileSize);
 	}
 
 	isEqualColor(color1, color2) {
@@ -565,41 +546,36 @@ class TileMap {
 	}
 	
 	colorCornerTextureRoutine(outputImageData, x, y, cornerImageData, tileAnalysis, isLess2) {
-		var tempCanvas = document.createElement('canvas');
 		let cornerSize = this.tileSize / 2;
-		tempCanvas.width = cornerSize;
-		tempCanvas.height = cornerSize;
-		var tempCtx = tempCanvas.getContext('2d');
-		var tempImageData = tempCtx.createImageData(cornerSize, cornerSize);
-
+	
 		let baseHeightIndex = tileAnalysis.heightIndex;
-        let less1HeightIndex = tileAnalysis.heightIndex;
-        let less2HeightIndex = tileAnalysis.heightIndex;
-        if( baseHeightIndex > 1) {
-            baseHeightIndex = tileAnalysis.heightIndex;
-            less1HeightIndex = tileAnalysis.heightIndex - 1;
-            less2HeightIndex = tileAnalysis.heightIndex - 2;
-        } else if( baseHeightIndex > 0) {
-            baseHeightIndex = tileAnalysis.heightIndex;
-            less1HeightIndex = tileAnalysis.heightIndex - 1;
-            less2HeightIndex = tileAnalysis.heightIndex - 1;
-        } 
-
-        let baseColors = this.layerTextures[baseHeightIndex][TileMolecule.Full][TileTransforms.None];
-        let lessBaseColors = this.layerTextures[less1HeightIndex][TileMolecule.Full][TileTransforms.None];
-        let less2BaseColors = this.layerTextures[less2HeightIndex][TileMolecule.Full][TileTransforms.None];
-
+		let less1HeightIndex = tileAnalysis.heightIndex;
+		let less2HeightIndex = tileAnalysis.heightIndex;
+		if (baseHeightIndex > 1) {
+			less1HeightIndex = tileAnalysis.heightIndex - 1;
+			less2HeightIndex = tileAnalysis.heightIndex - 2;
+		} else if (baseHeightIndex > 0) {
+			less1HeightIndex = tileAnalysis.heightIndex - 1;
+			less2HeightIndex = tileAnalysis.heightIndex - 1;
+		}
+	
+		let baseColors = this.layerTextures[baseHeightIndex][TileMolecule.Full][TileTransforms.None];
+		let lessBaseColors = this.layerTextures[less1HeightIndex][TileMolecule.Full][TileTransforms.None];
+		let less2BaseColors = this.layerTextures[less2HeightIndex][TileMolecule.Full][TileTransforms.None];
+	
+		const data = new Uint8ClampedArray(outputImageData.data);
 		for (let j = 0; j < cornerSize; j++) {
 			for (let i = 0; i < cornerSize; i++) {
-				let baseIndex = (j * this.tileSize + i) * 4;
+				// Calculate the correct position in the output image data
+				let outputIndex = ((y + j) * this.tileSize + (x + i)) * 4;
 	
-				let baseColor = this.getColorFromImageData(baseColors, baseIndex);
-				let lessColor = this.getColorFromImageData(lessBaseColors, baseIndex);
-				let lessBaseColor = this.getColorFromImageData(lessBaseColors, baseIndex); // Assuming lessBaseColor is similar to lessColor
-				let less2Color = this.getColorFromImageData(less2BaseColors, baseIndex);
-				let less2BaseColor = this.getColorFromImageData(less2BaseColors, baseIndex); // Assuming less2BaseColor is similar to less2Color
+				let baseColor = this.getColorFromImageData(baseColors, outputIndex);
+				let lessColor = this.getColorFromImageData(lessBaseColors, outputIndex);
+				let lessBaseColor = this.getColorFromImageData(lessBaseColors, outputIndex); // Assuming lessBaseColor is similar to lessColor
+				let less2Color = this.getColorFromImageData(less2BaseColors, outputIndex);
+				let less2BaseColor = this.getColorFromImageData(less2BaseColors, outputIndex); // Assuming less2BaseColor is similar to less2Color
 	
-				let tColor = this.getColorFromImageData(outputImageData, baseIndex);
+				let tColor = this.getColorFromImageData(outputImageData, outputIndex);
 	
 				let sourceOriginX = i;
 				let sourceOriginY = j * cornerSize;
@@ -630,23 +606,14 @@ class TileMap {
 					}
 				}
 	
-				let tempDataIndex = (j * cornerSize + i) * 4;
-				tempImageData.data[tempDataIndex] = fColor.r;
-				tempImageData.data[tempDataIndex + 1] = fColor.g;
-				tempImageData.data[tempDataIndex + 2] = fColor.b;
-				tempImageData.data[tempDataIndex + 3] = fColor.a;
+				data[outputIndex] = fColor.r;
+				data[outputIndex + 1] = fColor.g;
+				data[outputIndex + 2] = fColor.b;
+				data[outputIndex + 3] = fColor.a;
 			}
 		}
-	
-		tempCtx.putImageData(tempImageData, 0, 0);
-		var outputCanvas = document.createElement('canvas');
-		outputCanvas.width = this.tileSize;
-		outputCanvas.height = this.tileSize;
-		var outputCtx = outputCanvas.getContext('2d');
-		outputCtx.putImageData(outputImageData, 0, 0);
 
-		outputCtx.drawImage(tempCanvas, x, y, cornerSize, cornerSize);
-		return outputCtx.getImageData(0, 0, this.tileSize, this.tileSize);
+		return new ImageData(data, this.tileSize, this.tileSize);
 	}
 	
 	getColorFromImageData(imageData, index) {
@@ -664,23 +631,20 @@ class TileMap {
 		const img = this.assetManager.assets[`${layer}0_${variation}`];
 	
 		// Create an instance of CanvasUtility
-		const canvasUtility = new CanvasUtility();
-		canvasUtility.setSize(imageData.width, imageData.height);
 	
 		if (img && Math.random() < .25) {
+			this.canvasUtility.setSize(imageData.width, imageData.height);
 			
 			
 			// Paint the existing imageData onto the canvas
-			canvasUtility.paintTexture(imageData);
+			this.canvasUtility.paintTexture(imageData);
 	
 			// Assuming img is a loaded Image object and you want to draw it at (0,0)
 			// Draw the img over the imageData
-			canvasUtility.ctx.drawImage(img, (imageData.width / 2) - img.width / 2,  (imageData.width / 2) - img.width / 2);
+			this.canvasUtility.ctx.drawImage(img, (imageData.width / 2) - img.width / 2,  (imageData.width / 2) - img.width / 2);
 	
 			// Get the updated imageData from the canvas
-			let updatedImageData = canvasUtility.ctx.getImageData(0, 0, imageData.width, imageData.height);
-
-			return updatedImageData;
+			return this.canvasUtility.ctx.getImageData(0, 0, imageData.width, imageData.height);
 		} else {
 			// If img is not available, return the original imageData
 			return imageData;
@@ -691,21 +655,26 @@ class TileMap {
 	drawMap(analyzedMap) {
 
 		const ctx = this.canvas.getContext('2d');
-		
+		 // Buffer all drawing operations on an off-screen canvas
+		 const offscreenCanvas = document.createElement('canvas');
+		 offscreenCanvas.width = this.canvas.width;
+		 offscreenCanvas.height = this.canvas.height;
+		 const offscreenCtx = offscreenCanvas.getContext('2d');
 
 		analyzedMap.forEach((tileAnalysis, index) => {
 
 			const x = (index % this.numColumns) * this.tileSize;
 			const y = Math.floor(index / this.numColumns) * this.tileSize;
-			var tileBase = this.getTileBaseByTileAnalysis(tileAnalysis);
-			const imageData = this.getTransformedTexture(this.layerTextures[tileAnalysis.heightIndex], tileAnalysis, tileBase);			
-			const coloredData = this.colorImageData(imageData, tileAnalysis);
-			const variationData = this.addVariationImage(coloredData, tileAnalysis);
-			const corneredData = this.addCornerGraphics(variationData, tileAnalysis);
+			let tileBase = this.getTileBaseByTileAnalysis(tileAnalysis);
+			let imageData = this.getTransformedTexture(this.layerTextures[tileAnalysis.heightIndex], tileAnalysis, tileBase);			
+			imageData = this.colorImageData(imageData, tileAnalysis);
+			imageData = this.addVariationImage(imageData, tileAnalysis);
+			imageData = this.addCornerGraphics(imageData, tileAnalysis);
 
-			ctx.putImageData(corneredData, x, y);
+			offscreenCtx.putImageData(imageData, x, y);
 
 		});
+		ctx.drawImage(offscreenCanvas, 0, 0);
 	}
   }
   

@@ -268,7 +268,6 @@ class GameManager:
 
         elif defender.unit_type == "structure":
             # Remove the structure from the game world
-            print(defender.faction, defender.id)
             del self.world.towns[defender.faction].layout[defender.id]
 
         # Broadcast the death of the defender
@@ -341,16 +340,19 @@ class GameManager:
                         break  # Attack the first valid target and then break
 
     async def process_enemy_attacks(self, current_time):
-        for enemy_id, enemy in self.world.enemies.items():
-            if enemy.attacker:
+        enemy_ids = list(self.world.enemies.keys())  # Create a list of enemy IDs
+        for enemy_id in enemy_ids:
+            enemy = self.world.enemies.get(enemy_id)  # Get the enemy by ID
+            if enemy and enemy.attacker:
                 # Get nearby targets within attack range
                 nearby_targets = self.world.spacial_grid.get_nearby_entities(enemy.position, enemy.attacker.stats["attack_range"], 1)  # Assuming 1 is the enemy faction
-                
+
                 # Select a target and initiate an attack routine
                 for target in nearby_targets:
                     if self.is_valid_target(enemy, target):
                         await self.attack_routine(current_time, enemy, target)
                         break  # Attack the first valid target and then break
+
 
 
     def is_valid_target(self, attacker, target):

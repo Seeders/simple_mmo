@@ -4,14 +4,15 @@ import asyncio
 from utils.broadcast import broadcast
 from .attacker import Attacker
 class Enemy:
-    def __init__(self, world, enemy_id, enemy_type, position, full_path):
+    def __init__(self, world, enemy_id, enemy_faction, enemy_type, position, full_path):
         self.world = world
         self.id = enemy_id
-        self.faction = 1
+        self.faction = enemy_faction
         self.position = position
         self.stats = copy.deepcopy(get_enemy_stats(enemy_type))
         self.name = self.stats["name"]
         self.attacker = Attacker(self, self.stats)
+        self.worker = None
         self.paths = full_path
         self.path_index = 0        
         self.unit_type = "unit"
@@ -28,7 +29,9 @@ class Enemy:
         return self.id == other.id if other else False
     
     def update(self, current_time):
-        if not self.attacker.in_combat:
+        if self.worker != None:
+          self.worker.update(current_time)
+        elif not self.attacker.in_combat:
           if current_time - self.last_patrol_update >= self.patrol_delay and len(self.paths) > 0:
             self.last_patrol_update = current_time
             # Select movement behavior based on enemy type
@@ -102,6 +105,21 @@ def get_enemy_stats(enemy_type):
         
 
 enemy_types = {
+  "peasant": {
+    "type": "peasant",
+    "name": "Peasant",
+    "health": 25,
+    "attack_speed": 1.5,
+    "move_speed": 3,
+    "abilities": [],
+    "behavior": "work",
+    "damage": 6,
+    "defense": 2,
+    "walk_frames": 5,
+    "attack_frames": 6,
+    "attack_animation_order": ["down", "up", "right", "left"],
+    "walk_animation_order": ["down", "up", "right", "left"]
+  },
   "imp": {
     "type": "imp",
     "name": "Imp",

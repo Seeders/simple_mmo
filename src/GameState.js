@@ -280,8 +280,18 @@ export default class GameState {
         }
        // this.renderManager.terrainRendered = false;
     }
-    updateStones(data) {
-        this.stones = data.stones;
+    updateStone(data) {
+        let stone = this.stones[data.stone_index];
+        if( stone ) {
+            stone.position = data.stone_position;
+            stone.type = data.stone_type;
+            stone.health = data.stone_health;
+            if(stone.health <= 0) {
+                this.renderManager.clearStone(stone);
+                this.stones.splice(data.stone_index, 1);
+            }
+
+        }
        // this.renderManager.terrainRendered = false;
     }
     updateTowns(data) {

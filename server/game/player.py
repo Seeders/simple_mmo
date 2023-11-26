@@ -37,10 +37,10 @@ class Player:
             if self.world.tile_type_at_position(new_position) == "grass" and self.world.tile_type_at_position(self.position) == "forest" and self.world.is_ramp_at_position(self.position) == -1:
                 return False # Player must use ramp to go to grass from forest
             if self.is_tree_at_position(new_position):
-                self.attack_tree(new_position)
+                self.attack_target("tree", new_position)
                 return False  # Player does not move, but attacks the tree
             if self.is_stone_at_position(new_position):
-                self.attack_stone(new_position)
+                self.attack_target("stone", new_position)
                 return False  # Player does not move, but attacks the tree
             self.world.spacial_grid.move_entity(self, new_position)
             return True
@@ -75,87 +75,58 @@ class Player:
             }
         }, self.world.game_manager.connected, self.world.game_manager.connections))
 
-    def attack_stone(self, position):
-        # Reduce the health of the stone
-        for index, stone in enumerate(self.world.stones):
-            if stone["position"] == position:
-                asyncio.create_task(broadcast({
-                    "type": "start_attack",   
-                    "playerId": self.id,
-                    "targetPosition": stone["position"]
-                }, self.world.game_manager.connected, self.world.game_manager.connections))
+    def attack_target(self, target_type, position):
+        target_index = 0
+        targets = getattr(self.world, f'{target_type}s')  # Dynamic attribute access
 
-                stone["health"] -= self.stats["damage"]
+        for index, target in enumerate(targets):
+            if target["position"] == position and (target_type != 'tree' or target["type"] != "stump"):
+                self.start_attack(position)
 
-                if stone["health"] <= 0:
-                    stone["health"] = 0  # Set health to 0 to avoid negative values
-
-                    # Broadcast combat log update for destroying the stone
-                    asyncio.create_task(broadcastCombatLog(
-                        self.world.game_manager.combat_logs, self.id, 
-                        f"{self.id} destroyed a stone at {position}.", 
-                        self.world.game_manager.connected, self.world.game_manager.connections))
-
-                    self.drop_specific_item('stone', position)
-
-                    # Remove the stone from world.stones
-                    del self.world.stones[index]
-
-                else:
-                    # Broadcast combat log update for attacking the stone
-                    asyncio.create_task(broadcastCombatLog(
-                        self.world.game_manager.combat_logs, self.id, 
-                        f"{self.id} attacked a stone for {self.stats['damage']} damage, {stone['health']} remaining.", 
-                        self.world.game_manager.connected, self.world.game_manager.connections))
-
-                # Broadcast stone update
-                asyncio.create_task(broadcast({
-                    "type": "update_stones",                
-                    "stones": self.world.stones
-                }, self.world.game_manager.connected, self.world.game_manager.connections))
-                break  # Exit the loop once the stone is found and processed
-
-
-    def attack_tree(self, position):
-        tree_index = 0
-        # Reduce the health of the tree
-        for tree in self.world.trees:
-            if tree["position"] == position and tree["type"] != "stump":
-                asyncio.create_task(broadcast({
-                    "type": "start_attack",   
-                    "playerId": self.id,
-                    "targetPosition": tree["position"]
-                }, self.world.game_manager.connected, self.world.game_manager.connections))
-                tree["health"] -= self.stats["damage"]
-                if tree["health"] <= 0:
-                    tree["type"] = "stump"  # Change tree type to 'stump' when health is depleted
-                    tree["health"] = 0  # Optional: Set health to 0 to avoid negative values
-                    # Broadcast combat log update for destroying the tree
-                    asyncio.create_task(broadcastCombatLog(
-                        self.world.game_manager.combat_logs, self.id, 
-                        f"{self.id} destroyed a tree at {position}.", 
-                        self.world.game_manager.connected, self.world.game_manager.connections))                    
-
-                    self.drop_specific_item('wood', position)
-
-                else:
-                    # Broadcast combat log update for attacking the tree
-                    asyncio.create_task(broadcastCombatLog(
-                        self.world.game_manager.combat_logs, self.id, 
-                        f"{self.id} attacked a tree for {self.stats['damage']} damage, {tree['health']} remaining.", 
-                        self.world.game_manager.connected, self.world.game_manager.connections))
-
-                # Broadcast tree update
-                asyncio.create_task(broadcast({
-                    "type": "update_tree",                
-                    "tree_position": position,   
-                    "tree_index": tree_index,
-                    "tree_health": tree["health"],   
-                    "tree_type": tree["type"]              
-                }, self.world.game_manager.connected, self.world.game_manager.connections))
-                break  # Exit the loop once the tree is found and processed
+                target["health"] -= self.stats["damage"]
+                if target["health"] <= 0:
+                    self.handle_target_destruction(target, target_type, position, index)
+                
+                self.broadcast_target_attack(target, target_index, target_type, position)
+                break
             else:
-                tree_index = tree_index + 1
+                target_index += 1
+
+    def start_attack(self, position):
+        asyncio.create_task(broadcast({
+            "type": "start_attack",   
+            "playerId": self.id,
+            "targetPosition": position
+        }, self.world.game_manager.connected, self.world.game_manager.connections))
+
+    def handle_target_destruction(self, target, target_type, position, index):
+        item_type = 'stone' if target_type == 'stone' else 'wood'
+        target["health"] = 0
+        if target_type == 'tree':
+            target["type"] = "stump"
+
+        asyncio.create_task(broadcastCombatLog(
+            self.world.game_manager.combat_logs, self.id, 
+            f"{self.id} destroyed a {target_type} at {position}.", 
+            self.world.game_manager.connected, self.world.game_manager.connections))
+        
+        self.drop_specific_item(item_type, position)
+        del getattr(self.world, f'{target_type}s')[index]
+
+    def broadcast_target_attack(self, target, target_index, target_type, position):
+        asyncio.create_task(broadcastCombatLog(
+            self.world.game_manager.combat_logs, self.id, 
+            f"{self.id} attacked a {target_type} for {self.stats['damage']} damage, {target['health']} remaining.", 
+            self.world.game_manager.connected, self.world.game_manager.connections))
+
+        asyncio.create_task(broadcast({
+            "type": f"update_{target_type}",   
+            f"{target_type}_index": target_index,                      
+            f"{target_type}_position": position,   
+            f"{target_type}_health": target["health"],   
+            f"{target_type}_type": target.get("type", '')  # For trees
+        }, self.world.game_manager.connected, self.world.game_manager.connections))
+
 
     @staticmethod
     def calculate_next_level_exp(level):

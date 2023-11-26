@@ -6,17 +6,21 @@ from utils.broadcast import broadcast
 from .terrain import Terrain
 from .structure import Structure
 from .town import Town
+from .worker import Worker
 from utils.SpatialGrid import SpatialGrid
+from utils.Pathfinding import Pathfinding
 
 class World:
     def __init__(self, game_manager):
         self.game_manager = game_manager
         self.players = {}
+        self.enemy_counter = 0
         self.terrain = Terrain(100, 100) 
         self.spacial_grid = SpatialGrid(100, 100, 1)
         self.terrainLayers = ["water", "sand", "grass", "forest", "mountain"]
         self.enemy_spawns = ['green_slime', 'mammoth', 'giant_crab', 'pirate_grunt', 'pirate_gunner', 'pirate_captain']
         self.building_types = ['house', 'market', 'tavern', 'blacksmith', 'temple', 'barracks', 'dock']
+        self.pathfinder = Pathfinding(self.terrain.terrain, self.define_costs())
         self.trees = self.spawn_trees(self.terrain.terrain)
         self.stones = self.spawn_stones(self.terrain.terrain, 'stone')
         self.enemies = self.spawn_enemies(1, 100, 100, self.terrain.terrain)       
@@ -25,50 +29,31 @@ class World:
         self.roads = [] 
         self.roads = self.generate_roads()
         self.remove_trees_on_roads() 
-        self.enemy_counter = len(self.enemies)
         self.ramps = []
         self.generate_ramps()
+        self.spawn_workers()
 
-    def a_star(self, start, end):
-        # Helper functions
-        def heuristic(a, b):
-            return abs(a[0] - b[0]) + abs(a[1] - b[1])
+    def define_costs(self):
+        # Define costs based on your terrain types
+        return { 0: 1000, 1: 1.5, 2: 1, 3: 2, 4: 3}
 
-        def get_neighbors(node):
-            directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # Four directions: up, right, down, left
-            neighbors = []
-            for dx, dy in directions:
-                x, y = node[0] + dx, node[1] + dy
-                if 0 <= x < len(self.terrain.terrain[0]) and 0 <= y < len(self.terrain.terrain):
-                    neighbors.append((x, y))
-            return neighbors
+    def update(self, current_time):
+        pass
 
-        # A* algorithm
-        open_set = set([start])
-        came_from = {}
-        g_score = {start: 0}
-        f_score = {start: heuristic(start, end)}
+    def spawn_workers(self):
+        # Logic to spawn workers
+        for i in range(5):
+            worker_id = f"Worker{self.enemy_counter}"
+            worker_position = { 'x': self.towns[0].position['x'] + i - 2, 'y': self.towns[0].position['y'] + 1 }
+            enemy_id = f"Enemy{self.enemy_counter}"
+            patrol_route = self.generate_patrol_route(worker_position)  # Pass dictionary directly
+            full_path = self.generate_full_path(patrol_route)
+            full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
+            self.enemies[enemy_id] = Enemy(self, enemy_id, 0, 'peasant', worker_position, full_path_coords)
+            self.enemies[enemy_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
+            self.enemies[enemy_id].worker = Worker(self, self.enemies[enemy_id], worker_id, 0)
+            self.enemy_counter = self.enemy_counter + 1
 
-        while open_set:
-            current = min(open_set, key=lambda x: f_score.get(x, float('inf')))
-            if current == end:
-                path = []
-                while current in came_from:
-                    path.append(current)
-                    current = came_from[current]
-                return path[::-1]
-
-            open_set.remove(current)
-            for neighbor in get_neighbors(current):
-                tentative_g_score = g_score[current] + 1  # Assuming uniform cost for simplicity
-                if tentative_g_score < g_score.get(neighbor, float('inf')):
-                    came_from[neighbor] = current
-                    g_score[neighbor] = tentative_g_score
-                    f_score[neighbor] = tentative_g_score + heuristic(neighbor, end)
-                    open_set.add(neighbor)
-
-        return []  # No path found
-    
     def generate_ramps(self):
         terrain = self.terrain.terrain
         ramp_candidates = []
@@ -160,9 +145,9 @@ class World:
     def generate_full_path(self, patrol_route):
         full_path = []
         for i in range(len(patrol_route) - 1):
-            start = (patrol_route[i]["x"], patrol_route[i]["y"])  # Convert to tuple for A* algorithm
-            end = (patrol_route[i + 1]["x"], patrol_route[i + 1]["y"])  # Convert to tuple
-            path_segment = self.a_star(start, end)
+            start = (patrol_route[i]["x"], patrol_route[i]["y"])
+            end = (patrol_route[i + 1]["x"], patrol_route[i + 1]["y"])
+            path_segment = self.pathfinder.a_star(start, end)
             full_path.extend(path_segment)
         return full_path
 
@@ -173,13 +158,14 @@ class World:
                 x = random.randint(0, world_width - 1)
                 y = random.randint(0, world_height - 1)
                 if self.is_land(x, y, world_map):
-                    enemy_id = f"Enemy{i}"
+                    enemy_id = f"Enemy{self.enemy_counter}"
                     enemy_position = {"x": x, "y": y}
                     random_enemy_type = random.choice(self.enemy_spawns)
                     patrol_route = self.generate_patrol_route(enemy_position)  # Pass dictionary directly
                     full_path = self.generate_full_path(patrol_route)
                     full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
-                    enemies[enemy_id] = Enemy(self, enemy_id, random_enemy_type, enemy_position, full_path_coords)
+                    enemies[enemy_id] = Enemy(self, enemy_id, 1, random_enemy_type, enemy_position, full_path_coords)
+                    self.enemy_counter = self.enemy_counter + 1
                     enemies[enemy_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
                     break
         return enemies
@@ -220,7 +206,7 @@ class World:
                 tree = {
                     "type": tree_type,
                     "position": {"x": x, "y": y},
-                    "health": 200
+                    "health": 20
                 }
                 trees.append(tree)
         return trees
@@ -457,12 +443,10 @@ class World:
                 patrol_route = self.generate_patrol_route(enemy_position)  # Pass dictionary directly
                 full_path = self.generate_full_path(patrol_route)
                 full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
-                self.enemies[enemy_id] = Enemy(self, enemy_id, random_enemy_type, enemy_position, full_path_coords)
+                self.enemies[enemy_id] = Enemy(self, enemy_id, 1, random_enemy_type, enemy_position, full_path_coords)
                 self.enemies[enemy_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
-                print(f"Spawned enemy {enemy_id}[{random_enemy_type}] at ({x}, {y}) with {self.enemies[enemy_id].stats['health']}/{self.enemies[enemy_id].stats['max_health']} hp")                  
                 return self.enemies[enemy_id]
             attempts += 1
-            print(f"Attempt {attempts}: Failed to find land for enemy")
         print("Failed to spawn a new enemy after max attempts")
         return False
 
@@ -473,7 +457,6 @@ class World:
             return False
 
         if len(self.enemies) < desired_count:
-            print(f"Current enemy count: {len(self.enemies)}, Desired count: {desired_count}")
             return self.spawn_new_enemy()                
                         
         return False

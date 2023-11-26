@@ -49,6 +49,7 @@ async function loadAssets(assetManager) {
     'mega_green_slime': 'images/Characters/Monsters/Slimes/MegaSlimeGreen.png',
     'necromancer': 'images/Characters/Monsters/Undead/Necromancer.png',
     'skeleton': 'images/Characters/Monsters/Undead/Skeleton-Soldier.png',
+    'peasant': 'images/Characters/Workers/CyanWorker/FarmerCyan.png',
     'potion_health': 'images/Objects/potions.png',
     'terrain': './images/Ground/Grass.png',
     'town': './images/Buildings/Wood/Keep.png',
