@@ -1,5 +1,5 @@
 import Unit from './Unit';
-import { CONFIG } from './config';
+import { CONFIG } from './Config/config';
 export default class Player extends Unit {
     constructor(gameState, data) {        
         super(gameState, data);
@@ -8,21 +8,21 @@ export default class Player extends Unit {
         this.isOnRoad = false;
         this.faction = 0;
         this.inventory.forEach((item) => {            
-            window.game.inventoryUI.addItemToInventory(item);
+            this.gameState.ui.inventoryUI.addItemToInventory(item);
         });
     } 
    
 
     addItemToInventory(itemData){
         this.inventory.push(itemData);
-        window.game.inventoryUI.addItemToInventory(itemData);
+        this.gameState.ui.inventoryUI.addItemToInventory(itemData);
     }
 
     removeItemFromInventory(itemId){
         const itemIndex = this.inventory.findIndex(item => item.id === itemId);
         if (itemIndex !== -1) {
             this.inventory.splice(itemIndex, 1);
-            window.game.inventoryUI.removeItemFromInventory(itemId);
+            this.gameState.ui.inventoryUI.removeItemFromInventory(itemId);
         }
     }
     

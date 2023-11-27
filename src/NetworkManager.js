@@ -1,4 +1,4 @@
-import { CONFIG } from "./config";
+import { CONFIG } from "./Config/config";
 // Network.js
 export default class NetworkManager {
     constructor(serverUrl, gameState, connectedCallback) {

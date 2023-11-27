@@ -1,10 +1,9 @@
 
-import { CONFIG } from "../config"
+import { CONFIG } from "../Config/config"
 // InventoryManager.js
 export default class InventoryManager {
-    constructor(gameState, assetManager) {
+    constructor(gameState) {
         this.gameState = gameState;
-        this.assetManager = assetManager;
         this.createInventorySlots(25);
         this.setupDropZones();
     }   
@@ -60,7 +59,7 @@ export default class InventoryManager {
                 if (slot.childElementCount === 0) { // Only allow drop if the slot is empty
                     slot.appendChild(itemElement); // Move the item to the slot
                     // Send a message to the server about the item drop
-                    window.game.networkManager.send('item_dropped', {                        
+                    this.gameState.networkManager.send('item_dropped', {                        
                         playerId: this.gameState.currentPlayerId,
                         itemId: itemId.replace('item-', ''), // Assuming the ID is prefixed with 'item-'
                         slot: slot.id // Send the slot ID to the server as well
@@ -84,7 +83,7 @@ export default class InventoryManager {
                 console.log(`${key} -> ${item.type}`);
                 key = item.type;
             }
-            const sprite = this.assetManager.assets[key]; // Path to your sprite sheet
+            const sprite = this.gameState.assetManager.assets[key]; // Path to your sprite sheet
             const spriteSheetUrl = sprite.src; // Path to your sprite sheet
             // Sprite sheet information
             const spriteWidth = sprite.width; // Width of a single sprite
@@ -111,7 +110,7 @@ export default class InventoryManager {
     
     useItem(itemId) {
         // Send a message to the server that the item is used
-        window.game.networkManager.send('item_used', {            
+        this.gameState.networkManager.send('item_used', {            
             playerId: this.gameState.currentPlayerId,
             itemId: itemId
         });

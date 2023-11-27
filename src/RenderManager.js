@@ -1,5 +1,5 @@
 
-import { CONFIG } from './config';
+import { CONFIG } from './Config/config';
 import TileMap from './TileMap';
 import CanvasUtility from './Utility/CanvasUtility';
 

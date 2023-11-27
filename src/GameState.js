@@ -3,7 +3,10 @@ import EnemyManager from './EnemyManager';
 import Terrain from './Terrain';
 import RenderManager from './RenderManager';
 import Pathfinding from './Utility/Pathfinding';
-import { CONFIG } from './config';
+import CombatLogUI from './UI/CombatLogUI';
+import ChatUI from './UI/ChatUI';
+import InventoryUI from './UI/InventoryUI';
+import { CONFIG } from './Config/config';
 
 export default class GameState {
     constructor(context, assetManager) {
@@ -13,6 +16,8 @@ export default class GameState {
         this.debugCtx = this.debugCanvas.getContext('2d');
         this.canvas.width = window.innerWidth;
         this.assetManager = assetManager;
+        this.networkManager = null;
+        this.ui = this.setupUI();
         this.factions = [];
         for( let i = 0; i < 5; i++ ) {
             this.factions.push(this.getFaction(i));
@@ -42,7 +47,17 @@ export default class GameState {
         this.cursorTileX = 0;
         this.cursorTileY = 0;
     }
-
+    setupUI() {
+        const chatUI = new ChatUI(this);
+        const combatLogUI = new CombatLogUI(this);
+        const inventoryUI = new InventoryUI(this);
+      
+        return { chatUI, combatLogUI, inventoryUI };
+      }
+      
+    setNetworkManager(networkManager){
+        this.networkManager = networkManager;
+    }
     init(data) {
         this.currentPlayerId = data.id;
         this.terrain = new Terrain(data.terrain);
@@ -79,7 +94,7 @@ export default class GameState {
     buildActiveItem() {
         const buildX = this.cursorTileX;
         const buildY = this.cursorTileY;
-        window.game.networkManager.send('item_built', {                        
+        this.networkManager.send('item_built', {                        
             playerId: this.currentPlayerId,
             item: this.activeOnCursor, // Assuming the ID is prefixed with 'item-'
             position: { x: buildX, y: buildY }, // Send the slot ID to the server as well
@@ -191,7 +206,7 @@ export default class GameState {
 
     receiveChat(data) {
         this.chats.push(data);
-        window.game.chatUI.addChatMessage(data);
+        this.ui.chatUI.addChatMessage(data);
     }
 
     combatUpdate(data) {
@@ -257,7 +272,7 @@ export default class GameState {
 
     combatLogUpdate(data) {
         this.combatLog = data.combatLog;
-        window.game.combatLogUI.updateCombatLog(data.combatLog);
+        this.ui.combatLogUI.updateCombatLog(data.combatLog);
     
     }
 

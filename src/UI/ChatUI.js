@@ -24,7 +24,7 @@ export default class ChatUI {
                 const message = chatInput.value;
                 chatInput.value = '';
                 // Assuming there's a network class to handle sending messages
-                window.game.networkManager.send('chat', { playerId: this.gameState.currentPlayerId, message: message });
+                this.gameState.networkManager.send('chat', { playerId: this.gameState.currentPlayerId, message: message });
                 this.chat.push({type: "chat", message: message});
                 this.addChatMessage({ sender: this.gameState.currentPlayerId, message: message });
             }

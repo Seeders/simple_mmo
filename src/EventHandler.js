@@ -1,5 +1,5 @@
 
-import { CONFIG } from './config';
+import { CONFIG } from './Config/config';
 // EventHandler.js
 
 export default class EventHandler {
