@@ -3,7 +3,7 @@ import copy
 import asyncio
 from utils.broadcast import broadcast
 from .attacker import Attacker
-class Enemy:
+class NPC:
     def __init__(self, world, enemy_id, enemy_faction, enemy_type, position, full_path):
         self.world = world
         self.id = enemy_id
