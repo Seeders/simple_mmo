@@ -73,13 +73,13 @@ export default class EventHandler {
             }
         }
 
-        // Check if an enemy is clicked
-        for (const id in this.gameState.enemyManager.enemies) {
-            const enemy = this.gameState.enemyManager.enemies[id];
-            const enemyX = enemy.position.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2;
-            const enemyY = enemy.position.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2;
-            if (Math.pow(clickX - enemyX, 2) + Math.pow(clickY - enemyY, 2) <= Math.pow(CONFIG.unitSize / 2, 2)) {
-                this.gameState.selectedTarget = { type: 'enemy', id: id, stats: enemy.stats };
+        // Check if an npc is clicked
+        for (const id in this.gameState.npcManager.npcs) {
+            const npc = this.gameState.npcManager.npcs[id];
+            const npcX = npc.position.x * CONFIG.tileSize + this.gameState.offsetX + CONFIG.tileSize / 2;
+            const npcY = npc.position.y * CONFIG.tileSize + this.gameState.offsetY + CONFIG.tileSize / 2;
+            if (Math.pow(clickX - npcX, 2) + Math.pow(clickY - npcY, 2) <= Math.pow(CONFIG.unitSize / 2, 2)) {
+                this.gameState.selectedTarget = { type: 'npc', id: id, stats: npc.stats };
             }
         }        
 

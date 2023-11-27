@@ -2,15 +2,15 @@ from .config.world_size import world_size
 from utils.utils import position_to_tuple
 from utils.SpatialGrid import SpatialGrid
 from utils.Pathfinding import Pathfinding
-from managers.TerrainManager import TerrainManager
-from managers.TownManager import TownManager
-from managers.RoadManager import RoadManager
-from managers.FactionManager import FactionManager
-from managers.PlayerManager import PlayerManager
-from managers.NPCManager import NPCManager
-from managers.TreeManager import TreeManager
-from managers.StoneManager import StoneManager
-from config.terrain_costs import get_terrain_costs_by_index
+from .managers.TerrainManager import TerrainManager
+from .managers.TownManager import TownManager
+from .managers.RoadManager import RoadManager
+from .managers.FactionManager import FactionManager
+from .managers.PlayerManager import PlayerManager
+from .managers.NPCManager import NPCManager
+from .managers.TreeManager import TreeManager
+from .managers.StoneManager import StoneManager
+from .config.terrain_costs import get_terrain_costs_by_index
 
 class World:
     def __init__(self, game_manager):
@@ -26,9 +26,13 @@ class World:
         self.road_manager = RoadManager(self)
         self.faction_manager = FactionManager(self)
         self.npc_manager = NPCManager(self)
+        self.terrain_manager.generate_ramps()
         self.tree_manager.remove_trees_on_roads()   
+        self.tree_manager.update_tree_indices()   
         self.items_on_ground = {}     
-
+    
+    def update(self, current_time):
+        pass
 
     def find_path(self, start, goal):
         type1 = "forest"
@@ -96,21 +100,15 @@ class World:
         path = self.pathfinder.a_star(position_to_tuple(start), position_to_tuple(goal))
         
         return path
-    
-    def update(self, current_time):
-        pass
+
   
-    def is_land(self, x, y, world_map):
+    def is_land(self, x, y):
+        world_map = self.terrain_manager.terrain.terrain
         if 0 <= y < len(world_map) and 0 <= x < len(world_map[0]):
             return self.terrain_manager.terrain_layers[world_map[y][x]] != 'water'
         else:
             return False  # Out of bounds, treat as non-land
 
-   
-    def is_world_full(self):
-        """ Check if the world has enough space to spawn new entities. """
-        land_count = sum(1 for row in self.terrain_manager.terrain.terrain for tile in row if tile != 0)
-        return land_count <= len(self.npc_manager.npcs)
 
     def is_position_valid(self, position):
         x = int(position['x'])
@@ -127,10 +125,7 @@ class World:
         return True
 
     def is_road_at_position(self, position):
-        for road in self.road_manager.roads:
-            if (position['x'], position['y']) in road:
-                return True
-        return False
+        return self.road_manager.is_road_at_position(position)
     
     def is_town_at_position(self, position):
         for town in self.town_manager.towns:

@@ -124,7 +124,7 @@ class GameManager:
             self.connections[player_id] = websocket
             return existing_player
         else:
-            new_player = Player(self.world, player_id, self.world.towns[0].position )
+            new_player = Player(self.world, player_id, self.world.town_manager.towns[0].position )
             self.connected[player_id] = new_player
             self.connections[player_id] = websocket
             await self.save_player_state(player_id)  # Save the new player state
@@ -222,21 +222,21 @@ class GameManager:
         """
         while True:
             current_time = asyncio.get_event_loop().time()
-            spawnedEnemy = self.world.maintain_enemy_count(1)
-            await self.update_enemy_patrols(current_time)
-            if spawnedEnemy:
-                await self.broadcast_enemy_spawn(spawnedEnemy)
+            spawned_npc = self.world.npc_manager.maintain_npc_count(10)
+            await self.update_npc_patrols(current_time)
+            if spawned_npc:
+                await self.broadcast_npc_spawn(spawned_npc)
 
             await self.process_town_attacks(current_time)
             await self.process_player_attacks(current_time)
-            await self.process_enemy_attacks(current_time)
+            await self.process_npc_attacks(current_time)
 
             await asyncio.sleep(0.1)  # Sleep to prevent a tight loop
 
 
     async def handle_player_death(self, player, attacker):
         await broadcastCombatLog(self.combat_logs, player.id, f"{player.name} was killed by {attacker.name}.", self.connected, self.connections)
-        self.world.spacial_grid.move_entity(player, self.world.towns[0].position )
+        self.world.spacial_grid.move_entity(player, self.world.town_manager.towns[0].position )
         player.stats['health'] = player.stats['max_health']  # Reset health
         await broadcast({
             "type": "player_respawn",
@@ -248,14 +248,14 @@ class GameManager:
 
     async def handle_defender_death(self, attacker, defender):
         attacker.attacker.exit_combat()
-        # Check if the defender is a player, enemy, or structure and handle accordingly
+        # Check if the defender is a player, npc, or structure and handle accordingly
         if defender.unit_type == "player":
             # Handle player death (e.g., respawn logic)
             await self.handle_player_death(defender, attacker)
 
         elif defender.unit_type == "unit":
-            # Remove the enemy from the game world
-            del self.world.enemies[defender.id]
+            # Remove the npc from the game world
+            del self.world.npc_manager.npcs[defender.id]
 
             self.world.spacial_grid.remove_entity(defender)
             # Award experience to the player if the attacker is a player
@@ -268,7 +268,7 @@ class GameManager:
 
         elif defender.unit_type == "structure":
             # Remove the structure from the game world
-            del self.world.towns[defender.faction].layout[defender.id]
+            del self.world.town_manager.towns[defender.faction].layout[defender.id]
 
         # Broadcast the death of the defender
         await self.broadcast_defender_death(attacker, defender)
@@ -310,14 +310,14 @@ class GameManager:
             "item": item.to_dict()  # Assuming item has a method to convert to dict
         }, self.connected, self.connections)
 
-    async def broadcast_enemy_spawn(self, enemy):
+    async def broadcast_npc_spawn(self, npc):
         await broadcast({
-            "type": "spawn_enemy",
-            "enemy": {"id": enemy.id, "position": enemy.position, "stats": enemy.stats}
+            "type": "spawn_npc",
+            "npc": {"id": npc.id, "position": npc.position, "stats": npc.stats}
         }, self.connected, self.connections)
 
     async def process_town_attacks(self, current_time):
-        for town_index, town in enumerate(self.world.towns):
+        for town_index, town in enumerate(self.world.town_manager.towns):
             faction = town_index
             for building_id, building in town.layout.items():
                 if building.attacker:
@@ -344,24 +344,24 @@ class GameManager:
                         await self.attack_routine(current_time, player, target)
                         break  # Attack the first valid target and then break
 
-    async def process_enemy_attacks(self, current_time):
-        enemy_ids = list(self.world.enemies.keys())  # Create a list of enemy IDs
-        for enemy_id in enemy_ids:
-            enemy = self.world.enemies.get(enemy_id)  # Get the enemy by ID
-            if enemy and enemy.attacker:
+    async def process_npc_attacks(self, current_time):
+        npc_ids = list(self.world.npc_manager.npcs.keys())  # Create a list of npc IDs
+        for npc_id in npc_ids:
+            npc = self.world.npc_manager.npcs.get(npc_id)  # Get the npc by ID
+            if npc and npc.attacker:
                 # Get nearby targets within attack range
-                nearby_targets = self.world.spacial_grid.get_nearby_entities(enemy.position, enemy.attacker.stats["attack_range"], 1)  # Assuming 1 is the enemy faction
+                nearby_targets = self.world.spacial_grid.get_nearby_entities(npc.position, npc.attacker.stats["attack_range"], 1)  # Assuming 1 is the npc faction
 
                 # Select a target and initiate an attack routine
                 for target in nearby_targets:
-                    if self.is_valid_target(enemy, target):
-                        await self.attack_routine(current_time, enemy, target)
+                    if self.is_valid_target(npc, target):
+                        await self.attack_routine(current_time, npc, target)
                         break  # Attack the first valid target and then break
 
 
 
     def is_valid_target(self, attacker, target):
-        # Implement logic to determine if the target is valid (e.g., enemy, within range)
+        # Implement logic to determine if the target is valid (e.g., npc, within range)
         return target.stats['health'] > 0 and target.faction != attacker.faction
 
 
@@ -387,12 +387,12 @@ class GameManager:
             time_to_next_tick = 1 - (current_time - last_regeneration_time)
             await asyncio.sleep(time_to_next_tick if time_to_next_tick > 0 else 0)
 
-    async def update_enemy_patrols(self, current_time):
-        for enemy_id, enemy in self.world.enemies.items():
-            enemy.update(current_time)
-            # Broadcast enemy movement to all connected players
+    async def update_npc_patrols(self, current_time):
+        for npc_id, npc in self.world.npc_manager.npcs.items():
+            npc.update(current_time)
+            # Broadcast npc movement to all connected players
             await broadcast({
-                "type": "enemy_move",
-                "enemyId": enemy.id,
-                "position": enemy.position
+                "type": "npc_move",
+                "npcId": npc.id,
+                "position": npc.position
             }, self.connected, self.connections)

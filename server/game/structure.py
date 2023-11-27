@@ -53,7 +53,7 @@ def get_stats(type):
         eType["max_health"] = eType["health"]
         return eType
     else:
-        raise ValueError(f"Unknown enemy type: {type}")    
+        raise ValueError(f"Unknown npc type: {type}")    
         
 
 structure_types = {

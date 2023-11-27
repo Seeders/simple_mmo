@@ -85,8 +85,8 @@ export default class NetworkManager {
             case "player_respawn":
                 this.gameState.playerRespawn(data);
                 break;
-            case "spawn_enemy":
-                this.gameState.enemyManager.addEnemy({id: data.enemy.id, position: data.enemy.position, stats: data.enemy.stats});
+            case "spawn_npc":
+                this.gameState.npcManager.addNPC({id: data.npc.id, position: data.npc.position, stats: data.npc.stats});
                 break;
             case "combat_update":
                 this.gameState.combatUpdate(data);
@@ -101,7 +101,7 @@ export default class NetworkManager {
                     }
                 } else if( data.unit_type == "unit" && data.faction == 1 ) {
                     id = data.unit_id;
-                    unit = this.gameState.enemyManager.enemies[id];       
+                    unit = this.gameState.npcManager.npcs[id];       
                     if( data.targetPosition ) {
                         targetPosition = data.targetPosition;
                     }
@@ -125,8 +125,8 @@ export default class NetworkManager {
             case "target_death":
                 this.gameState.targetDeath(data);
                 break;
-            case "enemy_move":
-                this.gameState.enemyMove(data);
+            case "npc_move":
+                this.gameState.npcMove(data);
                 break;
             case "level_up":
                 this.gameState.levelUp(data);

@@ -1,14 +1,21 @@
 import random
 import asyncio
-from ..npc import NPC
+from ..npc import NPC, npc_types
 from ..worker import Worker
-
+from ..config.world_size import world_size
 class NPCManager:
     def __init__(self, world):        
         self.world = world
+        self.world_size = world_size()
         self.npc_counter = 0
-        self.npcs = self.spawn_npcs()
+        self.npcs = {}
         self.npc_spawns = ['green_slime', 'mammoth', 'giant_crab', 'pirate_grunt', 'pirate_gunner', 'pirate_captain']
+        self.spawn_workers()
+
+    def is_world_full(self):
+        """ Check if the world has enough space to spawn new entities. """
+        land_count = self.world_size * self.world_size
+        return land_count <= len(self.npcs)
     
     def spawn_workers(self):
         # Logic to spawn workers
@@ -19,13 +26,13 @@ class NPCManager:
             patrol_route = self.generate_patrol_route(worker_position)  # Pass dictionary directly
             full_path = self.generate_full_path(patrol_route)
             full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
-            self.npcs[npc_id] = NPC(self, npc_id, 0, 'peasant', worker_position, full_path_coords)
+            self.npcs[npc_id] = NPC(self.world, npc_id, 0, 'peasant', worker_position, full_path_coords)
             self.npcs[npc_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
-            self.npcs[npc_id].worker = Worker(self, self.npcs[npc_id], worker_id, 0)
+            self.npcs[npc_id].worker = Worker(self.world, self.npcs[npc_id], worker_id, 0)
             self.npc_counter = self.npc_counter + 1
 
 
-    def spawn_npcs(self, num_npcs, world_width, world_height, world_map):
+    def spawn_npcs(self, num_npcs, world_width, world_height):
         npcs = {}
         for i in range(num_npcs):
             while True:
@@ -33,14 +40,14 @@ class NPCManager:
                 y = random.randint(0, world_height - 1)
                 if x < world_height / 2 and y > world_height / 2:
                     continue
-                if self.world.is_land(x, y, world_map):
+                if self.world.is_land(x, y):
                     npc_id = f"NPC{self.npc_counter}"
                     npc_position = {"x": x, "y": y}
-                    random_npc_type = random.choice(self.npc_spawns)
+                    random_npc_type = npc_types[random.choice(self.npc_spawns)]
                     patrol_route = self.generate_patrol_route(npc_position)  # Pass dictionary directly
                     full_path = self.generate_full_path(patrol_route)
                     full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
-                    npcs[npc_id] = NPC(self, npc_id, 1, random_npc_type, npc_position, full_path_coords)
+                    npcs[npc_id] = NPC(self.world, npc_id, 1, random_npc_type, npc_position, full_path_coords)
                     self.npc_counter = self.npc_counter + 1
                     npcs[npc_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
                     break
@@ -50,20 +57,20 @@ class NPCManager:
         """ Spawn a single new npc at a random land location. """
         attempts = 0
         while attempts < max_attempts:
-            x = random.randint(0, self.world.terrain_manager.terrain.width - 1)
-            y = random.randint(0, self.world.terrain_manager.terrain.width - 1)
-            if x < self.world.terrain_manager.terrain.width / 2 and y > self.world.terrain_manager.terrain.width / 2:
+            x = random.randint(0, self.world_size - 1)
+            y = random.randint(0, self.world_size - 1)
+            if x < self.world_size / 2 and y > self.world_size / 2:
                 continue
-            if self.world.is_land(x, y, self.world.terrain_manager.terrain.terrain):
+            if self.world.is_land(x, y):
                 npc_id = f"NPC{self.npc_counter}"
                 self.npc_counter += 1  # Increment the counter for each new npc
-                random_npc_type = random.choice(list(self.npc_spawns.keys()))
+                random_npc_type = random.choice(self.npc_spawns)
                 npc_position = {"x": x, "y": y}
-                random_npc_type = random.choice(list(self.npc_spawns.keys()))
+                random_npc_type = random.choice(self.npc_spawns)
                 patrol_route = self.generate_patrol_route(npc_position)  # Pass dictionary directly
                 full_path = self.generate_full_path(patrol_route)
                 full_path_coords = [{"x": p[0], "y": p[1]} for p in full_path]
-                self.npcs[npc_id] = NPC(self, npc_id, 1, random_npc_type, npc_position, full_path_coords)
+                self.npcs[npc_id] = NPC(self.world, npc_id, 1, random_npc_type, npc_position, full_path_coords)
                 self.npcs[npc_id].last_waypoint_arrival_time = asyncio.get_event_loop().time()
                 return self.npcs[npc_id]
             attempts += 1
@@ -92,12 +99,12 @@ class NPCManager:
                     x = 0
                 if( y < 0 ):
                     y = 0
-                if( x > self.world.terrain_manager.terrain.width ):
-                    x = self.world.terrain_manager.terrain.width - 1
-                if( y > self.world.terrain_manager.terrain.height ):
-                    y = self.world.terrain_manager.terrain.height - 1
+                if( x > self.world_size ):
+                    x = self.world_size - 1
+                if( y > self.world_size ):
+                    y = self.world_size - 1
                 
-                if self.world.is_land(x, y, self.world.terrain_manager.terrain.terrain):
+                if self.world.is_land(x, y):
                     waypoint = {"x": x, "y": y}  # Create waypoint as a dictionary
                     route.append(waypoint)
                     break
@@ -108,9 +115,7 @@ class NPCManager:
     def generate_full_path(self, patrol_route):
         full_path = []
         for i in range(len(patrol_route) - 1):
-            start = (patrol_route[i]["x"], patrol_route[i]["y"])
-            end = (patrol_route[i + 1]["x"], patrol_route[i + 1]["y"])
-            path_segment = self.pathfinder.a_star(start, end)
+            path_segment = self.world.find_path(patrol_route[i], patrol_route[i+1])
             full_path.extend(path_segment)
         return full_path
 

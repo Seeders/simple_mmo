@@ -4,19 +4,19 @@ import asyncio
 from utils.broadcast import broadcast
 from .attacker import Attacker
 class NPC:
-    def __init__(self, world, enemy_id, enemy_faction, enemy_type, position, full_path):
+    def __init__(self, world, npc_id, npc_faction, npc_type, position, full_path):
         self.world = world
-        self.id = enemy_id
-        self.faction = enemy_faction
+        self.id = npc_id
+        self.faction = npc_faction
         self.position = position
-        self.stats = copy.deepcopy(get_enemy_stats(enemy_type))
+        self.stats = copy.deepcopy(get_npc_stats(npc_type))
         self.name = self.stats["name"]
         self.attacker = Attacker(self, self.stats)
         self.worker = None
         self.paths = full_path
         self.path_index = 0        
         self.unit_type = "unit"
-        self.type = enemy_type
+        self.type = npc_type
         self.last_patrol_update = 0  # Time of the last patrol update
         self.patrol_delay = 5 / self.stats["move_speed"]  # Delay in seconds
         self.current_waypoint_index = 0
@@ -34,7 +34,7 @@ class NPC:
         elif not self.attacker.in_combat:
           if current_time - self.last_patrol_update >= self.patrol_delay and len(self.paths) > 0:
             self.last_patrol_update = current_time
-            # Select movement behavior based on enemy type
+            # Select movement behavior based on npc type
             if self.stats["behavior"] == "patrol":
                 self.patrol_movement()
             elif self.stats["behavior"] == "wander":
@@ -42,7 +42,7 @@ class NPC:
             else:
                 self.wander_movement()
 
-            # Check if the enemy should start regenerating health
+            # Check if the npc should start regenerating health
           if self.attacker.last_stopped_combat is not None:
               if current_time - self.attacker.last_stopped_combat >= self.health_regeneration_delay:
                   self.regenerate_health()
@@ -78,7 +78,7 @@ class NPC:
         self.stats["health"] = self.stats["max_health"]
         asyncio.create_task(broadcast({
             "type": "health_regeneration",
-            "enemyId": self.id,
+            "npcId": self.id,
             "newHealth": int(self.stats['health'])
         }, self.world.game_manager.connected, self.world.game_manager.connections))
             
@@ -94,17 +94,17 @@ class NPC:
                 return False # Player must use ramp to go to grass from forest
             self.world.spacial_grid.move_entity(self, new_position)
 
-def get_enemy_stats(enemy_type):
-    if enemy_type in enemy_types:
-        eType = enemy_types[enemy_type]
+def get_npc_stats(npc_type):
+    if npc_type in npc_types:
+        eType = npc_types[npc_type]
         eType["level"] = 1
         eType["max_health"] = eType["health"]
         return eType
     else:
-        raise ValueError(f"Unknown enemy type: {enemy_type}")    
+        raise ValueError(f"Unknown npc type: {npc_type}")    
         
 
-enemy_types = {
+npc_types = {
   "peasant": {
     "type": "peasant",
     "name": "Peasant",

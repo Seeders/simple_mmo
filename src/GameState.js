@@ -1,5 +1,5 @@
 import PlayerManager from './PlayerManager';
-import EnemyManager from './EnemyManager';
+import NPCManager from './NPCManager';
 import Terrain from './Terrain';
 import RenderManager from './RenderManager';
 import Pathfinding from './Utility/Pathfinding';
@@ -23,7 +23,7 @@ export default class GameState {
             this.factions.push(this.getFaction(i));
         }
         this.playerManager = new PlayerManager(this);
-        this.enemyManager = new EnemyManager(this);
+        this.npcManager = new NPCManager(this);
         this.terrain = null;
         this.combatLog = [];
         this.roads = [];
@@ -72,7 +72,7 @@ export default class GameState {
         this.techTree = data.tech_tree;
 
         this.playerManager.initPlayers(data.players);
-        this.enemyManager.initEnemies(data.enemies);
+        this.npcManager.initEnemies(data.npcs);
         this.renderManager.init();
         this.adjustViewToCurrentPlayer();        
     }
@@ -216,12 +216,12 @@ export default class GameState {
                 player.stats.health = data.unitHealth;
             }
             if(data.targetType == "unit") {
-                let target = this.enemyManager.getEnemy(data.targetId);
+                let target = this.npcManager.getNPC(data.targetId);
                 if (target) {
                     target.stats.health = data.targetHealth;
-                    this.selectedTarget = { type: 'enemy', id: target.id, stats: target.stats };
+                    this.selectedTarget = { type: 'npc', id: target.id, stats: target.stats };
                     if ( target.stats.health <= 0) {
-                        this.enemyManager.removeEnemy(target.id);
+                        this.npcManager.removeNPC(target.id);
                     }
                 }
             }
@@ -231,10 +231,10 @@ export default class GameState {
                 if (player) {
                     player.stats.health = data.targetHealth;
                 }
-                let target = this.enemyManager.getEnemy(data.unitId);
+                let target = this.npcManager.getNPC(data.unitId);
                 if (target) {
                     target.stats.health = data.unitHealth;
-                  //  this.selectedTarget = { type: 'enemy', id: data.unitId, stats: target.stats };
+                  //  this.selectedTarget = { type: 'npc', id: data.unitId, stats: target.stats };
                 }
             }
         } else if( data.unitType == "structure" ) {
@@ -243,10 +243,10 @@ export default class GameState {
                 if (building) {
                     building.stats.health = data.unitHealth;
                 }
-                let target = this.enemyManager.getEnemy(data.targetId);
+                let target = this.npcManager.getNPC(data.targetId);
                 if (target) {
                     target.stats.health = data.targetHealth;
-                   // this.selectedTarget = { type: 'enemy', id: target.id, stats: target.stats };
+                   // this.selectedTarget = { type: 'npc', id: target.id, stats: target.stats };
                 }
             } else if (data.unitFaction == 1) {
                 if(data.targetType == "player"){
@@ -333,7 +333,7 @@ export default class GameState {
     targetDeath(data) {
         console.log("targetDeath", data);
         if( data.targetType == "unit" ) {
-            this.enemyManager.removeEnemy(data.targetId);
+            this.npcManager.removeNPC(data.targetId);
             if (data.unitType == "player") {
                 let player =  this.playerManager.getPlayer(data.unitId);
                 if (player) {
@@ -363,10 +363,10 @@ export default class GameState {
         }
     }    
     
-    enemyMove(data) {
-        let enemy = this.enemyManager.getEnemy(data.enemyId);
-        if (enemy) {
-            enemy.position = data.position
+    npcMove(data) {
+        let npc = this.npcManager.getNPC(data.npcId);
+        if (npc) {
+            npc.position = data.position
         }
     }
     // Add an item to the game state
@@ -482,10 +482,10 @@ export default class GameState {
             if (player) {
                 player.stats.health = parseInt(data.newHealth);
             }
-        } else if( data.enemyId ) {
-            let enemy = this.enemyManager.getEnemy(data.enemyId);
-            if (enemy) {
-                enemy.stats.health = parseInt(data.newHealth);
+        } else if( data.npcId ) {
+            let npc = this.npcManager.getNPC(data.npcId);
+            if (npc) {
+                npc.stats.health = parseInt(data.newHealth);
             }
 
         }

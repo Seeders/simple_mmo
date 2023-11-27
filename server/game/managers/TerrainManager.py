@@ -12,7 +12,6 @@ class TerrainManager:
         self.terrain_costs_by_name = get_terrain_costs_by_name()
         self.terrain_costs_by_index = get_terrain_costs_by_index()        
         self.ramps = []
-        self.generate_ramps()
 
     def generate_ramps(self):
         terrain = self.terrain.terrain
@@ -69,7 +68,7 @@ class TerrainManager:
         # Update the terrain data to reflect a ramp at the given position
         # This might involve setting a specific value or flag in the terrain array
         # Example:
-        treeIndex = self.is_tree_at_position(position)
+        treeIndex = self.world.is_tree_at_position(position)
         if treeIndex >= 0:
-            del self.trees[treeIndex]
+            self.world.tree_manager.remove_tree_at_index(treeIndex)
         self.ramps.append(position)

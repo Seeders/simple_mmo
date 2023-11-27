@@ -1,6 +1,6 @@
 import random
 import asyncio
-from ...utils.broadcast import broadcast
+from utils.broadcast import broadcast
 from ..structure import Structure
 from ..town import Town
 class TownManager:
@@ -11,14 +11,14 @@ class TownManager:
 
     def place_towns(self):
         # Define corner positions for the towns
-        padding = min(10, self.terrain.width // 2, self.terrain.height // 2)
+        padding = min(10, self.world.terrain_manager.terrain.width // 2, self.world.terrain_manager.terrain.height // 2)
 
         # Define corner positions with padding
-        opposing_town_1 = (padding, self.terrain.height - 1 - padding)  # Bottom left
-        opposing_town_2 = (self.terrain.width - 1 - padding, padding)  # Top right
+        opposing_town_1 = (padding, self.world.terrain_manager.terrain.height - 1 - padding)  # Bottom left
+        opposing_town_2 = (self.world.terrain_manager.terrain.width - 1 - padding, padding)  # Top right
         neutral_town_1 = (padding, padding)  # Top left
-        neutral_town_2 = (self.terrain.width - 1 - padding, self.terrain.height - 1 - padding)  # Bottom right
-        bandit_town = (int(self.terrain.width / 2), int(self.terrain.height / 2))  # Bottom right
+        neutral_town_2 = (self.world.terrain_manager.terrain.width - 1 - padding, self.world.terrain_manager.terrain.height - 1 - padding)  # Bottom right
+        bandit_town = (int(self.world.terrain_manager.terrain.width / 2), int(self.world.terrain_manager.terrain.height / 2))  # Bottom right
 
         town_centers = [opposing_town_1, opposing_town_2, neutral_town_1, neutral_town_2, bandit_town]
         towns = []
@@ -36,7 +36,7 @@ class TownManager:
                 'barracks': 1,
                 'dock': 3
             }
-            town = Town(self, town_type, town_type, town_center)
+            town = Town(self.world, town_type, town_type, town_center)
             if town_center == opposing_town_1 or town_center == opposing_town_2:
                 town_layout = {} 
             else:
@@ -61,7 +61,7 @@ class TownManager:
             x, y = town_center[0] + x_offset, town_center[1] + y_offset
 
             position = {'x': x, 'y': y}
-            if self.is_land(x, y, self.terrain.terrain) and self.is_tree_at_position(position) == -1 and self.is_stone_at_position(position) == -1 and position not in building_locations:
+            if self.world.is_land(x, y) and self.world.is_tree_at_position(position) == -1 and self.world.is_stone_at_position(position) == -1 and position not in building_locations:
                 building_locations.append(position)
 
         counts = []
@@ -73,10 +73,10 @@ class TownManager:
             building = {}
             if counts[building_type] > 0:
                 counts[building_type] = counts[building_type] - 1                
-                building = Structure(self, town.structure_counter, faction, self.building_types[building_type], position)
+                building = Structure(self.world, town.structure_counter, faction, self.building_types[building_type], position)
                 town.structure_counter = town.structure_counter + 1
             else:
-                building = Structure(self, town.structure_counter, faction, self.building_types[0], position)
+                building = Structure(self.world, town.structure_counter, faction, self.building_types[0], position)
                 town.structure_counter = town.structure_counter + 1
                 
             town_layout[building.id] = building# default to hut
@@ -106,7 +106,7 @@ class TownManager:
             if faction < len(self.towns):
                 town = self.towns[faction]
                 if town:
-                    building = Structure(self, town.structure_counter, faction, structure["name"], position)
+                    building = Structure(self.world, town.structure_counter, faction, structure["name"], position)
                     town.structure_counter = town.structure_counter + 1
                     town.layout[building.id] = building
 
@@ -136,7 +136,7 @@ class TownManager:
         distance_to_town = ((town_center[0] - position['x'])**2 + (town_center[1] - position['y'])**2)**0.5
 
         # Example logic for determining building type
-        if self.is_tile_type_nearby(0, position):
+        if self.world.is_tile_type_nearby(0, position):
             dock_index = self.building_types.index('dock')
             return dock_index
         if distance_to_town < 4:

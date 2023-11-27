@@ -1,16 +1,20 @@
 import random
+from ..config.terrain_layers import terrain_layers
 class StoneManager:
     def __init__(self, world):        
         self.world = world
-        self.stones = self.spawn_stones(self.terrain.terrain, 'stone')    
+        self.stones = self.spawn_stones(self.world.terrain_manager.terrain.terrain, 'stone')    
     
+    def remove_stone_at_index(self, stone_index):
+        del self.stones[stone_index]
+
     def spawn_stones(self, world_map, type):
         stones = []
         for y, row in enumerate(world_map):
             for x, tile in enumerate(row):
-                if self.is_tree_at_position({"x":x,"y":y}) >= 0:
+                if self.world.is_tree_at_position({"x":x,"y":y}) >= 0:
                     continue
-                tileType = self.terrain_layers[tile]
+                tileType = terrain_layers()[tile]
                 if tileType == "water" and random.randint(0, 40) > 0:
                     continue   
                 if tileType == "sand" and random.randint(0, 30) > 0:

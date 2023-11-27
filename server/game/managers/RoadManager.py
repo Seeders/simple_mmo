@@ -1,14 +1,10 @@
-import random
+
 import heapq
-from ...utils.broadcast import broadcast
-from ..structure import Structure
-from ..town import Town
-from ..config.terrain_layers import terrain_layers
-from ..config.terrain_costs import get_terrain_costs_by_name, get_terrain_costs_by_index
 class RoadManager:
     def __init__(self, world):        
         self.world = world
-        self.roads = self.connect_towns()
+        self.roads = []
+        self.roads = self.generate_roads()
 
    
     def generate_roads(self):
@@ -16,11 +12,11 @@ class RoadManager:
 
         # Assuming the first town is bottom left and second is top right (opposing towns),
         # and the third is top left and fourth is bottom right (neutral towns)
-        bottom_left_opposing = self.towns[0]
-        top_right_opposing = self.towns[1]
-        top_left_neutral = self.towns[2]
-        bottom_right_neutral = self.towns[3]
-        center_bandit = self.towns[4]
+        bottom_left_opposing = self.world.town_manager.towns[0]
+        top_right_opposing = self.world.town_manager.towns[1]
+        top_left_neutral = self.world.town_manager.towns[2]
+        bottom_right_neutral = self.world.town_manager.towns[3]
+        center_bandit = self.world.town_manager.towns[4]
 
         # Connect the bottom left opposing town to the top left neutral town
         road_bottom_left_to_top_left = self.connect_towns(bottom_left_opposing.center, top_left_neutral.center)
@@ -41,18 +37,18 @@ class RoadManager:
 
     def add_road_and_remove_obstacles(self, road, roads):
         for road_segment in road:
-            tree_index = self.is_tree_at_position({'x': road_segment[0], 'y': road_segment[1]})
+            tree_index = self.world.is_tree_at_position({'x': road_segment[0], 'y': road_segment[1]})
             if tree_index >= 0:
-                del self.trees[tree_index]
+                self.world.tree_manager.remove_tree_at_index(tree_index)
 
-            stone_index = self.is_stone_at_position({'x': road_segment[0], 'y': road_segment[1]})
+            stone_index = self.world.is_stone_at_position({'x': road_segment[0], 'y': road_segment[1]})
             if stone_index >= 0:
-                del self.stones[stone_index]
+                self.world.stone_manager.remove_stone_at_index(stone_index)
 
         roads.append(road)
 
     def find_nearest_neighbors(self, town, count):
-        distances = [(self.heuristic(town, other_town.center), other_town.center) for other_town in self.towns if other_town != town]
+        distances = [(self.heuristic(town, other_town.center), other_town.center) for other_town in self.world.town_manager.towns if other_town != town]
         distances.sort()
         return [town for _, town in distances[:count]]
 
@@ -62,32 +58,11 @@ class RoadManager:
                 return True
         return False
 
-    def remove_extra_paths(self, town, roads):
-        for road in roads:
-            if self.is_road_near_town(town, road) and not self.is_road_connected_to_town(town, road):
-                for road2 in roads:
-                    if self.is_road_connected_to_town(town, road2):
-                        roads.remove(road2)
-                # Optionally, modify the road to stop before reaching the town
-                # road = self.shorten_road_before_town(town, road)
-        return roads
-
-    def is_road_near_town(self, town, road, threshold=5):
-        # Implement logic to check if the road is near the town
-        # This could involve checking the distance of road segments from the town
-        return any(self.heuristic(town, segment) < threshold for segment in road)
-
-    def is_road_connected_to_town(self, town, road):
-        # Check if the road is connected to the town
-        # This could be based on the endpoints of the road
-        return town in [road[0], road[-1]]
-
-    def shorten_road_before_town(self, town, road):
-        # Shorten the road so it stops before reaching the town
-        # Implement logic based on your game's requirements
-        # Example: return road[:-5] to remove the last 5 segments
-        pass
-
+    def is_road_at_position(self, position):
+        for road in self.roads:
+            if (position['x'], position['y']) in road:
+                return True
+        return False
 
     def connect_towns(self, start, end):
         # A* pathfinding with modifications for more natural roads
@@ -130,13 +105,13 @@ class RoadManager:
 
     def terrain_cost(self, current, neighbor):
         # Define the cost of moving from current to neighbor based on terrain type
-        terrain_type = self.terrain_layers[self.terrain.terrain[neighbor[1]][neighbor[0]]]
+        terrain_type = self.world.terrain_manager.terrain_layers[self.world.terrain_manager.terrain.terrain[neighbor[1]][neighbor[0]]]
         road_weight = 1  # Lower cost for road tiles
 
         if self.is_road_at_position({'x': neighbor[0], 'y': neighbor[1]}):
             return road_weight  # Prefer paths on existing roads
         
-        if self.is_building_at_position({'x': neighbor[0], 'y': neighbor[1]}) != (-1, -1):
+        if self.world.is_building_at_position({'x': neighbor[0], 'y': neighbor[1]}) != (-1, -1):
             return 1000  # Prefer paths on existing roads
         
         if terrain_type == 'water':
@@ -152,7 +127,7 @@ class RoadManager:
         neighbors = []
         for dx, dy in directions:
             x, y = node[0] + dx, node[1] + dy
-            if 0 <= x < self.terrain.width and 0 <= y < self.terrain.width:
+            if 0 <= x < self.world.terrain_manager.terrain.width and 0 <= y < self.world.terrain_manager.terrain.width:
                 neighbors.append((x, y))
         return neighbors
 

@@ -107,7 +107,7 @@ async def game_server(websocket, path, game_manager:GameManager):
                     }))
 
                     towns = []
-                    for town in game_manager.world.towns:           
+                    for town in game_manager.world.town_manager.towns:           
                         towns.append(town.to_dict())
 
                     # Send initial game state to the connected player
@@ -115,15 +115,15 @@ async def game_server(websocket, path, game_manager:GameManager):
                         "type": "init",
                         "id": player.id,
                         "tech_tree": tech_tree(),
-                        "terrain": game_manager.world.terrain.terrain,
-                        "trees": game_manager.world.trees,
-                        "stones": game_manager.world.stones,
-                        "ramps": game_manager.world.ramps,
+                        "terrain": game_manager.world.terrain_manager.terrain.terrain,
+                        "trees": game_manager.world.tree_manager.trees,
+                        "stones": game_manager.world.stone_manager.stones,
+                        "ramps": game_manager.world.terrain_manager.ramps,
                         "towns": towns,
-                        "roads": [[{"x": point[0], "y": point[1]} for point in road] for road in game_manager.world.roads],  # Adjusted for new road structure
+                        "roads": [[{"x": point[0], "y": point[1]} for point in road] for road in game_manager.world.road_manager.roads],  # Adjusted for new road structure
                         "players": [{"id": pid, "position": {"x": player.position['x'], "y": player.position['y']}, "stats": p.stats, "inventory": [item.to_dict() for item in p.inventory]} for pid, p in game_manager.connected.items()],
                         "chat": [],
-                        "enemies": [{"id": enemy_id, "position": e.position, "stats": e.stats} for enemy_id, e in game_manager.world.enemies.items()]
+                        "npcs": [{"id": npc_id, "position": e.position, "stats": e.stats} for npc_id, e in game_manager.world.npc_manager.npcs.items()]
                     }))
                     
                     # Notify other players of the new player

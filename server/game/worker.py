@@ -60,7 +60,7 @@ class Worker:
 
         if len(self.path_to_base) == 0:
             #print(self.id, "find path to home")
-            self.path_to_base = self.world.find_path(self.parent.position, self.world.towns[self.home_town].position)
+            self.path_to_base = self.world.find_path(self.parent.position, self.world.town_manager.towns[self.home_town].position)
         elif self.path_to_base and len(self.path_to_base) > 1:
             #print(self.id, "follow_path to home", self.path_to_base)
             self.follow_path(self.path_to_base, current_time)
@@ -78,7 +78,7 @@ class Worker:
             self.state = "gathering"
             self.last_action_time = current_time
            # print(self.id, "begin gathering")
-        elif self.state == "returning" and self.is_adjacent(self.parent.position, self.world.towns[self.home_town].position):
+        elif self.state == "returning" and self.is_adjacent(self.parent.position, self.world.town_manager.towns[self.home_town].position):
             #print(self.id, "deposit resources")
             self.deposit_resources(current_time)            
         else:
@@ -97,7 +97,7 @@ class Worker:
         nearest_tree = None
         min_distance = float("inf")
        # print(self.id, "searching for tree")
-        for tree in self.world.trees:
+        for tree in self.world.tree_manager.trees:
             if tree["index"] in self.can_not_reach_tree_ids:
                 continue
             if tree["health"] <= 0:            
@@ -161,7 +161,7 @@ class Worker:
     def deposit_resources(self, current_time):
         # Logic to deposit resources at the base
        # print(self.id, "depositing ", self.resource_amount, self.carrying_resource)
-        self.world.factions[self.parent.faction]["resources"][self.carrying_resource] = self.world.factions[self.parent.faction]["resources"][self.carrying_resource] + self.resource_amount
+        self.world.faction_manager.factions[self.parent.faction]["resources"][self.carrying_resource] = self.world.faction_manager.factions[self.parent.faction]["resources"][self.carrying_resource] + self.resource_amount
         self.resource_amount = 0
         self.carrying_resource = None
         self.state = "idle"
@@ -170,7 +170,7 @@ class Worker:
         asyncio.create_task(broadcast({
             "type": "update_faction_resources",
             "faction": self.parent.faction,
-            "resources": self.world.factions[self.parent.faction]["resources"]
+            "resources": self.world.faction_manager.factions[self.parent.faction]["resources"]
         }, self.world.game_manager.connected, self.world.game_manager.connections))
 
     @staticmethod

@@ -76,7 +76,7 @@ export default class RenderManager {
 
         this.renderTerrain();
         this.renderStaticObjects();
-        // Render towns, target circle, minimap, players, enemies, etc.
+        // Render towns, target circle, minimap, players, npcs, etc.
         this.renderTowns();
         this.renderMinimap();
         this.renderPlayers();
@@ -388,7 +388,7 @@ export default class RenderManager {
         const scale = this.minimapCanvas.width / (CONFIG.worldSize);
     
     
-        // Render terrain, players, enemies, etc. on the minimap
+        // Render terrain, players, npcs, etc. on the minimap
         // Scale down the positions and sizes according to the minimap scale
         // Example: Render players
    
@@ -401,7 +401,7 @@ export default class RenderManager {
             this.minimapCtx.fillRect(playerX, playerY, playerSize, playerSize);
         }
 
-        // Add more rendering logic for other entities like enemies, items, etc.
+        // Add more rendering logic for other entities like npcs, items, etc.
     }
 
 
@@ -419,24 +419,24 @@ export default class RenderManager {
     }
 
     renderEnemies() {
-        for (const id in this.gameState.enemyManager.enemies) {
-            const enemy = this.gameState.enemyManager.enemies[id];
-            if( this.fogOfWarMap[enemy.position.y][enemy.position.x] == FogTileState.VISIBLE ) {
-                enemy.render();
-                const img = this.assetManager.assets[enemy.spriteSheetKey];     
-                let spritePosition = enemy.currentSprite;  
+        for (const id in this.gameState.npcManager.npcs) {
+            const npc = this.gameState.npcManager.npcs[id];
+            if( this.fogOfWarMap[npc.position.y][npc.position.x] == FogTileState.VISIBLE ) {
+                npc.render();
+                const img = this.assetManager.assets[npc.spriteSheetKey];     
+                let spritePosition = npc.currentSprite;  
                 let unitSize = CONFIG.unitSize;
-                if( enemy.stats.size ) {
-                    unitSize = enemy.stats.size;
+                if( npc.stats.size ) {
+                    unitSize = npc.stats.size;
                 }
                 if(!spritePosition){
                     spritePosition = {x: 0, y: 0};
                 }
                 
                 // Adjust the position to center the larger unit image on the tile
-                this.renderSprite(this.gameState.context, img, enemy.position.x, enemy.position.y, spritePosition.x, spritePosition.y, unitSize);                         
-                this.renderMiniMapImg(this.minimapCanvas, enemy.position.x, enemy.position.y, unitSize, spritePosition, img, 4);
-            //  this.drawDebugHitbox(this.gameState.context, enemy.position.x, enemy.position.y);
+                this.renderSprite(this.gameState.context, img, npc.position.x, npc.position.y, spritePosition.x, spritePosition.y, unitSize);                         
+                this.renderMiniMapImg(this.minimapCanvas, npc.position.x, npc.position.y, unitSize, spritePosition, img, 4);
+            //  this.drawDebugHitbox(this.gameState.context, npc.position.x, npc.position.y);
             }
         }
     }
@@ -654,7 +654,7 @@ export default class RenderManager {
         if (this.gameState.selectedTarget) {
             const target = this.gameState.selectedTarget.type === 'player' ? 
                         this.gameState.playerManager.players[this.gameState.selectedTarget.id] : 
-                        this.gameState.enemyManager.enemies[this.gameState.selectedTarget.id];
+                        this.gameState.npcManager.npcs[this.gameState.selectedTarget.id];
 
             if (target && target.stats) {
                 const healthPercentage = target.stats.health / target.stats.max_health;
@@ -724,8 +724,8 @@ export default class RenderManager {
             let target;
             if (this.gameState.selectedTarget.type === 'player') {
                 target = this.gameState.playerManager.players[this.gameState.selectedTarget.id];
-            } else if (this.gameState.selectedTarget.type === 'enemy') {
-                target = this.gameState.enemyManager.enemies[this.gameState.selectedTarget.id];
+            } else if (this.gameState.selectedTarget.type === 'npc') {
+                target = this.gameState.npcManager.npcs[this.gameState.selectedTarget.id];
             }
             
             if (target) {

@@ -56,13 +56,13 @@ class Player:
         return False
 
     def is_tree_at_position(self, position):
-        for tree in self.world.trees:
+        for tree in self.world.tree_manager.trees:
             if tree["type"] != "stump" and tree["position"]["x"] == position["x"] and tree["position"]["y"] == position["y"]:
                 return True
         return False
     
     def is_stone_at_position(self, position):
-        for stone in self.world.stones:
+        for stone in self.world.stone_manager.stones:
             if stone["position"]["x"] == position["x"] and stone["position"]["y"] == position["y"]:
                 return True
         return False
