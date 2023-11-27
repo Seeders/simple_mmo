@@ -597,11 +597,11 @@ export default class RenderManager {
         const player = this.gameState.getCurrentPlayer();
         if (player) {
             const healthPercentage = player.stats.health / player.stats.max_health;
-            this.renderHealthBar(10, this.gameState.canvas.height - 30, 200, 20, healthPercentage);
+            this.renderHealthBar(10, this.gameState.canvas.height - 30, 200, 20, parseInt(healthPercentage));
             // this.gameState.context.fillStyle = 'black';
-            // this.gameState.context.fillText(`Level: ${player.stats.level} Health: ${player.stats.health}`, 10, this.gameState.canvas.height - 10);
+            // this.gameState.context.fillText(`Level: ${player.stats.level} Health: ${player.stats.health}`, 10, this.gameState.canvas.height - 10);            
             const expPercentage = player.stats.experience / player.stats.next_level_exp;
-            this.renderExperienceBar(10, this.gameState.canvas.height - 50, 200, 10, expPercentage);    
+            this.renderExperienceBar(10, this.gameState.canvas.height - 50, 200, 10, parseInt(expPercentage));    
 
             let faction = this.gameState.getCurrentPlayer().faction;
             document.getElementById('player-resources-wood').innerHTML = this.gameState.factions[faction].resources.wood;

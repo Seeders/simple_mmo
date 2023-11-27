@@ -17,14 +17,23 @@ class Player:
         self.unit_type = "player"   
         default_stats = self.generate_player_stats()
         self.stats = {**default_stats, **(stats or {})}
+        self.set_next_level_exp()
+        self.check_exp()
         self.name = player_id
         self.attacker = Attacker(self, self.stats)
         self.world.spacial_grid.add_entity(self)
 
+    def set_next_level_exp(self):        
+        self.stats['next_level_exp'] = self.calculate_next_level_exp(self.stats['level'])
+
+    def check_exp(self):
+        if self.stats['experience'] >= self.stats['next_level_exp']:
+            self.level_up()
+            
     def level_up(self):
         self.stats['level'] += 1
         self.stats['experience'] = 0
-        self.stats['next_level_exp'] = self.calculate_next_level_exp(self.stats['level'])
+        self.set_next_level_exp()
         
         # Increase health with level
         self.stats['max_health'] += HEALTH_INCREMENT

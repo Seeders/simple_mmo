@@ -320,12 +320,12 @@ export default class GameState {
         if( data.targetType == "unit" ) {
             this.enemyManager.removeEnemy(data.targetId);
             if (data.unitType == "player") {
-                    let player =  this.playerManager.getPlayer(data.unitId);
-                    if (player) {
-                        player.stats.experience = data.experience;
-                        player.stats.level = data.level;
-                        player.stats.next_level_exp = data.next_level_exp;
-                    }
+                let player =  this.playerManager.getPlayer(data.unitId);
+                if (player) {
+                    player.stats.experience = data.experience;
+                    player.stats.level = data.level;
+                    player.stats.next_level_exp = data.next_level_exp;
+                }
             }
         } else if( data.targetType == "structure" ) {
             let structure_index = 0;

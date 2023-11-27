@@ -24,7 +24,7 @@ class World:
         self.pathfinder = Pathfinding(self.terrain.terrain, self.get_terrain_costs())
         self.trees = self.spawn_trees(self.terrain.terrain)
         self.stones = self.spawn_stones(self.terrain.terrain, 'stone')
-        self.enemies = self.spawn_enemies(1, 100, 100, self.terrain.terrain)       
+        self.enemies = self.spawn_enemies(50, 100, 100, self.terrain.terrain)       
         self.items_on_ground = {}
         self.factions = []
         for i in range(5):

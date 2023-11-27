@@ -187,7 +187,7 @@ class GameManager:
         """
         Executes an attack and broadcasts the result.
         """
-        if attacker.unit_type == "player": 
+        if attacker.unit_type == "player" or defender.unit_type == "player": 
             player_id = attacker.id 
             await broadcastCombatLog(self.combat_logs, player_id, f"{attacker.name} attacked {defender.name} for {attacker.attacker.stats['damage']} damage.", self.connected, self.connections)
         attacker.attacking = False
@@ -261,7 +261,7 @@ class GameManager:
             # Award experience to the player if the attacker is a player
             if attacker.unit_type == "player":
                 attacker.stats['experience'] += self.calculate_experience_reward(defender)
-
+                attacker.check_exp()
                 # Determine if an item should drop
                 if defender.unit_type == "unit" and random.random() < .5:
                     await self.handle_item_drop(defender)
@@ -287,7 +287,7 @@ class GameManager:
 
     async def broadcast_defender_death(self, attacker, defender):
         # Logic to broadcast the death of a defender
-        await broadcast({
+        message = {
             "type": "target_death",
             "unitId": attacker.id,
             "targetId": defender.id,
@@ -295,7 +295,12 @@ class GameManager:
             "targetType": defender.unit_type,
             "unitFaction": attacker.faction,
             "targetFaction": defender.faction
-        }, self.connected, self.connections)
+        }
+        if attacker.unit_type == "player":
+            message["level"] = attacker.stats["level"]
+            message["experience"] = attacker.stats["experience"]
+            message["next_level_exp"] = attacker.stats["next_level_exp"]
+        await broadcast(message, self.connected, self.connections)
 
     async def broadcast_item_drop(self, item):
         # Logic to broadcast item drop
