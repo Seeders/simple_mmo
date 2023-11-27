@@ -89,7 +89,7 @@ class Worker:
 
 
     def is_adjacent(self, pos1, pos2):
-        adjacent = abs(pos1["x"] - pos2["x"]) <= 1 and abs(pos1["y"] - pos2["y"]) <= 1
+        adjacent = (abs(pos1["x"] - pos2["x"]) == 1 and abs(pos1["y"] - pos2["y"]) == 0) or (abs(pos1["x"] - pos2["x"]) == 0 and abs(pos1["y"] - pos2["y"]) == 1)
        # print(f"Checking adjacency between {pos1} and {pos2}: {adjacent}")
         return adjacent
 

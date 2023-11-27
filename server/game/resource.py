@@ -1,6 +1,7 @@
 class Resource:
-    def __init__(self, resource_type, position, health):
-        self.type = resource_type
+    def __init__(self, resource_type, sub_type, drop_type, position, stats):
+        self.type = resource_type #tree, stone, metal, etc
+        self.sub_type = sub_type #pine tree, palm tree, etc
+        self.drop_type = drop_type #drops this on kill
         self.position = position
-        self.health = health
-        # Add other properties as needed
+        self.stats = stats

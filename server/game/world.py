@@ -18,9 +18,18 @@ class World:
         self.enemy_counter = 0
         self.terrain = Terrain(100, 100) 
         self.spacial_grid = SpatialGrid(100, 100, 1)
-        self.terrainLayers = ["water", "sand", "grass", "forest", "mountain"]
+        self.terrainLayers = ["water", "sand", "grass", "forest", "mountain", "road", "wall"]
         self.enemy_spawns = ['green_slime', 'mammoth', 'giant_crab', 'pirate_grunt', 'pirate_gunner', 'pirate_captain']
         self.building_types = ['house', 'market', 'tavern', 'blacksmith', 'temple', 'barracks', 'dock']
+        self.terrain_costs = { 
+            'water': 20, 
+            'sand': 10, 
+            'grass': 5, 
+            'forest': 10, 
+            'mountain': 10, 
+            'road': 1, 
+            'wall': 0
+        }
         self.pathfinder = Pathfinding(self.terrain.terrain, self.get_terrain_costs())
         self.trees = self.spawn_trees(self.terrain.terrain)
         self.stones = self.spawn_stones(self.terrain.terrain, 'stone')
@@ -63,65 +72,55 @@ class World:
             tempTerrain.append([])
             for j in range(len(self.terrain.terrain[i])):
                 tempTerrain[i].append(self.terrain.terrain[i][j])
-        
                 #Check if the current tile is a forest tile
                 if len(self.terrainLayers) > tempTerrain[i][j] and self.terrainLayers[tempTerrain[i][j]] == type1:
                     #Check the neighboring tiles in cardinal directions
-                    for dx in range(-1, 1):
-                        for dy in range(-1, 1):
+                    for dy in range(-1, 2):
+                        for dx in range(-1, 2):
                             #Skip diagonal neighbors and the current tile itself
-                            if abs(dx) == abs(dy):
+                            if abs(dy) == abs(dx):
                                 continue
-                            
                 
                             #Ensure we don't go out of bounds
-                            if i + dx >= 0 and i + dx < len(self.terrain.terrain) and j + dy >= 0 and j + dy < len(self.terrain.terrain[i]):
+                            if i + dy >= 0 and i + dy < len(self.terrain.terrain) and j + dx >= 0 and j + dx < len(self.terrain.terrain[i]):
                                 #Check if the neighboring tile is grass
-                                if self.terrainLayers[self.terrain.terrain[i + dx][j + dy]] == type2:
-                                    tempTerrain[i][j] = 8 #Update the current tile type to 8
-                                   #self.renderManager.renderRoundedRect(self.debugCtx, (j) * CONFIG.tileSize + self.offsetX, (i) * CONFIG.tileSize + self.offsetY, CONFIG.tileSize, CONFIG.tileSize, 2, 'red')
+                                if self.terrainLayers[self.terrain.terrain[i + dy][j + dx]] == type2:
+                                    tempTerrain[i][j] = self.terrainLayers.index('wall')   #Update the current tile type to 8
                                     break #No need to check other neighbors once we find grass
-                                
-                            
                         
-                        if tempTerrain[i][j] == 8:
+                        if tempTerrain[i][j] == self.terrainLayers.index('wall'):
                             break #Break the outer loop as well if we've updated the tile
             
         
         for i in range(len(self.ramps)):
             ramp = self.ramps[i]
-            tempTerrain[ramp['y']][ramp['x']] = self.terrainLayers.index("forest") 
-            for dx in range(-1, 1):
-                for  dy in range(-1, 1):
+            tempTerrain[ramp['y']][ramp['x']] = self.terrainLayers.index('forest')   
+            for dy in range(-1, 2):
+                for dx in range(-1, 2):
                     # Skip diagonal neighbors and the current tile itself
-                    if abs(dx) == abs(dy):
+                    if abs(dy) == abs(dx):
                         continue
-                    
-        
+                            
                     # Ensure we don't go out of bounds
-                    if ramp['y'] + dx >= 0 and ramp['y'] + dx < len(self.terrain.terrain) and ramp['x'] + dy >= 0 and ramp['x'] + dy < len(self.terrain.terrain[ramp['y']]):
+                    if ramp['y'] + dy >= 0 and ramp['y'] + dy < len(self.terrain.terrain) and ramp['x'] + dx >= 0 and ramp['x'] + dx < len(self.terrain.terrain[ramp['y']]):
                         # Check if the neighboring tile is grass
-                        if self.terrainLayers[self.terrain.terrain[ramp['y'] + dx][ramp['x'] + dy]] == "grass":
-                            tempTerrain[ramp['y'] + dx][ramp['x'] + dy] = self.terrainLayers.index("grass") 
+                        if self.terrainLayers[self.terrain.terrain[ramp['y'] + dy][ramp['x'] + dx]] == "grass":
+                            tempTerrain[ramp['y'] + dy][ramp['x'] + dx] = self.terrainLayers.index('grass')   
             
         
         for i in range(len(self.roads)):
             for j in range(len(self.roads[i])):
                 road = self.roads[i][j]
-                tempTerrain[road[1]][road[0]] = 5
-            
-        
+                tempTerrain[road[1]][road[0]] = self.terrainLayers.index('road')           
         
         for i in range(len(self.trees)):
             tree = self.trees[i]
             if tree['health'] > 0 and tree['type'] != 'stump' and not tree['position'] == start:
-                tempTerrain[tree['position']['y']][tree['position']['x']] = 6            
-            
+                tempTerrain[tree['position']['y']][tree['position']['x']] = self.terrainLayers.index('wall')                        
         
         for i in range(len(self.stones)):
             stone = self.stones[i]
-            tempTerrain[stone['position']['y']][stone['position']['x']] = 7           
-        
+            tempTerrain[stone['position']['y']][stone['position']['x']] = self.terrainLayers.index('wall')                  
        
         self.pathfinder = Pathfinding(tempTerrain, self.get_terrain_costs())
         path = self.pathfinder.a_star(position_to_tuple(start), position_to_tuple(goal))
@@ -131,17 +130,16 @@ class World:
 
 
     def get_terrain_costs(self):
+
         # Define costs based on your terrain types
         return { 
-            0: 20, 
-            1: 10, 
-            2: 5, 
-            3: 10, 
-            4: 10, 
-            5: 1, 
-            6: 0, 
-            7: 0, 
-            8: 0
+            0: self.terrain_costs['water'], 
+            1: self.terrain_costs['sand'], 
+            2: self.terrain_costs['grass'], 
+            3: self.terrain_costs['forest'], 
+            4: self.terrain_costs['mountain'], 
+            5: self.terrain_costs['road'], 
+            6: self.terrain_costs['wall']
         }
     
     def update(self, current_time):
