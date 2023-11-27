@@ -163,7 +163,7 @@ export default class GameState {
         
         for(let i = 0; i < this.trees.length; i++) {
             let tree = this.trees[i];
-            if(tree.type != 'stump') {
+            if(tree.type != "stump") {
                 tempTerrain[tree.position.y][tree.position.x] = 6;            
             }
         }
@@ -283,8 +283,10 @@ export default class GameState {
     }
     
     updateTree(data) {
+        
         let tree = this.trees[data.tree_index];
         if( tree ) {
+            console.log('update tree', data);
             tree.position = data.tree_position;
             tree.type = data.tree_type;
             tree.health = data.tree_health;

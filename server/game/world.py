@@ -36,6 +36,8 @@ class World:
         self.ramps = []
         self.generate_ramps()
         self.spawn_workers()
+        for i, tree in enumerate(self.trees):
+            tree['index'] = i
 
     def get_faction(self, faction):
          return { 
@@ -112,7 +114,7 @@ class World:
         
         for i in range(len(self.trees)):
             tree = self.trees[i]
-            if tree['type'] != 'stump' and not tree['position'] == start:
+            if tree['health'] > 0 and tree['type'] != 'stump' and not tree['position'] == start:
                 tempTerrain[tree['position']['y']][tree['position']['x']] = 6            
             
         
@@ -317,6 +319,7 @@ class World:
                     "index": len(trees)
                 }
                 trees.append(tree)
+
         return trees
     
     def spawn_stones(self, world_map, type):

@@ -110,8 +110,9 @@ class Player:
             f"{self.id} destroyed a {target_type} at {position}.", 
             self.world.game_manager.connected, self.world.game_manager.connections))
         
-        self.drop_specific_item(item_type, position)
-        del getattr(self.world, f'{target_type}s')[index]
+        self.drop_specific_item(item_type, position)        
+        if not target_type == 'tree':
+            del getattr(self.world, f'{target_type}s')[index]
 
     def broadcast_target_attack(self, target, target_index, target_type, position):
         asyncio.create_task(broadcastCombatLog(
