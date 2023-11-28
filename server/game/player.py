@@ -40,10 +40,10 @@ class Player:
         self.stats['health'] = self.stats['max_health']  # Heal the player to full health on level up
 
     def move(self, new_position):
-        if self.world.is_position_valid(new_position):
-            if self.world.tile_type_at_position(new_position) == "forest" and self.world.tile_type_at_position(self.position) == "grass" and self.world.is_ramp_at_position(new_position) == -1:
+        if self.world.terrain_manager.is_position_valid(new_position):
+            if self.world.terrain_manager.tile_type_at_position(new_position) == "forest" and self.world.terrain_manager.tile_type_at_position(self.position) == "grass" and self.world.terrain_manager.is_ramp_at_position(new_position) == -1:
                 return False # Player must use ramp to go to forest from grass
-            if self.world.tile_type_at_position(new_position) == "grass" and self.world.tile_type_at_position(self.position) == "forest" and self.world.is_ramp_at_position(self.position) == -1:
+            if self.world.terrain_manager.tile_type_at_position(new_position) == "grass" and self.world.terrain_manager.tile_type_at_position(self.position) == "forest" and self.world.terrain_manager.is_ramp_at_position(self.position) == -1:
                 return False # Player must use ramp to go to grass from forest
             if self.is_tree_at_position(new_position):
                 self.attack_target("tree", new_position)
@@ -86,7 +86,11 @@ class Player:
 
     def attack_target(self, target_type, position):
         target_index = 0
-        targets = getattr(self.world, f'{target_type}s')  # Dynamic attribute access
+        targets = []
+        if target_type == 'tree':
+            targets = self.world.tree_manager.trees
+        elif target_type == 'stone':
+            targets = self.world.stone_manager.stones
 
         for index, target in enumerate(targets):
             if target["position"] == position and (target_type != 'tree' or target["type"] != "stump"):
@@ -121,7 +125,7 @@ class Player:
         
         self.drop_specific_item(item_type, position)        
         if not target_type == 'tree':
-            del getattr(self.world, f'{target_type}s')[index]
+            self.world.stone_manager.remove_stone_at_index(index)
 
     def broadcast_target_attack(self, target, target_index, target_type, position):
         asyncio.create_task(broadcastCombatLog(

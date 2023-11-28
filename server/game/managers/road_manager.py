@@ -4,19 +4,30 @@ class RoadManager:
     def __init__(self, world):        
         self.world = world
         self.roads = []
-        self.roads = self.generate_roads()
 
+    def mapWorld(self):
+        self.town_manager = self.world.town_manager
+        self.terrain_manager = self.world.terrain_manager
+        self.stone_manager = self.world.stone_manager
+        self.tree_manager = self.world.tree_manager
+        self.is_tree_at_position = self.world.tree_manager.is_tree_at_position
+        self.is_stone_at_position = self.world.stone_manager.is_stone_at_position
+        self.is_building_at_position = self.world.town_manager.is_building_at_position
+
+    def init(self):
+        self.mapWorld()
+        self.roads = self.generate_roads()
    
     def generate_roads(self):
         roads = []
 
         # Assuming the first town is bottom left and second is top right (opposing towns),
         # and the third is top left and fourth is bottom right (neutral towns)
-        bottom_left_opposing = self.world.town_manager.towns[0]
-        top_right_opposing = self.world.town_manager.towns[1]
-        top_left_neutral = self.world.town_manager.towns[2]
-        bottom_right_neutral = self.world.town_manager.towns[3]
-        center_bandit = self.world.town_manager.towns[4]
+        bottom_left_opposing = self.town_manager.towns[0]
+        top_right_opposing = self.town_manager.towns[1]
+        top_left_neutral = self.town_manager.towns[2]
+        bottom_right_neutral = self.town_manager.towns[3]
+        center_bandit = self.town_manager.towns[4]
 
         # Connect the bottom left opposing town to the top left neutral town
         road_bottom_left_to_top_left = self.connect_towns(bottom_left_opposing.center, top_left_neutral.center)
@@ -37,18 +48,18 @@ class RoadManager:
 
     def add_road_and_remove_obstacles(self, road, roads):
         for road_segment in road:
-            tree_index = self.world.is_tree_at_position({'x': road_segment[0], 'y': road_segment[1]})
+            tree_index = self.is_tree_at_position({'x': road_segment[0], 'y': road_segment[1]})
             if tree_index >= 0:
-                self.world.tree_manager.remove_tree_at_index(tree_index)
+                self.tree_manager.remove_tree_at_index(tree_index)
 
-            stone_index = self.world.is_stone_at_position({'x': road_segment[0], 'y': road_segment[1]})
+            stone_index = self.is_stone_at_position({'x': road_segment[0], 'y': road_segment[1]})
             if stone_index >= 0:
-                self.world.stone_manager.remove_stone_at_index(stone_index)
+                self.stone_manager.remove_stone_at_index(stone_index)
 
         roads.append(road)
 
     def find_nearest_neighbors(self, town, count):
-        distances = [(self.heuristic(town, other_town.center), other_town.center) for other_town in self.world.town_manager.towns if other_town != town]
+        distances = [(self.heuristic(town, other_town.center), other_town.center) for other_town in self.town_manager.towns if other_town != town]
         distances.sort()
         return [town for _, town in distances[:count]]
 
@@ -105,13 +116,13 @@ class RoadManager:
 
     def terrain_cost(self, current, neighbor):
         # Define the cost of moving from current to neighbor based on terrain type
-        terrain_type = self.world.terrain_manager.terrain_layers[self.world.terrain_manager.terrain.terrain[neighbor[1]][neighbor[0]]]
+        terrain_type = self.terrain_manager.terrain_layers[self.terrain_manager.terrain.terrain[neighbor[1]][neighbor[0]]]
         road_weight = 1  # Lower cost for road tiles
 
         if self.is_road_at_position({'x': neighbor[0], 'y': neighbor[1]}):
             return road_weight  # Prefer paths on existing roads
         
-        if self.world.is_building_at_position({'x': neighbor[0], 'y': neighbor[1]}) != (-1, -1):
+        if self.is_building_at_position({'x': neighbor[0], 'y': neighbor[1]}) != (-1, -1):
             return 1000  # Prefer paths on existing roads
         
         if terrain_type == 'water':
@@ -127,7 +138,7 @@ class RoadManager:
         neighbors = []
         for dx, dy in directions:
             x, y = node[0] + dx, node[1] + dy
-            if 0 <= x < self.world.terrain_manager.terrain.width and 0 <= y < self.world.terrain_manager.terrain.width:
+            if 0 <= x < self.terrain_manager.terrain.width and 0 <= y < self.terrain_manager.terrain.width:
                 neighbors.append((x, y))
         return neighbors
 

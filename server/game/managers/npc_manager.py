@@ -10,8 +10,16 @@ class NPCManager:
         self.npc_counter = 0
         self.npcs = {}
         self.npc_spawns = ['green_slime', 'mammoth', 'giant_crab', 'pirate_grunt', 'pirate_gunner', 'pirate_captain']
-        self.spawn_workers()
 
+    def mapWorld(self):
+        self.town_manager = self.world.town_manager
+        self.is_land = self.world.terrain_manager.is_land
+        self.find_path = self.world.find_path
+
+    def init(self):
+        self.mapWorld()
+        self.spawn_workers()
+     
     def is_world_full(self):
         """ Check if the world has enough space to spawn new entities. """
         land_count = self.world_size * self.world_size
@@ -21,7 +29,7 @@ class NPCManager:
         # Logic to spawn workers
         for i in range(5):
             worker_id = f"Worker{self.npc_counter}"
-            worker_position = { 'x': self.world.town_manager.towns[0].position['x'] + i - 2, 'y': self.world.town_manager.towns[0].position['y'] + 1 }
+            worker_position = { 'x': self.town_manager.towns[0].position['x'] + i - 2, 'y': self.town_manager.towns[0].position['y'] + 1 }
             npc_id = f"NPC{self.npc_counter}"
             patrol_route = self.generate_patrol_route(worker_position)  # Pass dictionary directly
             full_path = self.generate_full_path(patrol_route)
@@ -40,7 +48,7 @@ class NPCManager:
                 y = random.randint(0, world_height - 1)
                 if x < world_height / 2 and y > world_height / 2:
                     continue
-                if self.world.is_land(x, y):
+                if self.is_land(x, y):
                     npc_id = f"NPC{self.npc_counter}"
                     npc_position = {"x": x, "y": y}
                     random_npc_type = npc_types[random.choice(self.npc_spawns)]
@@ -61,7 +69,7 @@ class NPCManager:
             y = random.randint(0, self.world_size - 1)
             if x < self.world_size / 2 and y > self.world_size / 2:
                 continue
-            if self.world.is_land(x, y):
+            if self.is_land(x, y):
                 npc_id = f"NPC{self.npc_counter}"
                 self.npc_counter += 1  # Increment the counter for each new npc
                 random_npc_type = random.choice(self.npc_spawns)
@@ -104,7 +112,7 @@ class NPCManager:
                 if( y > self.world_size ):
                     y = self.world_size - 1
                 
-                if self.world.is_land(x, y):
+                if self.is_land(x, y):
                     waypoint = {"x": x, "y": y}  # Create waypoint as a dictionary
                     route.append(waypoint)
                     break
@@ -115,7 +123,7 @@ class NPCManager:
     def generate_full_path(self, patrol_route):
         full_path = []
         for i in range(len(patrol_route) - 1):
-            path_segment = self.world.find_path(patrol_route[i], patrol_route[i+1])
+            path_segment = self.find_path(patrol_route[i], patrol_route[i+1])
             full_path.extend(path_segment)
         return full_path
 

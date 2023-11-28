@@ -7,18 +7,45 @@ class TownManager:
     def __init__(self, world):        
         self.world = world
         self.building_types = ['house', 'market', 'tavern', 'blacksmith', 'temple', 'barracks', 'dock']
+
+    def mapWorld(self):
+        self.terrain_manager = self.world.terrain_manager
+        self.is_land = self.world.terrain_manager.is_land
+        self.is_tree_at_position = self.world.tree_manager.is_tree_at_position
+        self.is_stone_at_position = self.world.stone_manager.is_stone_at_position
+        self.is_tile_type_nearby = self.world.terrain_manager.is_tile_type_nearby
+
+    def init(self):
+        self.mapWorld()
         self.towns = self.place_towns()
 
+   
+    def is_town_at_position(self, position):
+        for town in self.towns:
+            if position == town.position:
+                return True
+        return False
+
+    def is_building_at_position(self, position):
+        for tindex, town in enumerate(self.towns):
+            # Convert position dictionary to a tuple for comparison
+            coordinate = {'x': position['x'], 'y': position['y']}
+            for building_index, building_id in enumerate(town.layout):
+                building = town.layout[building_id]
+                if coordinate == building.position:
+                    return (tindex, building_id)
+        return (-1, -1)
+    
     def place_towns(self):
         # Define corner positions for the towns
-        padding = min(10, self.world.terrain_manager.terrain.width // 2, self.world.terrain_manager.terrain.height // 2)
+        padding = min(10, self.terrain_manager.terrain.width // 2, self.terrain_manager.terrain.height // 2)
 
         # Define corner positions with padding
-        opposing_town_1 = (padding, self.world.terrain_manager.terrain.height - 1 - padding)  # Bottom left
-        opposing_town_2 = (self.world.terrain_manager.terrain.width - 1 - padding, padding)  # Top right
+        opposing_town_1 = (padding, self.terrain_manager.terrain.height - 1 - padding)  # Bottom left
+        opposing_town_2 = (self.terrain_manager.terrain.width - 1 - padding, padding)  # Top right
         neutral_town_1 = (padding, padding)  # Top left
-        neutral_town_2 = (self.world.terrain_manager.terrain.width - 1 - padding, self.world.terrain_manager.terrain.height - 1 - padding)  # Bottom right
-        bandit_town = (int(self.world.terrain_manager.terrain.width / 2), int(self.world.terrain_manager.terrain.height / 2))  # Bottom right
+        neutral_town_2 = (self.terrain_manager.terrain.width - 1 - padding, self.terrain_manager.terrain.height - 1 - padding)  # Bottom right
+        bandit_town = (int(self.terrain_manager.terrain.width / 2), int(self.terrain_manager.terrain.height / 2))  # Bottom right
 
         town_centers = [opposing_town_1, opposing_town_2, neutral_town_1, neutral_town_2, bandit_town]
         towns = []
@@ -61,7 +88,7 @@ class TownManager:
             x, y = town_center[0] + x_offset, town_center[1] + y_offset
 
             position = {'x': x, 'y': y}
-            if self.world.is_land(x, y) and self.world.is_tree_at_position(position) == -1 and self.world.is_stone_at_position(position) == -1 and position not in building_locations:
+            if self.is_land(x, y) and self.is_tree_at_position(position) == -1 and self.is_stone_at_position(position) == -1 and position not in building_locations:
                 building_locations.append(position)
 
         counts = []
@@ -136,7 +163,7 @@ class TownManager:
         distance_to_town = ((town_center[0] - position['x'])**2 + (town_center[1] - position['y'])**2)**0.5
 
         # Example logic for determining building type
-        if self.world.is_tile_type_nearby(0, position):
+        if self.is_tile_type_nearby(0, position):
             dock_index = self.building_types.index('dock')
             return dock_index
         if distance_to_town < 4:

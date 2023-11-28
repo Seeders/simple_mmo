@@ -48,8 +48,8 @@ class Resource(Item):
     
     def use(self, game_manager, player, item_index):
         # Define the effect of the health potion
-        if game_manager.world.is_town_at_position(player.position):
-            player.stats['resources'][self.type] = player.stats['resources'][self.type] + 1
+        if game_manager.world.town_manager.is_town_at_position(player.position):            
+            self.world.faction_manager.add_resources(0, self.type, 1)
             del player.inventory[item_index]
             asyncio.create_task(broadcast({
                 "type": "update_resource",

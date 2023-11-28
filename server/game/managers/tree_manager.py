@@ -1,10 +1,25 @@
 import random
 from ..config.terrain_layers import terrain_layers
 class TreeManager:
-    def __init__(self, world):        
-        self.world = world
-        self.trees = self.spawn_trees(self.world.terrain_manager.terrain.terrain)
+    def __init__(self, world):    
+        self.world = world     
+        self.trees = []
 
+    def mapWorld(self):
+        self.terrain_manager = self.world.terrain_manager
+        self.road_manager = self.world.road_manager
+
+    def init(self):
+        self.mapWorld()
+        self.trees = self.spawn_trees(self.terrain_manager.terrain.terrain)
+
+    def is_tree_at_position(self, position):
+        for index, tree in enumerate(self.trees):
+            # Convert position dictionary to a tuple for comparison
+            if position == tree['position']:
+                return index
+        return -1
+    
     def remove_tree_at_index(self, tree_index):
         del self.trees[tree_index]
 
@@ -44,7 +59,7 @@ class TreeManager:
     
     def remove_trees_on_roads(self):
         road_tiles = set()
-        for road in self.world.road_manager.roads:
+        for road in self.road_manager.roads:
             for tile in road:
                 road_tiles.add((tile[0], tile[1]))  # Add road tile coordinates to the set
 

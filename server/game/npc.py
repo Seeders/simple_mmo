@@ -87,10 +87,10 @@ class NPC:
         x = self.position["x"] + random.randint(-1, 1)
         y = self.position["y"] + random.randint(-1, 1)
         new_position = {"x": x, "y": y}
-        if self.world.is_position_valid(new_position):
-            if self.world.tile_type_at_position(new_position) == "forest" and self.world.tile_type_at_position(self.position) == "grass" and self.world.is_ramp_at_position(new_position) == -1:
+        if self.world.terrain_manager.is_position_valid(new_position):
+            if self.world.terrain_manager.tile_type_at_position(new_position) == "forest" and self.world.terrain_manager.tile_type_at_position(self.position) == "grass" and self.world.terrain_manager.is_ramp_at_position(new_position) == -1:
                 return False # Player must use ramp to go to forest from grass
-            if self.world.tile_type_at_position(new_position) == "grass" and self.world.tile_type_at_position(self.position) == "forest" and self.world.is_ramp_at_position(self.position) == -1:
+            if self.world.terrain_manager.tile_type_at_position(new_position) == "grass" and self.world.terrain_manager.tile_type_at_position(self.position) == "forest" and self.world.terrain_manager.is_ramp_at_position(self.position) == -1:
                 return False # Player must use ramp to go to grass from forest
             self.world.spacial_grid.move_entity(self, new_position)
 

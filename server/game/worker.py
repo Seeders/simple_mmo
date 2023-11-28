@@ -160,8 +160,8 @@ class Worker:
 
     def deposit_resources(self, current_time):
         # Logic to deposit resources at the base
-       # print(self.id, "depositing ", self.resource_amount, self.carrying_resource)
-        self.world.faction_manager.factions[self.parent.faction]["resources"][self.carrying_resource] = self.world.faction_manager.factions[self.parent.faction]["resources"][self.carrying_resource] + self.resource_amount
+       # print(self.id, "depositing ", self.resource_amount, self.carrying_resource)        
+        self.world.faction_manager.add_resources(self.parent.faction, self.carrying_resource, self.resource_amount)
         self.resource_amount = 0
         self.carrying_resource = None
         self.state = "idle"
