@@ -8,11 +8,13 @@ class FactionManager:
 
     def add_resources(self, faction, resource_type, amount):
         self.factions[faction]["resources"][resource_type] = self.factions[faction]["resources"][resource_type] + amount
+        return self.factions[faction]["resources"][resource_type]
     
     def remove_resources(self, faction, resource_type, amount):
         self.factions[faction]["resources"][resource_type] = self.factions[faction]["resources"][resource_type] - amount
         if self.factions[faction]["resources"][resource_type] < 0:
             self.factions[faction]["resources"][resource_type] = 0
+        return self.factions[faction]["resources"][resource_type]
         
     def get_faction(self, faction):
          return { 

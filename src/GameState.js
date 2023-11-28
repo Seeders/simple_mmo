@@ -301,7 +301,6 @@ export default class GameState {
         
         let tree = this.trees[data.tree_index];
         if( tree ) {
-            console.log('update tree', data);
             tree.position = data.tree_position;
             tree.type = data.tree_type;
             tree.health = data.tree_health;
@@ -331,7 +330,6 @@ export default class GameState {
     }
 
     targetDeath(data) {
-        console.log("targetDeath", data);
         if( data.targetType == "unit" ) {
             this.npcManager.removeNPC(data.targetId);
             if (data.unitType == "player") {

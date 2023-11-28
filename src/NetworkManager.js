@@ -94,7 +94,7 @@ export default class NetworkManager {
             case "start_attack":
                 let id, unit, targetPosition;
                 if( data.unit_type == "player" ) {
-                    id = data.playerId;
+                    id = data.unit_id;
                     unit = this.gameState.playerManager.getPlayer(id);
                     if( data.targetPosition ) {
                         targetPosition = data.targetPosition;
@@ -138,7 +138,6 @@ export default class NetworkManager {
                 this.gameState.addItem(data);
                 break;
             case "item_pickup":
-                // Remove the item from the ground
                 this.gameState.itemPickup(data);
                 break;
             case 'potion_used':
@@ -157,11 +156,9 @@ export default class NetworkManager {
                 this.gameState.updateTowns(data);
                 break;
             case 'update_resource':
-                console.log(`update_resource ${data}`);
                 this.gameState.updateResource(data);
                 break;
             case 'update_faction_resources':
-                console.log(`update_faction_resources ${data}`);
                 this.gameState.updateFactionResources(data);
                 break;                
         }
