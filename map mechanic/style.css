@@ -1,0 +1,99 @@
+/* style.css */
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;
+}
+
+#game-container {
+    margin: auto;
+    width: 1200px;
+    padding: 20px;
+    border: 1px solid #333;
+    border-radius: 8px;
+}
+
+#options-container, #story-container {
+    margin: 10px;
+	min-height: 70px;
+}
+
+#story {
+	margin-bottom: 10px;
+}
+
+.btn {
+    margin: 5px;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    border-radius: 5px;
+    color: white;
+}
+
+.btn.active {	
+    background-color: #4CAF50;
+}
+.btn.active:hover {	
+    background-color: #45a049;
+}
+
+.btn:hover {
+    background-color: #e0e0e0;
+}
+#result {
+    margin-top: 10px;
+	height: 50px;
+}
+/* Add styles for the map and tiles */
+#map {
+    margin-top: 20px;
+}
+#map > div {
+	margin: 0;
+	line-height:0;
+}
+.tile {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #666;
+    margin: 0px;
+    line-height: 0px;
+    text-align: center;
+    vertical-align: top;
+}
+.current_tile {
+	border: 1px dashed orange;
+}
+.Ocean {
+	background-color: darkblue;
+}
+.River {
+	background-color: blue;
+}
+.Coast {
+	background-color: tan;
+}
+.Desert {
+	background-color: yellow;
+}
+.Grassland {
+	background-color: green;
+}
+.Forest {
+	background-color: darkgreen;
+}
+.Mountain {
+	background-color: brown;
+}
+.Volcanic {
+	background-color: red;
+}
+.Ruins {
+	background-color: grey;
+}
+.Mystical {
+	background-color: magenta;
+}

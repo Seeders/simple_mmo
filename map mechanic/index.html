@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realm Discovery Prototype</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <h2>Choose a Direction to Explore</h2>
+        <button class='directionBtn btn active' onclick="exploreDirection('North')">North</button>
+		<br />
+        <button class='directionBtn btn active' onclick="exploreDirection('West')">West</button> 		
+        ----------
+        <button class='directionBtn btn active' onclick="exploreDirection('East')">East</button>
+		<br />
+        <button class='directionBtn btn active' onclick="exploreDirection('South')">South</button>
+		<div id="options-container"></div>
+		<div id="story-container">
+			<div id="story"></div>
+			<div id="choices"></div>
+		</div>
+		<div id="map"></div>
+        <button class='btn active' onclick="exploreWholeMap()">Explore Entire Map</button>
+        <button class='btn active' onclick="refresh()">Refresh</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
