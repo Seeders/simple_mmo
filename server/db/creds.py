@@ -6,6 +6,7 @@ conn = sqlite3.connect('game.db')
 
 # Create a cursor object using the cursor method
 cursor = conn.cursor()
+cursor.execute("DROP TABLE IF EXISTS user_credentials;")
 
 # SQL statement to create a table
 create_table_query = """

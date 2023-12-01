@@ -18,7 +18,6 @@ let playerProgress = {
     statesOfTile: new Set(),
     conditionalStories: new Set()
 };
-
 const terrainWeights = {
     'Ocean': {
         'Ocean': 50, 'Coast': 25, 'River': 5, 'Grassland': 0, 'Forest': 0, 'Desert': 0, 'Mountain': 0, 'Ruins': 0, 'Mystical': 0, 'Volcanic': 0
@@ -51,14 +50,12 @@ const terrainWeights = {
         'Ocean': 0, 'Coast': 0, 'River': 0, 'Grassland': 0, 'Forest': 0, 'Desert': 20, 'Mountain': 30, 'Ruins': 0, 'Mystical': 0, 'Volcanic': 50
     }
 };
-
 const directionOffsets = {
     'North': { x: 0, y: -1 },
     'South': { x: 0, y: 1 },
     'East': { x: 1, y: 0 },
     'West': { x: -1, y: 0 }
 };
-
 const storyContent = {
 	'Coast': {
 		'descriptors': { 
@@ -652,7 +649,6 @@ const storyContent = {
 	}
 
 }
-
 const quests = {
 	'mapQuestIntro': {
 		'requirements': {
@@ -866,8 +862,6 @@ const quests = {
     }
 
 };
-
-
 const questTriggers = {
 	'mysteriousFawn': { 'tileType': 'Grassland', 'characters': { 'text': 'a mysterious fawn', 'requirements': { 'not' : { 'characters': ['mysteriousFawn'] } } } },	
 	'elderTree': { 'tileType': 'Forest', 'features' : { 'text': 'the elder tree', 'requirements': {'conditionalStories': ['enchantedForestJourney']} } },
@@ -902,7 +896,6 @@ function injectQuestTriggers(content, triggers) {
     }
 }
 
-// Example usage
 
 
 function initializeGame() {
@@ -978,7 +971,6 @@ function getStoryFromTileType( tileType, content, storyKey="" ) {
         "choices": choices
     };
 }
-
 function getValidElementsFromStoryContent( content ) {
 	return {
 		templates: 	selectValidElements(content.templates),
@@ -990,7 +982,6 @@ function getValidElementsFromStoryContent( content ) {
 		statesOfTile: selectValidElements(content.statesOfTile)
 	}	
 }
-
 function generateStoryFromStoryObject(storyObject, content) {
 	let template = content.templates[storyObject.template];
 	let story = template.text;
@@ -1011,7 +1002,6 @@ function generateStoryFromStoryObject(storyObject, content) {
     
     return story;
 }
-
 function generateChoicesFromStoryObject(storyObject, content, storyKey) {	
 	let template = content.templates[storyObject.template];
 	let containsDetail = template.text.indexOf('[Detail]') > -1;
@@ -1076,14 +1066,11 @@ function generateChoicesFromStoryObject(storyObject, content, storyKey) {
 	}
     return choices;
 }
-
-
 function selectValidElements(elements) {
 	if(!elements) return {};
     let validElements = Object.keys(elements).filter(key => checkRequirements(elements[key].requirements));
     return validElements;
 }
-
 function checkForSpecialStories() {
 
 	for (const [storyKey, storyInfo] of Object.entries(quests)) {
@@ -1103,7 +1090,6 @@ function checkForSpecialStories() {
 	}
     return null; // No special story conditions met
 }
-
 function checkRequirements(requirements) {
     const meetsAndConditions = (requirements.and || (!requirements.not && !requirements.or)) ? Object.entries(requirements.and || requirements).every(([key, value]) => {
         if (Array.isArray(value)) {
@@ -1131,7 +1117,6 @@ function checkRequirements(requirements) {
 
     return meetsAndConditions && meetsOrConditions && meetsNotConditions;
 }
-
 function updatePlayerProgress(progress) {
     if (progress.tileType) playerProgress.tiles.add(progress.tileType);
     if (progress.feature) playerProgress.features.add(progress.feature);
@@ -1142,7 +1127,6 @@ function updatePlayerProgress(progress) {
 	if (progress.timeOfDay) playerProgress.timesOfDay.add(progress.timeOfDay);
 	if (progress.conditionalStory) playerProgress.conditionalStories.add(progress.conditionalStory);
 }
-
 function determineNextStoryStep() {
     if (!playerProgress.currentConditionalStory) {
         return null;
@@ -1155,7 +1139,6 @@ function determineNextStoryStep() {
 
     return nextSteps.length > 0 ? nextSteps[0] : null;
 }
-
 
 // Utility Functions
 function getRandomInt(min, max) {
@@ -1437,7 +1420,6 @@ function investigateFeature(key, name) {
 		announce(`You investigated ${name}`);
 	}
 }
-
 function discoverTile(x, y) {
     discoveredTiles[y][x] = true;
 	clearStory();

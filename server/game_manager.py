@@ -5,8 +5,8 @@ import aiosqlite
 import bcrypt
 import json
 from game.player import Player
-from game.world import World
-from game.item import generate_random_item, generate_specific_item, Wood, Stone, Gold, HealthPotion
+from game.managers.overworld_manager import OverworldManager
+from game.item import generate_random_item, Wood, Stone, Gold, HealthPotion
 from utils.broadcast import broadcast, broadcastCombatLog
 
 class GameManager:
@@ -15,7 +15,7 @@ class GameManager:
         self.connections = {}  # This will store websocket connections keyed by player_id        
         self.player_id_counter = 0
         self.next_item_id = 0
-        self.world = World(self)
+        self.overworld_manager = OverworldManager(self, 10)
         self.combat_logs = {}
         self.db_file = 'game.db'
 
@@ -31,7 +31,6 @@ class GameManager:
 
         # Generate a new player ID
         new_player_id = await self.get_next_player_id()
-
         # Insert new user credentials into the database
         async with aiosqlite.connect(self.db_file) as db:
             await db.execute(
@@ -41,7 +40,9 @@ class GameManager:
             await db.commit()
 
         # Create and save the new player object
-        new_player = Player(self.world, new_player_id)  # removed default_position argument
+        world_instance = self.overworld_manager.get_world_instance(5,5)
+        new_player = Player(world_instance, new_player_id)  # removed default_position argument
+        self.overworld_manager.move_player(new_player_id, world_instance.overworld_position['x'], world_instance.overworld_position['y'])
         self.connected[new_player_id] = new_player
         await self.save_player_state(new_player_id)
 
@@ -76,9 +77,10 @@ class GameManager:
             async with aiosqlite.connect(self.db_file) as db:
                 serialized_inventory = json.dumps([item.to_dict() for item in player.inventory])
                 serialized_stats = json.dumps(player.stats)
+                overworld_position = player.world.overworld_position
                 await db.execute(
-                    'REPLACE INTO players (player_id, position_x, position_y, stats, inventory) VALUES (?, ?, ?, ?, ?)',
-                    (player_id, player.position['x'], player.position['y'], serialized_stats, serialized_inventory)
+                    'REPLACE INTO players (player_id, world_x, world_y, position_x, position_y, stats, inventory) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    (player_id, overworld_position['x'], overworld_position['y'], player.position['x'], player.position['y'], serialized_stats, serialized_inventory)
                 )
                 await db.commit()
         except Exception as e:
@@ -104,12 +106,13 @@ class GameManager:
                             else:
                                 raise ValueError(f"Unknown item type: {item_type}")
                     if row:
-                        player_data = {
-                            'position': {'x': row[1], 'y': row[2]},
-                            'stats': json.loads(row[3]),
-                            'inventory': [item_from_dict(item) for item in json.loads(row[4])]
+                        world_instance = self.overworld_manager.get_world_instance(row[1], row[2])
+                        player_data = {                            
+                            'position': {'x': row[3], 'y': row[4]},
+                            'stats': json.loads(row[5]),
+                            'inventory': [item_from_dict(item) for item in json.loads(row[6])]
                         }
-                        return Player(self.world, player_id, player_data['position'], player_data['stats'], player_data['inventory'])
+                        return Player(world_instance, player_id, player_data['position'], player_data['stats'], player_data['inventory'])
                     else:
                         return None
         except Exception as e:
@@ -119,12 +122,15 @@ class GameManager:
     async def new_player(self, player_id, websocket):
         # Load existing player state
         existing_player = await self.load_player_state(player_id)
-        if existing_player:
+        if existing_player != None:
             self.connected[player_id] = existing_player
             self.connections[player_id] = websocket
+            self.overworld_manager.move_player(existing_player.id, existing_player.world.overworld_position['x'], existing_player.world.overworld_position['y'])
             return existing_player
         else:
-            new_player = Player(self.world, player_id, self.world.town_manager.towns[0].position )
+            world_instance = self.overworld_manager.get_world_instance(5, 5)
+            new_player = Player(world_instance, player_id, world_instance.town_manager.towns[0].position )
+            self.overworld_manager.move_player(new_player.id, world_instance.overworld_position['x'], world_instance.overworld_position['y'])
             self.connected[player_id] = new_player
             self.connections[player_id] = websocket
             await self.save_player_state(player_id)  # Save the new player state
@@ -222,21 +228,31 @@ class GameManager:
         """
         while True:
             current_time = asyncio.get_event_loop().time()
-            spawned_npc = self.world.npc_manager.maintain_npc_count(10)
-            await self.update_npc_patrols(current_time)
-            if spawned_npc:
-                await self.broadcast_npc_spawn(spawned_npc)
 
-            await self.process_town_attacks(current_time)
-            await self.process_player_attacks(current_time)
-            await self.process_npc_attacks(current_time)
+            # Track worlds with active players
+            active_worlds = set()
+            for player_id in self.connected:
+                player_world = self.overworld_manager.get_world_of_player(player_id)
+                if player_world:
+                    active_worlds.add(player_world)
+
+            # Process combat in active worlds
+            for world in active_worlds:
+                spawned_npc = world.npc_manager.maintain_npc_count(10)  # Assuming this method now also takes the current time
+                await self.update_npc_patrols(current_time, world)
+                if spawned_npc:
+                    await self.broadcast_npc_spawn(spawned_npc, world)  # Adjusted to include world context
+
+                await self.process_town_attacks(current_time, world)
+                await self.process_player_attacks(current_time, world)
+                await self.process_npc_attacks(current_time, world)
 
             await asyncio.sleep(0.1)  # Sleep to prevent a tight loop
 
 
     async def handle_player_death(self, player, attacker):
         await broadcastCombatLog(self.combat_logs, player.id, f"{player.name} was killed by {attacker.name}.", self.connected, self.connections)
-        self.world.spacial_grid.move_entity(player, self.world.town_manager.towns[0].position )
+        player.world.spacial_grid.move_entity(player, player.world.town_manager.towns[0].position )
         player.stats['health'] = player.stats['max_health']  # Reset health
         await broadcast({
             "type": "player_respawn",
@@ -255,9 +271,9 @@ class GameManager:
 
         elif defender.unit_type == "unit":
             # Remove the npc from the game world
-            del self.world.npc_manager.npcs[defender.id]
+            del defender.world.npc_manager.npcs[defender.id]
 
-            self.world.spacial_grid.remove_entity(defender)
+            defender.world.spacial_grid.remove_entity(defender)
             # Award experience to the player if the attacker is a player
             if attacker.unit_type == "player":
                 attacker.stats['experience'] += self.calculate_experience_reward(defender)
@@ -268,7 +284,7 @@ class GameManager:
 
         elif defender.unit_type == "structure":
             # Remove the structure from the game world
-            del self.world.town_manager.towns[defender.faction].layout[defender.id]
+            del defender.world.town_manager.towns[defender.faction].layout[defender.id]
 
         # Broadcast the death of the defender
         await self.broadcast_defender_death(attacker, defender)
@@ -278,7 +294,7 @@ class GameManager:
         item_id = self.next_item_id
         self.next_item_id += 1
         item = generate_random_item(item_id, defender.position)
-        self.world.items_on_ground[item_id] = item
+        defender.world.items_on_ground[item_id] = item
         await self.broadcast_item_drop(item)
 
     def calculate_experience_reward(self, defender):
@@ -310,19 +326,19 @@ class GameManager:
             "item": item.to_dict()  # Assuming item has a method to convert to dict
         }, self.connected, self.connections)
 
-    async def broadcast_npc_spawn(self, npc):
+    async def broadcast_npc_spawn(self, npc, world):
         await broadcast({
             "type": "spawn_npc",
-            "npc": {"id": npc.id, "position": npc.position, "stats": npc.stats}
+            "npc": {"id": npc.id, "overworld_position": world.overworld_position, "position": npc.position, "stats": npc.stats}
         }, self.connected, self.connections)
 
-    async def process_town_attacks(self, current_time):
-        for town_index, town in enumerate(self.world.town_manager.towns):
+    async def process_town_attacks(self, current_time, world):
+        for town_index, town in enumerate(world.town_manager.towns):
             faction = town_index
             for building_id, building in town.layout.items():
                 if building.attacker:
                     # Get nearby targets within attack range
-                    nearby_targets = self.world.spacial_grid.get_nearby_entities(building.position, building.attacker.stats["attack_range"], faction)
+                    nearby_targets = world.spacial_grid.get_nearby_entities(building.position, building.attacker.stats["attack_range"], faction)
                     
                     # Select a target and initiate an attack routine
                     for target in nearby_targets:
@@ -332,11 +348,11 @@ class GameManager:
 
 
 
-    async def process_player_attacks(self, current_time):
+    async def process_player_attacks(self, current_time, world):
         for player_id, player in self.connected.items():
             if player.attacker:
                 # Get nearby targets within attack range
-                nearby_targets = self.world.spacial_grid.get_nearby_entities(player.position, player.attacker.stats["attack_range"], 0)  # Assuming 0 is the player faction
+                nearby_targets = world.spacial_grid.get_nearby_entities(player.position, player.attacker.stats["attack_range"], 0)  # Assuming 0 is the player faction
                 
                 # Select a target and initiate an attack routine
                 for target in nearby_targets:
@@ -344,13 +360,13 @@ class GameManager:
                         await self.attack_routine(current_time, player, target)
                         break  # Attack the first valid target and then break
 
-    async def process_npc_attacks(self, current_time):
-        npc_ids = list(self.world.npc_manager.npcs.keys())  # Create a list of npc IDs
+    async def process_npc_attacks(self, current_time, world):
+        npc_ids = list(world.npc_manager.npcs.keys())  # Create a list of npc IDs
         for npc_id in npc_ids:
-            npc = self.world.npc_manager.npcs.get(npc_id)  # Get the npc by ID
+            npc = world.npc_manager.npcs.get(npc_id)  # Get the npc by ID
             if npc and npc.attacker:
                 # Get nearby targets within attack range
-                nearby_targets = self.world.spacial_grid.get_nearby_entities(npc.position, npc.attacker.stats["attack_range"], 1)  # Assuming 1 is the npc faction
+                nearby_targets = world.spacial_grid.get_nearby_entities(npc.position, npc.attacker.stats["attack_range"], 1)  # Assuming 1 is the npc faction
 
                 # Select a target and initiate an attack routine
                 for target in nearby_targets:
@@ -387,8 +403,8 @@ class GameManager:
             time_to_next_tick = 1 - (current_time - last_regeneration_time)
             await asyncio.sleep(time_to_next_tick if time_to_next_tick > 0 else 0)
 
-    async def update_npc_patrols(self, current_time):
-        for npc_id, npc in self.world.npc_manager.npcs.items():
+    async def update_npc_patrols(self, current_time, world):
+        for npc_id, npc in world.npc_manager.npcs.items():
             npc.update(current_time)
             # Broadcast npc movement to all connected players
             await broadcast({

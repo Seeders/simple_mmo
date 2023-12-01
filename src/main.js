@@ -40,10 +40,27 @@ async function handleLogin(gameState, networkManager, username, password, loginM
     loginModal.style.display = "block"; // Show login modal on login failure
   }
 }
+// Function to handle login
+async function handleRegister(gameState, networkManager, username, password, loginModal) {
+  try {
+    loginModal.style.display = "none";
+    await loadAssets(gameState.assetManager);
+
+    window.game = {
+      gameState
+    };
+
+    await networkManager.register(username, password);
+  } catch (error) {
+    console.error("Login failed:", error);
+    loginModal.style.display = "block"; // Show login modal on login failure
+  }
+}
 
 // Main application logic
 async function main(gameState, networkManager) {
   const loginModal = document.getElementById("loginModal");
+  const registerModal = document.getElementById("registrationModal");
   const loginForm = document.getElementById("loginForm");
 
   loginForm.onsubmit = async function(event) {
@@ -64,6 +81,19 @@ async function main(gameState, networkManager) {
   } else {
     loginModal.style.display = "block";
   }
+  const registerForm = document.getElementById("registerForm");
+
+  registerForm.onsubmit = async function(event) {
+    event.preventDefault();
+    const username = document.getElementById("regUsername").value;
+    const password = document.getElementById("regPassword").value;
+    localStorage.setItem("username", username);
+    localStorage.setItem("password", password);
+
+    await handleRegister(gameState, networkManager, username, password, loginModal);
+    await handleLogin(gameState, networkManager, username, password, registerModal);
+  };
+
 }
 
 // Function to start the game

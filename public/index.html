@@ -9,7 +9,7 @@
 <body>
     <div id="loginModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close" onclick="closeModal('loginModal')">&times;</span>
             <form id="loginForm">
                 <label for="username">Username:</label>
                 <input type="text" id="username" name="username"><br>
@@ -23,7 +23,7 @@
     <div id="registrationModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('registrationModal')">&times;</span>
-            <form id="registrationForm">
+            <form id="registerForm">
                 <label for="regUsername">Username:</label>
                 <input type="text" id="regUsername" name="username" required><br>
                 <label for="regPassword">Password:</label>

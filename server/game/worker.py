@@ -27,13 +27,13 @@ class Worker:
 
       #  print(self.id, time_since_last_action, self.state)
         if self.state == "moving" and time_since_last_action >= 1 / self.move_speed:
-            #print(self.id, "moving")  
+       #     print(self.id, "moving")  
             self.move_towards_target(current_time)
         elif self.state == "gathering" and time_since_last_action >= self.gathering_rate:
-            #print(self.id, "gathering")  
+        #    print(self.id, "gathering")  
             self.gather_resources(current_time)
         elif self.state == "returning" and time_since_last_action >= 1 / self.move_speed:
-            #print(self.id, "returning")  
+         #   print(self.id, "returning")  
             self.return_resources(current_time)
 
     def move_towards_target(self, current_time):

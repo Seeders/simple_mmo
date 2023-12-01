@@ -13,14 +13,16 @@ from .managers.stone_manager import StoneManager
 from .config.terrain_costs import get_terrain_costs_by_index
 
 class World:
-    def __init__(self, game_manager):
-        w_size = world_size()
+    def __init__(self, overworld_manager, game_manager, overworld_position):
+        w_size = world_size()        
+        self.overworld_manager = overworld_manager
+        self.overworld_position = overworld_position
         self.game_manager = game_manager
+        self.spacial_grid = SpatialGrid(w_size, w_size, 1)
         self.terrain_manager = TerrainManager(self)
         self.tree_manager = TreeManager(self)
         self.stone_manager = StoneManager(self)
         self.player_manager = PlayerManager(self)
-        self.spacial_grid = SpatialGrid(w_size, w_size, 1)
         self.town_manager = TownManager(self)
         self.road_manager = RoadManager(self)
         self.faction_manager = FactionManager(self)

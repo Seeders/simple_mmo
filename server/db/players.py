@@ -10,6 +10,8 @@ cursor.execute("DROP TABLE IF EXISTS players;")
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS players (
     player_id TEXT PRIMARY KEY,
+    world_x INTEGER,
+    world_y INTEGER,
     position_x INTEGER,
     position_y INTEGER,
     stats TEXT,
