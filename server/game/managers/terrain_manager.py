@@ -6,19 +6,19 @@ from ..config.terrain_costs import get_terrain_costs_by_name, get_terrain_costs_
 class TerrainManager:
     def __init__(self, world):        
         self.world = world
-        w_size = world_size()
+        w_size = world_size
         self.terrain = Terrain(w_size, w_size)         
-        self.terrain_layers = terrain_layers()
+        self.terrain_layers = terrain_layers
         self.terrain_costs_by_name = get_terrain_costs_by_name()
         self.terrain_costs_by_index = get_terrain_costs_by_index()        
         self.ramps = []
 
-    def mapWorld(self):
+    def map_world(self):
         self.tree_manager = self.world.tree_manager
         self.road_manager = self.world.road_manager
 
     def init(self):
-        self.mapWorld()   
+        self.map_world()   
         self.generate_ramps()
 
     def generate_ramps(self):

@@ -1,2 +1,1 @@
-def world_size():
-    return 100
+world_size = 100

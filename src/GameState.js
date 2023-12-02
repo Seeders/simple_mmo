@@ -33,6 +33,7 @@ export default class GameState {
         this.trees = [];
         this.stones = [];
         this.chats = [];
+        this.overworldMap = [];
         this.selectedTarget = null;
         this.currentPlayerId = null;
         this.offsetX = 0;
@@ -70,7 +71,8 @@ export default class GameState {
         this.ramps = data.ramps;
         this.stones = data.stones;
         this.techTree = data.tech_tree;
-
+        this.overworldMap = data.overworld_map;
+        this.overworldPosition = data.world_position;
         this.playerManager.initPlayers(data.players);
         this.npcManager.initEnemies(data.npcs);
         this.renderManager.init();
@@ -468,13 +470,6 @@ export default class GameState {
     }
 
     healthRegeneration(data) {
-        let player = this.playerManager.getPlayer(data.playerId);
-        if (player) {
-            player.stats.health = parseInt(data.newHealth);
-        }
-    }
-
-    healthRegeneration(data) {
         if( data.playerId ) {
             let player = this.playerManager.getPlayer(data.playerId);
             if (player) {
@@ -487,6 +482,10 @@ export default class GameState {
             }
 
         }
+    }
+
+    updateOverworldMap(data) {
+        this.overworldMap = data.map;
     }
     // Additional methods for managing and querying the game state can be added here
 }

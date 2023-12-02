@@ -131,13 +131,13 @@ canvas {
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
-#minimap-container {
+#minimap-container, #world-map-container {
     position: relative; /* Set the container to relative positioning */
     width: 300px; /* Adjust size as needed */
     height: 300px; /* Adjust size as needed */
 }
 
-#minimapCanvas, #minimapTerrainCanvas {
+#minimapCanvas, #minimapTerrainCanvas, #worldMapCanvas, #worldMapTerrainCanvas {
     position: absolute; /* Absolute positioning within the container */
     top: 0;
     left: 0;
@@ -147,11 +147,11 @@ canvas {
     height: 100%; /* Fill the container */
 }
 
-#minimapCanvas {
+#minimapCanvas, #worldMapCanvas {
     z-index: 2; /* Ensures this canvas is on top */
 }
 
-#minimapTerrainCanvas {
+#minimapTerrainCanvas, #worldMapTerrainCanvas {
     z-index: 1; /* Lower z-index, sits behind the other canvas */
 }
 

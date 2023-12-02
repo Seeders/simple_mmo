@@ -45,20 +45,15 @@ class TileAnalysis {
     Penninsula: 5,
     Island: 6,
   };
-  const atomTextures = {
-    [TileAtom.Full]: "0.png",
-    [TileAtom.OneCorner]: "1.png",
-    [TileAtom.TwoCorner]: "2.png",
-    [TileAtom.ThreeCorner]: "3.png",
-};
 
 class TileMap {
-	constructor(assetManager, canvas, tileSize, layers) {
+	constructor(assetManager, canvas, tileSize, layers, asset_prefix="") {
 		this.assetManager = assetManager;
 		this.canvas = canvas;
 		this.tileSize = tileSize;
 		this.numColumns = 0;
 		this.layers = layers;
+		this.asset_prefix = asset_prefix;
 		this.tileMap = [];
 		this.canvasUtility = new CanvasUtility();
 
@@ -74,13 +69,13 @@ class TileMap {
 			var textures = [];        
 			this.layers.forEach((layer, index) => {
 				textures[index] = [];
-				for (const key in atomTextures) {
-					let tempKey = key;
-					if( (layer == 'water' || layer == 'road') && key > 0 ) {//only use the first sprite for base layer
+				for (const val in TileAtom) {
+					let tempKey = TileAtom[val];					
+					let img = this.assetManager.assets[`${this.asset_prefix}${layer}${tempKey}`]; 
+					if(!img) {
 						tempKey = 0;
-					} 
-
-					const img = this.assetManager.assets[`${layer}${tempKey}`]; 
+						img = this.assetManager.assets[`${this.asset_prefix}${layer}${tempKey}`]; 
+					}
 					textures[index].push(img);
 				
 				}
@@ -455,11 +450,16 @@ class TileMap {
 		let maxCount = 0;
 		Object.keys(heightCounts).forEach((height) => {
 			if (heightCounts[height] > maxCount && height < tileAnalysis.heightIndex) {
-				lowerNeighborHeight = height;
+				lowerNeighborHeight = parseInt(height);
 				maxCount = heightCounts[height];
 			}
 		});
 		const numPixels = this.tileSize * this.tileSize;
+		if(lowerNeighborHeight < 0){
+			const blackData = new Uint8ClampedArray(numPixels * 4); // 4 values per pixel (RGBA)
+			blackData.fill(0); // Fill with black (0, 0, 0, 255)
+			return new ImageData(blackData, this.tileSize, this.tileSize);
+		}
 		let baseColors = this.layerTextures[tileAnalysis.heightIndex][TileMolecule.Full][TileTransforms.None].data;
 		let neighborColors = this.layerTextures[lowerNeighborHeight][TileMolecule.Full][TileTransforms.None].data;
 
@@ -628,7 +628,7 @@ class TileMap {
 	addVariationImage(imageData, tileAnalysis) {
 		let layer = this.layers[tileAnalysis.heightIndex];
 		let variation = parseInt(Math.random() * 2) + 1
-		const img = this.assetManager.assets[`${layer}0_${variation}`];
+		const img = this.assetManager.assets[`${this.asset_prefix}${layer}0_${variation}`];
 	
 		// Create an instance of CanvasUtility
 	
@@ -665,12 +665,19 @@ class TileMap {
 
 			const x = (index % this.numColumns) * this.tileSize;
 			const y = Math.floor(index / this.numColumns) * this.tileSize;
-			let tileBase = this.getTileBaseByTileAnalysis(tileAnalysis);
-			let imageData = this.getTransformedTexture(this.layerTextures[tileAnalysis.heightIndex], tileAnalysis, tileBase);			
-			imageData = this.colorImageData(imageData, tileAnalysis);
-			imageData = this.addVariationImage(imageData, tileAnalysis);
-			imageData = this.addCornerGraphics(imageData, tileAnalysis);
-
+			let imageData = new ImageData(new Uint8ClampedArray(4),1,1);
+			if( tileAnalysis.heightIndex >= 0 ) {
+				let tileBase = this.getTileBaseByTileAnalysis(tileAnalysis);
+				imageData = this.getTransformedTexture(this.layerTextures[tileAnalysis.heightIndex], tileAnalysis, tileBase);			
+				imageData = this.colorImageData(imageData, tileAnalysis);
+				imageData = this.addVariationImage(imageData, tileAnalysis);
+				imageData = this.addCornerGraphics(imageData, tileAnalysis);
+			} else {
+				let numPixels = this.tileSize * this.tileSize;
+				const blackData = new Uint8ClampedArray(numPixels * 4); // 4 values per pixel (RGBA)
+				blackData.fill(0); // Fill with black (0, 0, 0, 255)
+				imageData = new ImageData(blackData, this.tileSize, this.tileSize);
+			}
 			offscreenCtx.putImageData(imageData, x, y);
 
 		});

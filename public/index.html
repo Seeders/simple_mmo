@@ -52,6 +52,7 @@
                     <button class="tablinks active" onclick="openTab(event, 'view-container')">View</button>
                     <button class="tablinks" onclick="openTab(event, 'stats-container')">Stats</button>
                     <button class="tablinks" onclick="openTab(event, 'minimap-container')">Map</button>
+                    <button class="tablinks" onclick="openTab(event, 'world-map-container')">World</button>
                 </div>      
                 <div id="view-container" class="tabcontent" style="display: block">
                     <canvas id="viewCanvas"></canvas>                
@@ -59,7 +60,10 @@
                 <div id="minimap-container" class="tabcontent">
                     <canvas id="minimapCanvas"></canvas>
                     <canvas id="minimapTerrainCanvas"></canvas>
-                </div>           
+                </div>    
+                <div id="world-map-container" class="tabcontent">
+                    <canvas id="worldMapCanvas"></canvas>
+                </div>          
                 <div id="stats-container" class="tabcontent" >
                     <div id="resources-container">
                         <div id="resources-wood-container">

@@ -8,7 +8,7 @@ class TownManager:
         self.world = world
         self.building_types = ['house', 'market', 'tavern', 'blacksmith', 'temple', 'barracks', 'dock']
 
-    def mapWorld(self):
+    def map_world(self):
         self.terrain_manager = self.world.terrain_manager
         self.is_land = self.world.terrain_manager.is_land
         self.is_tree_at_position = self.world.tree_manager.is_tree_at_position
@@ -16,7 +16,7 @@ class TownManager:
         self.is_tile_type_nearby = self.world.terrain_manager.is_tile_type_nearby
 
     def init(self):
-        self.mapWorld()
+        self.map_world()
         self.towns = self.place_towns()
 
    

@@ -8,6 +8,7 @@ from game.player import Player
 from game.managers.overworld_manager import OverworldManager
 from game.item import generate_random_item, Wood, Stone, Gold, HealthPotion
 from utils.broadcast import broadcast, broadcastCombatLog
+from game.config.overworld_config import overworld_size, overworld_map_types
 
 class GameManager:
     def __init__(self):
@@ -15,9 +16,10 @@ class GameManager:
         self.connections = {}  # This will store websocket connections keyed by player_id        
         self.player_id_counter = 0
         self.next_item_id = 0
-        self.overworld_manager = OverworldManager(self, 10)
+        self.overworld_manager = OverworldManager(self, overworld_size, overworld_map_types)
         self.combat_logs = {}
         self.db_file = 'game.db'
+        self.player_overworld_start = { 'x': int(overworld_size/2), 'y': int(overworld_size - 7) }
 
     async def register_user(self, username, password):
         # Check if username already exists
@@ -40,14 +42,13 @@ class GameManager:
             await db.commit()
 
         # Create and save the new player object
-        world_instance = self.overworld_manager.get_world_instance(5,5)
+        world_instance = self.overworld_manager.get_world_instance(self.player_overworld_start['x'], self.player_overworld_start['y'])
         new_player = Player(world_instance, new_player_id)  # removed default_position argument
         self.overworld_manager.move_player(new_player_id, world_instance.overworld_position['x'], world_instance.overworld_position['y'])
         self.connected[new_player_id] = new_player
         await self.save_player_state(new_player_id)
 
         return True  # Registration successful
-
 
     async def authenticate_user(self, username, password):
         async with aiosqlite.connect(self.db_file) as db:
@@ -85,7 +86,6 @@ class GameManager:
                 await db.commit()
         except Exception as e:
             print(f"Error saving player state: {e}")
-
 
     async def load_player_state(self, player_id):
         try:
@@ -128,7 +128,7 @@ class GameManager:
             self.overworld_manager.move_player(existing_player.id, existing_player.world.overworld_position['x'], existing_player.world.overworld_position['y'])
             return existing_player
         else:
-            world_instance = self.overworld_manager.get_world_instance(5, 5)
+            world_instance = self.overworld_manager.get_world_instance(self.player_overworld_start['x'], self.player_overworld_start['y'])
             new_player = Player(world_instance, player_id, world_instance.town_manager.towns[0].position )
             self.overworld_manager.move_player(new_player.id, world_instance.overworld_position['x'], world_instance.overworld_position['y'])
             self.connected[player_id] = new_player
@@ -153,10 +153,6 @@ class GameManager:
             "id": player_id
         }, self.connected, self.connections)
 
-
-
-
-
     async def attack_routine(self, current_time, attacker, defender):
         """
         Handles the attack routine between two units.
@@ -175,8 +171,6 @@ class GameManager:
             await self.start_attack(attacker, defender)
         elif current_time - attacker.attacker.last_attack_time >= 1 / attacker.attacker.stats['attack_speed']:
             await self.execute_attack(attacker, defender, current_time)
-
-
 
     async def start_attack(self, attacker, defender):
         """
@@ -249,7 +243,6 @@ class GameManager:
 
             await asyncio.sleep(0.1)  # Sleep to prevent a tight loop
 
-
     async def handle_player_death(self, player, attacker):
         await broadcastCombatLog(self.combat_logs, player.id, f"{player.name} was killed by {attacker.name}.", self.connected, self.connections)
         player.world.spacial_grid.move_entity(player, player.world.town_manager.towns[0].position )
@@ -260,7 +253,6 @@ class GameManager:
             "position": player.position,
             "health": player.stats['health']
         }, self.connected, self.connections)
-
 
     async def handle_defender_death(self, attacker, defender):
         attacker.attacker.exit_combat()
@@ -346,8 +338,6 @@ class GameManager:
                             await self.attack_routine(current_time, building, target)
                             break  # Attack the first valid target and then break
 
-
-
     async def process_player_attacks(self, current_time, world):
         for player_id, player in self.connected.items():
             if player.attacker:
@@ -374,12 +364,9 @@ class GameManager:
                         await self.attack_routine(current_time, npc, target)
                         break  # Attack the first valid target and then break
 
-
-
     def is_valid_target(self, attacker, target):
         # Implement logic to determine if the target is valid (e.g., npc, within range)
         return target.stats['health'] > 0 and target.faction != attacker.faction
-
 
     async def health_regeneration_handler(self):
         last_regeneration_time = asyncio.get_event_loop().time()

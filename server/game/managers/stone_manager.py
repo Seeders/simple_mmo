@@ -5,12 +5,12 @@ class StoneManager:
         self.world = world  
         self.stones = []
     
-    def mapWorld(self):
+    def map_world(self):
         self.terrain_manager = self.world.terrain_manager
         self.is_tree_at_position = self.world.tree_manager.is_tree_at_position
 
     def init(self):
-        self.mapWorld()
+        self.map_world()
         self.stones = self.spawn_stones(self.terrain_manager.terrain.terrain, 'stone')  
     
     def is_stone_at_position(self, position):
@@ -29,7 +29,7 @@ class StoneManager:
             for x, tile in enumerate(row):
                 if self.is_tree_at_position({"x":x,"y":y}) >= 0:
                     continue
-                tileType = terrain_layers()[tile]
+                tileType = terrain_layers[tile]
                 if tileType == "water" and random.randint(0, 40) > 0:
                     continue   
                 if tileType == "sand" and random.randint(0, 30) > 0:

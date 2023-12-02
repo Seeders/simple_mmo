@@ -5,12 +5,12 @@ class TreeManager:
         self.world = world     
         self.trees = []
 
-    def mapWorld(self):
+    def map_world(self):
         self.terrain_manager = self.world.terrain_manager
         self.road_manager = self.world.road_manager
 
     def init(self):
-        self.mapWorld()
+        self.map_world()
         self.trees = self.spawn_trees(self.terrain_manager.terrain.terrain)
 
     def is_tree_at_position(self, position):
@@ -27,7 +27,7 @@ class TreeManager:
         trees = []
         for y, row in enumerate(world_map):
             for x, tile in enumerate(row):
-                tileType = terrain_layers()[tile]
+                tileType = terrain_layers[tile]
                 tree_type = ""
                 if tileType == "grass":  # Assuming "forest" is the identifier for forest tiles
                     if random.randint(0, 9) > 0:

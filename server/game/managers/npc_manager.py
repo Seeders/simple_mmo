@@ -6,18 +6,18 @@ from ..config.world_size import world_size
 class NPCManager:
     def __init__(self, world):        
         self.world = world
-        self.world_size = world_size()
+        self.world_size = world_size
         self.npc_counter = 0
         self.npcs = {}
         self.npc_spawns = ['green_slime', 'mammoth', 'giant_crab', 'pirate_grunt', 'pirate_gunner', 'pirate_captain']
 
-    def mapWorld(self):
+    def map_world(self):
         self.town_manager = self.world.town_manager
         self.is_land = self.world.terrain_manager.is_land
         self.find_path = self.world.find_path
 
     def init(self):
-        self.mapWorld()
+        self.map_world()
         self.spawn_workers()
      
     def is_world_full(self):

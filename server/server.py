@@ -5,6 +5,7 @@ import websockets
 import json
 import re
 import time
+from game.config.overworld_config import overworld_size
 from utils.broadcast import broadcast
 from game_manager import GameManager
 from game.config.tech_tree import tech_tree
@@ -118,8 +119,10 @@ async def game_server(websocket, path, game_manager:GameManager):
                     # Send initial game state to the connected player
                     await websocket.send(json.dumps({
                         "type": "init",
-                        "id": player.id,
+                        "id": player.id,                        
                         "tech_tree": tech_tree(),
+                        "world_position": player.world.overworld_position,
+                        "overworld_map": game_manager.overworld_manager.map,
                         "terrain": player.world.terrain_manager.terrain.terrain,
                         "trees": player.world.tree_manager.trees,
                         "stones": player.world.stone_manager.stones,

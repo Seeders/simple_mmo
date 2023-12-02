@@ -14,7 +14,7 @@ from .config.terrain_costs import get_terrain_costs_by_index
 
 class World:
     def __init__(self, overworld_manager, game_manager, overworld_position):
-        w_size = world_size()        
+        w_size = world_size        
         self.overworld_manager = overworld_manager
         self.overworld_position = overworld_position
         self.game_manager = game_manager

@@ -160,6 +160,9 @@ export default class NetworkManager {
                 break;
             case 'update_faction_resources':
                 this.gameState.updateFactionResources(data);
+                break;  
+            case 'overworld_map_update':
+                this.gameState.updateOverworldMap(data);
                 break;                
         }
       

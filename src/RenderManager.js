@@ -44,6 +44,17 @@ export default class RenderManager {
         this.minimapTerrainCanvas.width = CONFIG.miniMapSize; // Match the CSS size
         this.minimapTerrainCanvas.height = CONFIG.miniMapSize; // Match the CSS size
 
+        this.worldMapCanvas = document.getElementById('worldMapCanvas');
+        this.worldMapCtx = this.worldMapCanvas.getContext('2d');
+        this.worldMapCanvas.width = CONFIG.miniMapSize; // Match the CSS size
+        this.worldMapCanvas.height = CONFIG.miniMapSize; // Match the CSS size
+        
+        this.overworldTerrainCanvas = document.createElement('canvas');
+        this.overworldTerrainCtx = this.overworldTerrainCanvas.getContext('2d');
+        this.overworldTerrainCanvas.width = CONFIG.overworldTileSize * CONFIG.overworldSize; // Match the CSS size
+        this.overworldTerrainCanvas.height = CONFIG.overworldTileSize * CONFIG.overworldSize; // Match the CSS size
+        this.worldMapTerrainRendered = false;
+
         this.viewCanvas = document.getElementById('viewCanvas');
         this.viewCtx = this.viewCanvas.getContext('2d');
         this.viewCanvas.width = 256; // Match the CSS size
@@ -63,7 +74,11 @@ export default class RenderManager {
         // Define the order in which to draw terrain types (adjust as needed)
         this.drawOrder = [...CONFIG.tileTypes];
         this.drawOrder.splice(CONFIG.roadTileIndex,0,'road');
-        this.tileMap = new TileMap(assetManager, this.terrainCanvas, CONFIG.tileSize, this.drawOrder);
+        this.tileMap = new TileMap(assetManager, this.terrainCanvas, CONFIG.tileSize, this.drawOrder, "terrain_");
+
+        this.overworldDrawOrder = [...CONFIG.overworldTileTypes];        
+        this.overworldTileMap = new TileMap(assetManager, this.overworldTerrainCanvas, CONFIG.overworldTileSize, this.overworldDrawOrder, "overworld_");
+
         this.gameState.debugCanvas.height = window.innerHeight - document.getElementById('uiContainer').offsetHeight;
         this.gameState.debugCanvas.width = window.innerWidth;
         this.playerPreviousPosition = null;
@@ -71,14 +86,15 @@ export default class RenderManager {
     renderGame() {
         this.gameState.canvas.width = window.innerWidth;
         this.gameState.canvas.height = window.innerHeight - document.getElementById('uiContainer').offsetHeight;
-        // Clear the minimap
         this.minimapCanvas.width = this.minimapCanvas.width;
+        this.worldMapCanvas.width = this.worldMapCanvas.width;
 
         this.renderTerrain();
         this.renderStaticObjects();
         // Render towns, target circle, minimap, players, npcs, etc.
         this.renderTowns();
         this.renderMinimap();
+        this.renderWorldMap();
         this.renderPlayers();
         this.renderTargetCircle();
         this.renderEnemies();
@@ -401,6 +417,29 @@ export default class RenderManager {
             this.minimapCtx.fillRect(playerX, playerY, playerSize, playerSize);
         }
 
+        // Add more rendering logic for other entities like npcs, items, etc.
+    }
+    renderWorldMap() {
+    
+    
+        // Render terrain, players, npcs, etc. on the minimap
+        // Scale down the positions and sizes according to the minimap scale
+        // Example: Render players
+        if(!this.worldMapTerrainRendered) {
+             
+            this.overworldTileMap.load(this.gameState.overworldMap);
+            this.worldMapTerrainRendered = true;
+        }
+        this.worldMapCtx.drawImage(this.overworldTerrainCanvas, 0, 0, this.overworldTerrainCanvas.width, this.overworldTerrainCanvas.height, 0, 0, this.worldMapCanvas.width, this.worldMapCanvas.height);
+        // const scale = this.worldMapCanvas.width / (this.gameState.overworldMap.length);
+        // const position = this.gameState.overworldPosition
+        // if( position ) {
+        //     const size = scale; // Size of the player square on the minimap
+        //     const posX = (position.x * scale) - (size / 2); // Center the square on the player's X position
+        //     const posY = (position.y * scale) - (size / 2); // Center the square on the player's Y position
+        //     this.worldMapCtx.fillStyle = 'blue'; // Player color
+        //     this.worldMapCtx.fillRect(posX, posY, size, size);
+        // }    
         // Add more rendering logic for other entities like npcs, items, etc.
     }
 
@@ -843,7 +882,7 @@ export default class RenderManager {
     
                 techTreeContainer.appendChild(buildElement);
             } else {
-                console.log(`${key} asset not found`);
+               // console.log(`${key} asset not found`);
             }
         });
     }

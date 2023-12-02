@@ -1435,6 +1435,9 @@ function exploreTile(x, y, skipOptions=false) {
             let options = getOptionsBasedOnNeighbors(x, y);
             if (options.length === 0) {
                 map[y][x] = 'River'; // Default to 'River' if no options
+			} else if( skipOptions) {
+				map[y][x] = options[0]; // Set the chosen terrain type
+				state = 'explore';				
             } else {
                 presentOptionsToPlayer(options, x, y, skipOptions);
             }
@@ -1515,13 +1518,9 @@ function getOptionsBasedOnNeighbors(x, y) {
 
     return chosenOptions;
 }
-function presentOptionsToPlayer(options, x, y, skipOptions=false) {
+function presentOptionsToPlayer(options, x, y) {
 	
-	if( skipOptions) {
-		map[y][x] = options[0]; // Set the chosen terrain type
-		state = 'explore';
-		return;	
-	}
+
 	
 	[...document.getElementsByClassName('directionBtn')].forEach((btn) => { btn.classList.remove('active') });
     const optionsContainer = document.getElementById('options-container');

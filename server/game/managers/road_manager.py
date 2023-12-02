@@ -5,7 +5,7 @@ class RoadManager:
         self.world = world
         self.roads = []
 
-    def mapWorld(self):
+    def map_world(self):
         self.town_manager = self.world.town_manager
         self.terrain_manager = self.world.terrain_manager
         self.stone_manager = self.world.stone_manager
@@ -15,7 +15,7 @@ class RoadManager:
         self.is_building_at_position = self.world.town_manager.is_building_at_position
 
     def init(self):
-        self.mapWorld()
+        self.map_world()
         self.roads = self.generate_roads()
    
     def generate_roads(self):
