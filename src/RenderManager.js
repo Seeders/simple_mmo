@@ -46,8 +46,8 @@ export default class RenderManager {
 
         this.worldMapCanvas = document.getElementById('worldMapCanvas');
         this.worldMapCtx = this.worldMapCanvas.getContext('2d');
-        this.worldMapCanvas.width = CONFIG.miniMapSize; // Match the CSS size
-        this.worldMapCanvas.height = CONFIG.miniMapSize; // Match the CSS size
+        this.worldMapCanvas.width = CONFIG.overworldMiniMapSize; // Match the CSS size
+        this.worldMapCanvas.height = CONFIG.overworldMiniMapSize; // Match the CSS size
         
         this.overworldTerrainCanvas = document.createElement('canvas');
         this.overworldTerrainCtx = this.overworldTerrainCanvas.getContext('2d');

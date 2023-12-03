@@ -481,7 +481,7 @@ class TileMap {
 				}
 			}
 			let fColor = pColor;
-			if (this.isEqualColor(fColor, { r: 0, g: 0, b: 0, a: 0 })) fColor = tColor;
+			if (this.isEqualColor(fColor, { r: 0, g: 0, b: 0, a: 0 })) fColor = pColor;
 			if (this.isEqualColor(fColor, { r: 0, g: 0, b: 0, a: 255 })) fColor = bColor;
 
 			data.set([fColor.r, fColor.g, fColor.b, fColor.a], dataIndex);
@@ -505,40 +505,40 @@ class TileMap {
 			if (tileAnalysis.cornerTopLeftLess && ((!tileAnalysis.topLess && !tileAnalysis.leftLess) || tileAnalysis.cornerTopLeftLess2)) {
 				if (tileAnalysis.cornerTopLeftLess2 && tileAnalysis.heightIndex > 0) {
 					cornerTexture = this.layerTextures[heightLessIndex][TileMolecule.Corner][TileTransforms.FlipHorizontal];
-					return this.colorCornerTextureRoutine(imageData, 0, 0, cornerTexture, tileAnalysis, true);
+					imageData = this.colorCornerTextureRoutine(imageData, 0, 0, cornerTexture, tileAnalysis, true);
 				} else {
 					cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.FlipHorizontal];
-					return this.colorCornerTextureRoutine(imageData, 0, 0, cornerTexture, tileAnalysis, false);
+					imageData = this.colorCornerTextureRoutine(imageData, 0, 0, cornerTexture, tileAnalysis, false);
 				}
 			}
 			// Assuming tileAnalysis, textureDict, and other variables are already defined
 			if (tileAnalysis.cornerTopRightLess && ((!tileAnalysis.topLess && !tileAnalysis.rightLess) || tileAnalysis.cornerTopRightLess2)) {
 				if (tileAnalysis.cornerTopRightLess2 && tileAnalysis.heightIndex > 0) {
 					cornerTexture = this.layerTextures[heightLessIndex][TileMolecule.Corner][TileTransforms.None];
-					return this.colorCornerTextureRoutine(imageData, cornerSize, 0, cornerTexture, tileAnalysis, true);
+					imageData = this.colorCornerTextureRoutine(imageData, cornerSize, 0, cornerTexture, tileAnalysis, true);
 				} else {
 					cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.None];
-					return this.colorCornerTextureRoutine(imageData, cornerSize, 0, cornerTexture, tileAnalysis, false);
+					imageData = this.colorCornerTextureRoutine(imageData, cornerSize, 0, cornerTexture, tileAnalysis, false);
 				}
 			}
 
 			if (tileAnalysis.cornerBottomLeftLess && ((!tileAnalysis.botLess && !tileAnalysis.leftLess) || tileAnalysis.cornerBottomLeftLess2)) {
 				if (tileAnalysis.cornerBottomLeftLess2 && tileAnalysis.heightIndex > 0) {
 					cornerTexture = this.layerTextures[heightLessIndex][TileMolecule.Corner][TileTransforms.Rotate180];
-					return this.colorCornerTextureRoutine(imageData, 0, cornerSize, cornerTexture, tileAnalysis, true);
+					imageData = this.colorCornerTextureRoutine(imageData, 0, cornerSize, cornerTexture, tileAnalysis, true);
 				} else {
 					cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.Rotate180];
-					return this.colorCornerTextureRoutine(imageData, 0, cornerSize, cornerTexture, tileAnalysis, false);
+					imageData = this.colorCornerTextureRoutine(imageData, 0, cornerSize, cornerTexture, tileAnalysis, false);
 				}
 			}
 
 			if (tileAnalysis.cornerBottomRightLess && ((!tileAnalysis.botLess && !tileAnalysis.rightLess) || tileAnalysis.cornerBottomRightLess2)) {
 				if (tileAnalysis.cornerBottomRightLess2 && tileAnalysis.heightIndex > 0) {
 					cornerTexture = this.layerTextures[heightLessIndex][TileMolecule.Corner][TileTransforms.FlipVertical];
-					return this.colorCornerTextureRoutine(imageData, cornerSize, cornerSize, cornerTexture, tileAnalysis, true);
+					imageData = this.colorCornerTextureRoutine(imageData, cornerSize, cornerSize, cornerTexture, tileAnalysis, true);
 				} else {
 					cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.FlipVertical];
-					return this.colorCornerTextureRoutine(imageData, cornerSize, cornerSize, cornerTexture, tileAnalysis, false);
+					imageData = this.colorCornerTextureRoutine(imageData, cornerSize, cornerSize, cornerTexture, tileAnalysis, false);
 				}
 			}
 		}
@@ -588,10 +588,10 @@ class TileMap {
 						fColor = tColor;
 					}
 					if (fColor.a === 0) {
-						fColor = less2Color;
+						fColor = { r: 0, g: 0, b: 0, a: 0 };
 					}
 				} else {
-					if (fColor.a === 0) fColor = lessColor;
+					if (fColor.a === 0) fColor = { r: 0, g: 0, b: 0, a: 0 };
 				}
 	
 				if (this.isEqualColor(fColor, { r: 0, g: 0, b: 0, a: 255 })) {
@@ -651,37 +651,100 @@ class TileMap {
 		}
 	}
 	
-
 	drawMap(analyzedMap) {
-
 		const ctx = this.canvas.getContext('2d');
-		 // Buffer all drawing operations on an off-screen canvas
-		 const offscreenCanvas = document.createElement('canvas');
-		 offscreenCanvas.width = this.canvas.width;
-		 offscreenCanvas.height = this.canvas.height;
-		 const offscreenCtx = offscreenCanvas.getContext('2d');
-
-		analyzedMap.forEach((tileAnalysis, index) => {
-
-			const x = (index % this.numColumns) * this.tileSize;
-			const y = Math.floor(index / this.numColumns) * this.tileSize;
-			let imageData = new ImageData(new Uint8ClampedArray(4),1,1);
-			if( tileAnalysis.heightIndex >= 0 ) {
-				let tileBase = this.getTileBaseByTileAnalysis(tileAnalysis);
-				imageData = this.getTransformedTexture(this.layerTextures[tileAnalysis.heightIndex], tileAnalysis, tileBase);			
-				imageData = this.colorImageData(imageData, tileAnalysis);
-				imageData = this.addVariationImage(imageData, tileAnalysis);
-				imageData = this.addCornerGraphics(imageData, tileAnalysis);
-			} else {
-				let numPixels = this.tileSize * this.tileSize;
-				const blackData = new Uint8ClampedArray(numPixels * 4); // 4 values per pixel (RGBA)
-				blackData.fill(0); // Fill with black (0, 0, 0, 255)
-				imageData = new ImageData(blackData, this.tileSize, this.tileSize);
-			}
-			offscreenCtx.putImageData(imageData, x, y);
-
+		const layerCanvases = {};
+	
+		for (let layerIndex = 0; layerIndex < this.layerTextures.length; layerIndex++) {
+			const offscreenCanvas = document.createElement('canvas');
+			offscreenCanvas.width = this.canvas.width;
+			offscreenCanvas.height = this.canvas.height;
+			layerCanvases[layerIndex] = offscreenCanvas;
+			const offscreenCtx = offscreenCanvas.getContext('2d');
+	
+			analyzedMap.forEach((tileAnalysis, index) => {
+				const x = (index % this.numColumns) * this.tileSize;
+				const y = Math.floor(index / this.numColumns) * this.tileSize;
+	
+				let imageData;
+				let _tileAnalysis = {...tileAnalysis };
+				if (_tileAnalysis.heightIndex > layerIndex) {
+					// Use base image data for higher layers
+					_tileAnalysis.heightIndex = layerIndex;
+					if(_tileAnalysis.topLess && _tileAnalysis.topHeight >= layerIndex) {
+						_tileAnalysis.topLess = false;
+						_tileAnalysis.neighborLowerCount--;
+					}
+					if(_tileAnalysis.leftLess && _tileAnalysis.leftHeight >= layerIndex) {
+						_tileAnalysis.leftLess = false;
+						_tileAnalysis.neighborLowerCount--;
+					}
+					if(_tileAnalysis.rightLess && _tileAnalysis.rightHeight >= layerIndex){
+						_tileAnalysis.rightLess = false;
+						_tileAnalysis.neighborLowerCount--;
+					}
+					if(_tileAnalysis.botLess && _tileAnalysis.botHeight >= layerIndex) {
+						_tileAnalysis.botLess = false;
+						_tileAnalysis.neighborLowerCount--;
+					}
+					if(_tileAnalysis.cornerTopLeftLess && _tileAnalysis.topLeftHeight >= layerIndex) {
+						_tileAnalysis.cornerTopLeftLess = false;
+						_tileAnalysis.cornerLowerCount--;
+					}
+					if(_tileAnalysis.cornerTopRightLess && _tileAnalysis.topRightHeight >= layerIndex) {
+						_tileAnalysis.cornerTopRightLess = false;
+						_tileAnalysis.cornerLowerCount--;
+					}
+					if(_tileAnalysis.cornerBottomLeftLess && _tileAnalysis.botLeftHeight >= layerIndex) {
+						_tileAnalysis.cornerBottomLeftLess = false;
+						_tileAnalysis.cornerLowerCount--;
+					}
+					if(_tileAnalysis.cornerBottomRightLess && _tileAnalysis.botRightHeight >= layerIndex) {
+						_tileAnalysis.cornerBottomRightLess = false;
+						_tileAnalysis.cornerLowerCount--;
+					}
+					
+				} 
+				if (_tileAnalysis.heightIndex < layerIndex) {
+					// Use base image data for higher layers
+					let numPixels = this.tileSize * this.tileSize;
+					const transparentData = new Uint8ClampedArray(numPixels * 4); // 4 values per pixel (RGBA)
+					
+					for (let i = 0; i < numPixels * 4; i += 4) {
+						transparentData[i] = 0;     // Red (not important for transparency)
+						transparentData[i + 1] = 0; // Green (not important for transparency)
+						transparentData[i + 2] = 0; // Blue (not important for transparency)
+						transparentData[i + 3] = 0; // Alpha (0 for full transparency)
+					}
+					
+					imageData = new ImageData(transparentData, this.tileSize, this.tileSize);
+					
+				} else {
+					imageData = new ImageData(new Uint8ClampedArray(4), 1, 1);
+					if( _tileAnalysis.heightIndex >= 0 ) {
+						let tileBase = this.getTileBaseByTileAnalysis(_tileAnalysis);
+						imageData = this.getTransformedTexture(this.layerTextures[_tileAnalysis.heightIndex], _tileAnalysis, tileBase);			
+						imageData = this.colorImageData(imageData, _tileAnalysis);
+						imageData = this.addVariationImage(imageData, _tileAnalysis);
+						imageData = this.addCornerGraphics(imageData, _tileAnalysis);
+					} else {
+						let numPixels = this.tileSize * this.tileSize;
+						const blackData = new Uint8ClampedArray(numPixels * 4); // 4 values per pixel (RGBA)
+						blackData.fill(0); // Fill with black (0, 0, 0, 255)
+						imageData = new ImageData(blackData, this.tileSize, this.tileSize);
+					}
+				}
+	
+				offscreenCtx.putImageData(imageData, x, y);
+			});
+		}
+	
+		// Drawing each layer canvas onto the main canvas
+		Object.keys(layerCanvases).forEach(layerIndex => {
+		//	if( layerIndex == 0 || layerIndex == 1 || layerIndex == 2) {
+				ctx.drawImage(layerCanvases[layerIndex], 0, 0);
+			//}
 		});
-		ctx.drawImage(offscreenCanvas, 0, 0);
 	}
   }
   

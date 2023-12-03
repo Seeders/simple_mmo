@@ -131,10 +131,15 @@ canvas {
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
-#minimap-container, #world-map-container {
+#minimap-container {
     position: relative; /* Set the container to relative positioning */
     width: 300px; /* Adjust size as needed */
     height: 300px; /* Adjust size as needed */
+}
+#world-map-container {
+    position: relative; /* Set the container to relative positioning */
+    width: 1024px; /* Adjust size as needed */
+    height: 1024px; /* Adjust size as needed */
 }
 
 #minimapCanvas, #minimapTerrainCanvas, #worldMapCanvas, #worldMapTerrainCanvas {
