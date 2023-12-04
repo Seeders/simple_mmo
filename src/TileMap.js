@@ -13,10 +13,6 @@ class TileAnalysis {
       this.cornerTopRightLess = false;
       this.cornerBottomLeftLess = false;
       this.cornerBottomRightLess = false;
-      this.cornerTopLeftLess2 = false;
-      this.cornerTopRightLess2 = false;
-      this.cornerBottomLeftLess2 = false;
-      this.cornerBottomRightLess2 = false;
     }
   }
   
@@ -47,6 +43,7 @@ class TileAnalysis {
   };
 
 class TileMap {
+
 	constructor(assetManager, canvas, tileSize, layers, asset_prefix="") {
 		this.assetManager = assetManager;
 		this.canvas = canvas;
@@ -58,6 +55,7 @@ class TileMap {
 		this.canvasUtility = new CanvasUtility();
 
 	}
+
     load(map){
 		this.tileMap = map;
 		this.numColumns = this.tileMap.length;
@@ -89,6 +87,7 @@ class TileMap {
 		let analyzedMap = this.analyzeMap(this.tileMap);
 		this.drawMap(analyzedMap, this.layerTextures, this.canvas);
     }
+
     drawTexture(texture, x, y) {
 		ctx.drawImage(texture, x, y, this.tileSize / 2, this.tileSize / 2); // Assuming each atom is 256x256
     }
@@ -120,7 +119,6 @@ class TileMap {
 		threeCornerTexture.width = spriteResolution;
 		threeCornerTexture.height = spriteResolution;	
 		
-
 		// Get sprite textures
 		const fullSprite = sprites[0];
 		const oneCornerSprite = sprites[1];
@@ -152,8 +150,7 @@ class TileMap {
 		const threeCornerTopLeftImageData = this.flipTextureHorizontal(threeCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution));
 		const threeCornerBottomLeftImageData = this.rotateTexture(threeCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution), Math.PI);
 		const threeCornerBottomRightImageData = this.flipTextureVertical(threeCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution));
-
-				
+			
 		// Define molecule objects
 		const fullTile = document.createElement("canvas");
 		const cornerTile = document.createElement("canvas");
@@ -196,44 +193,43 @@ class TileMap {
 		fullTileCtx.putImageData(fullImageData, 0, spriteResolution);
 		fullTileCtx.putImageData(fullImageData, spriteResolution, spriteResolution);
 
-		cornerTileCtx.fillStyle = 'black';
+		let baseFillStyle = 'black';
+		cornerTileCtx.fillStyle = baseFillStyle;
 		cornerTileCtx.fillRect(0, 0, spriteResolution, spriteResolution);
 		cornerTileCtx.putImageData(oneCornerImageData, 0, 0);
 		
-		edgeTileCtx.fillStyle = 'black';
+		edgeTileCtx.fillStyle = baseFillStyle;
 		edgeTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
 		edgeTileCtx.putImageData(twoCornerTopImageData, 0, 0);
 		edgeTileCtx.putImageData(twoCornerTopImageData, spriteResolution, 0);
 		
-		tunnelTileCtx.fillStyle = 'black';
+		tunnelTileCtx.fillStyle = baseFillStyle;
 		tunnelTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
 		tunnelTileCtx.putImageData(twoCornerTopImageData, 0, 0);
 		tunnelTileCtx.putImageData(twoCornerTopImageData, spriteResolution, 0);
 		tunnelTileCtx.putImageData(twoCornerBottomImageData, 0, spriteResolution);
 		tunnelTileCtx.putImageData(twoCornerBottomImageData, spriteResolution, spriteResolution);
 		
-		twoSidesTileCtx.fillStyle = 'black';
+		twoSidesTileCtx.fillStyle = baseFillStyle;
 		twoSidesTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
 		twoSidesTileCtx.putImageData(twoCornerTopImageData, 0, 0);
 		twoSidesTileCtx.putImageData(threeCornerTopRightImageData, spriteResolution, 0);
 		twoSidesTileCtx.putImageData(twoCornerRightImageData, spriteResolution, spriteResolution);
 		
-		penninsulaTileCtx.fillStyle = 'black';
+		penninsulaTileCtx.fillStyle = baseFillStyle;
 		penninsulaTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
 		penninsulaTileCtx.putImageData(threeCornerTopLeftImageData, 0, 0);
 		penninsulaTileCtx.putImageData(threeCornerTopRightImageData, spriteResolution, 0);
 		penninsulaTileCtx.putImageData(twoCornerLeftImageData, 0, spriteResolution);
 		penninsulaTileCtx.putImageData(twoCornerRightImageData, spriteResolution,spriteResolution);
 		
-		islandTileCtx.fillStyle = 'black';
+		islandTileCtx.fillStyle = baseFillStyle;
 		islandTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
 		islandTileCtx.putImageData(threeCornerTopLeftImageData, 0, 0);
 		islandTileCtx.putImageData(threeCornerTopRightImageData, spriteResolution, 0);
 		islandTileCtx.putImageData(threeCornerBottomLeftImageData, 0, spriteResolution);
 		islandTileCtx.putImageData(threeCornerBottomRightImageData, spriteResolution,spriteResolution);
-
 		
-		// Create an array of textures
 		var imageDataList = [
 			fullTileCtx.getImageData(0, 0, finalTileBaseResolution, finalTileBaseResolution),
 			cornerTileCtx.getImageData(0, 0, spriteResolution, spriteResolution),
@@ -290,9 +286,11 @@ class TileMap {
 	rotateTexture(imageData, angle) {
 		return this.canvasUtility.rotateTexture(imageData, angle);
 	}
+
 	flipTextureVertical(imageData) {
 		return this.canvasUtility.flipTextureVertical(imageData);
 	}
+
 	flipTextureHorizontal(imageData) {
 		return this.canvasUtility.flipTextureHorizontal(imageData);
 	}
@@ -314,14 +312,14 @@ class TileMap {
 		}
 
 		// Helper function to check and update tile analysis
-		var checkAndUpdate = ((r, c, n, direction, propertyLess, propertyLess2) => {
+		var checkAndUpdate = ((r, c, n, direction, propertyLess) => {
 			if (isWithinBounds(r, c, n) ) {
 				tileAnalysis[direction] = this.tileMap[r][c];
 				if( this.tileMap[r][c] < tileAnalysis.heightIndex) {
 					tileAnalysis[propertyLess] = true;
 					if(['topLess', 'leftLess', 'rightLess', 'botLess'].indexOf(propertyLess) >= 0 ) {
 						tileAnalysis.neighborLowerCount++;
-					} else if(['cornerTopLeftLess', 'cornerTopRightLess', 'cornerBottomLeftLess', 'cornerBottomRightLess'].indexOf(propertyLess) >= 0 || ['cornerTopLeftLess2', 'cornerTopRightLess2', 'cornerBottomLeftLess2', 'cornerBottomRightLess2'].indexOf(propertyLess2) >= 0 ) {
+					} else if(['cornerTopLeftLess', 'cornerTopRightLess', 'cornerBottomLeftLess', 'cornerBottomRightLess'].indexOf(propertyLess) >= 0) {
 						tileAnalysis.cornerLowerCount++;
 					}
 				}
@@ -332,10 +330,10 @@ class TileMap {
 		checkAndUpdate(row, col - 1, this.numColumns, 'leftHeight', 'leftLess');
 		checkAndUpdate(row, col + 1, this.numColumns, 'rightHeight', 'rightLess');
 		checkAndUpdate(row + 1, col, this.numColumns, 'botHeight', 'botLess');
-		checkAndUpdate(row - 1, col - 1, this.numColumns, 'topLeftHeight', 'cornerTopLeftLess', 'cornerTopLeftLess2');
-		checkAndUpdate(row - 1, col + 1, this.numColumns, 'topRightHeight', 'cornerTopRightLess', 'cornerTopRightLess2');
-		checkAndUpdate(row + 1, col - 1, this.numColumns, 'botLeftHeight', 'cornerBottomLeftLess', 'cornerBottomLeftLess2');
-		checkAndUpdate(row + 1, col + 1, this.numColumns, 'botRightHeight', 'cornerBottomRightLess', 'cornerBottomRightLess2');
+		checkAndUpdate(row - 1, col - 1, this.numColumns, 'topLeftHeight', 'cornerTopLeftLess');
+		checkAndUpdate(row - 1, col + 1, this.numColumns, 'topRightHeight', 'cornerTopRightLess');
+		checkAndUpdate(row + 1, col - 1, this.numColumns, 'botLeftHeight', 'cornerBottomLeftLess');
+		checkAndUpdate(row + 1, col + 1, this.numColumns, 'botRightHeight', 'cornerBottomRightLess');
 
 		return tileAnalysis;
 	}
@@ -357,6 +355,7 @@ class TileMap {
 		}
 		return map;
 	}
+
 	analyzeMap() {
 		let analyzedTiles = [];
 
@@ -369,7 +368,6 @@ class TileMap {
 		return analyzedTiles;
 	}
 
-	//
 	getTransformedTexture(transformationDict, tileAnalysis, tileBase){
 		switch(tileAnalysis.neighborLowerCount){				
 			case 1:
@@ -408,6 +406,7 @@ class TileMap {
 		}		
         return transformationDict[tileBase][TileTransforms.None];
 	}
+
 	getTileBaseByTileAnalysis(tileAnalysis){
 		var tileBase = 0;								
 		switch(tileAnalysis.neighborLowerCount){
@@ -493,76 +492,39 @@ class TileMap {
 		return color1.r === color2.r && color1.g === color2.g && color1.b === color2.b && color1.a === color2.a;
 	}
 
-
 	addCornerGraphics(imageData, tileAnalysis) {
 		let cornerSize = this.tileSize / 2;
 		let cornerTexture;
-	
-		let heightLessIndex = 0;
 		let heightIndex = tileAnalysis.heightIndex;
 	
 		if (tileAnalysis.cornerLowerCount > 0) {
-			if (tileAnalysis.cornerTopLeftLess && ((!tileAnalysis.topLess && !tileAnalysis.leftLess) || tileAnalysis.cornerTopLeftLess2)) {
-				if (tileAnalysis.cornerTopLeftLess2 && tileAnalysis.heightIndex > 0) {
-					cornerTexture = this.layerTextures[heightLessIndex][TileMolecule.Corner][TileTransforms.FlipHorizontal];
-					imageData = this.colorCornerTextureRoutine(imageData, 0, 0, cornerTexture, tileAnalysis, true);
-				} else {
-					cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.FlipHorizontal];
-					imageData = this.colorCornerTextureRoutine(imageData, 0, 0, cornerTexture, tileAnalysis, false);
-				}
+			if (tileAnalysis.cornerTopLeftLess && (!tileAnalysis.topLess && !tileAnalysis.leftLess)) {				
+				cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.FlipHorizontal];
+				imageData = this.colorCornerTextureRoutine(imageData, 0, 0, cornerTexture, tileAnalysis);			
 			}
 			// Assuming tileAnalysis, textureDict, and other variables are already defined
-			if (tileAnalysis.cornerTopRightLess && ((!tileAnalysis.topLess && !tileAnalysis.rightLess) || tileAnalysis.cornerTopRightLess2)) {
-				if (tileAnalysis.cornerTopRightLess2 && tileAnalysis.heightIndex > 0) {
-					cornerTexture = this.layerTextures[heightLessIndex][TileMolecule.Corner][TileTransforms.None];
-					imageData = this.colorCornerTextureRoutine(imageData, cornerSize, 0, cornerTexture, tileAnalysis, true);
-				} else {
-					cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.None];
-					imageData = this.colorCornerTextureRoutine(imageData, cornerSize, 0, cornerTexture, tileAnalysis, false);
-				}
+			if (tileAnalysis.cornerTopRightLess && (!tileAnalysis.topLess && !tileAnalysis.rightLess)) {				
+				cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.None];
+				imageData = this.colorCornerTextureRoutine(imageData, cornerSize, 0, cornerTexture, tileAnalysis);			
 			}
 
-			if (tileAnalysis.cornerBottomLeftLess && ((!tileAnalysis.botLess && !tileAnalysis.leftLess) || tileAnalysis.cornerBottomLeftLess2)) {
-				if (tileAnalysis.cornerBottomLeftLess2 && tileAnalysis.heightIndex > 0) {
-					cornerTexture = this.layerTextures[heightLessIndex][TileMolecule.Corner][TileTransforms.Rotate180];
-					imageData = this.colorCornerTextureRoutine(imageData, 0, cornerSize, cornerTexture, tileAnalysis, true);
-				} else {
-					cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.Rotate180];
-					imageData = this.colorCornerTextureRoutine(imageData, 0, cornerSize, cornerTexture, tileAnalysis, false);
-				}
+			if (tileAnalysis.cornerBottomLeftLess && (!tileAnalysis.botLess && !tileAnalysis.leftLess)) {				
+				cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.Rotate180];
+				imageData = this.colorCornerTextureRoutine(imageData, 0, cornerSize, cornerTexture, tileAnalysis);			
 			}
 
-			if (tileAnalysis.cornerBottomRightLess && ((!tileAnalysis.botLess && !tileAnalysis.rightLess) || tileAnalysis.cornerBottomRightLess2)) {
-				if (tileAnalysis.cornerBottomRightLess2 && tileAnalysis.heightIndex > 0) {
-					cornerTexture = this.layerTextures[heightLessIndex][TileMolecule.Corner][TileTransforms.FlipVertical];
-					imageData = this.colorCornerTextureRoutine(imageData, cornerSize, cornerSize, cornerTexture, tileAnalysis, true);
-				} else {
-					cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.FlipVertical];
-					imageData = this.colorCornerTextureRoutine(imageData, cornerSize, cornerSize, cornerTexture, tileAnalysis, false);
-				}
+			if (tileAnalysis.cornerBottomRightLess && (!tileAnalysis.botLess && !tileAnalysis.rightLess)) {			
+				cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.FlipVertical];
+				imageData = this.colorCornerTextureRoutine(imageData, cornerSize, cornerSize, cornerTexture, tileAnalysis);			
 			}
 		}
 		return imageData;
 	}
 	
-	colorCornerTextureRoutine(outputImageData, x, y, cornerImageData, tileAnalysis, isLess2) {
-		let cornerSize = this.tileSize / 2;
-	
+	colorCornerTextureRoutine(outputImageData, x, y, cornerImageData, tileAnalysis) {
+		let cornerSize = this.tileSize / 2;	
 		let baseHeightIndex = tileAnalysis.heightIndex;
-		let less1HeightIndex = tileAnalysis.heightIndex;
-		let less2HeightIndex = tileAnalysis.heightIndex;
-		if (baseHeightIndex > 1) {
-			less1HeightIndex = tileAnalysis.heightIndex - 1;
-			less2HeightIndex = tileAnalysis.heightIndex - 2;
-		} else if (baseHeightIndex > 0) {
-			less1HeightIndex = tileAnalysis.heightIndex - 1;
-			less2HeightIndex = tileAnalysis.heightIndex - 1;
-		}
-	
 		let baseColors = this.layerTextures[baseHeightIndex][TileMolecule.Full][TileTransforms.None];
-		let lessBaseColors = this.layerTextures[less1HeightIndex][TileMolecule.Full][TileTransforms.None];
-		let less2BaseColors = this.layerTextures[less2HeightIndex][TileMolecule.Full][TileTransforms.None];
-	
 		const data = new Uint8ClampedArray(outputImageData.data);
 		for (let j = 0; j < cornerSize; j++) {
 			for (let i = 0; i < cornerSize; i++) {
@@ -570,40 +532,14 @@ class TileMap {
 				let outputIndex = ((y + j) * this.tileSize + (x + i)) * 4;
 	
 				let baseColor = this.getColorFromImageData(baseColors, outputIndex);
-				let lessColor = this.getColorFromImageData(lessBaseColors, outputIndex);
-				let lessBaseColor = this.getColorFromImageData(lessBaseColors, outputIndex); // Assuming lessBaseColor is similar to lessColor
-				let less2Color = this.getColorFromImageData(less2BaseColors, outputIndex);
-				let less2BaseColor = this.getColorFromImageData(less2BaseColors, outputIndex); // Assuming less2BaseColor is similar to less2Color
-	
-				let tColor = this.getColorFromImageData(outputImageData, outputIndex);
-	
+		
 				let sourceOriginX = i;
 				let sourceOriginY = j * cornerSize;
 				let sourcePixel = (sourceOriginY + sourceOriginX) * 4;
 				let pColor = this.getColorFromImageData(cornerImageData, sourcePixel);
 				let fColor = pColor;
-	
-				if (isLess2) {
-					if (this.isEqualColor(pColor, lessColor)) {
-						fColor = tColor;
-					}
-					if (fColor.a === 0) {
-						fColor = { r: 0, g: 0, b: 0, a: 0 };
-					}
-				} else {
-					if (fColor.a === 0) fColor = { r: 0, g: 0, b: 0, a: 0 };
-				}
-	
 				if (this.isEqualColor(fColor, { r: 0, g: 0, b: 0, a: 255 })) {
-					if (isLess2) {
-						fColor = less2BaseColor;
-					} else {
-						if (pColor.a !== 0) {
-							fColor = baseColor;
-						} else {
-							fColor = lessBaseColor;
-						}
-					}
+					fColor = baseColor;				
 				}
 	
 				data[outputIndex] = fColor.r;
@@ -742,7 +678,7 @@ class TileMap {
 		// Drawing each layer canvas onto the main canvas
 		Object.keys(layerCanvases).forEach(layerIndex => {
 		//	if( layerIndex == 0 || layerIndex == 1 || layerIndex == 2) {
-				ctx.drawImage(layerCanvases[layerIndex], 0, 0);
+			ctx.drawImage(layerCanvases[layerIndex], 0, 0);
 			//}
 		});
 	}

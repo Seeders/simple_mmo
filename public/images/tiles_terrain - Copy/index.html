@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    canvas {
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <script>
+	class TileAnalysis {
+		constructor() {
+			this.heightIndex = 0;
+			this.neighborLowerCount = 0;
+			this.cornerLowerCount = 0;
+			this.topLess = false;
+			this.leftLess = false;
+			this.rightLess = false;
+			this.botLess = false;
+			this.c1Less = false;
+			this.c2Less = false;
+			this.c3Less = false;
+			this.c4Less = false;
+			this.c1Less2 = false;
+			this.c2Less2 = false;
+			this.c3Less2 = false;
+			this.c4Less2 = false;
+		}
+	}
+	const TileTransforms = {
+		None: 0,
+		ClockWise90: 1,
+		CounterClockWise90: 2,
+		Rotate180: 3,
+		FlipHorizontal: 4,
+		FlipVertical: 5
+    };
+    // Enumerate the tile atom types
+    const TileAtom = {
+		Full: 0,
+		OneCorner: 1,
+		TwoCorner: 2,
+		ThreeCorner: 3
+    };
+
+    // Enumerate the tile molecule types
+    const TileMolecule = {
+		Full: 0,
+		Corner: 1,
+		Edge: 2,
+		Tunnel: 3,
+		TwoSides: 4,
+		Penninsula: 5,
+		Island: 6,
+    };
+
+    // Load base atom textures (image files)
+    const atomTextures = {
+		[TileAtom.Full]: "0.png",
+		[TileAtom.OneCorner]: "1.png",
+		[TileAtom.TwoCorner]: "2.png",
+		[TileAtom.ThreeCorner]: "3.png",
+    };
+
+    // Function to load an image texture
+    function loadTexture(src, callback) {
+		const img = new Image();
+		img.src = src;
+		img.onload = () => callback(img);
+		return img;
+    }
+
+	const tileSize = 32; // Assuming each tile is 256x256 pixels
+	const numColumns = 32; // Assuming the map has 10 columns
+	const layers = ['water', 'sand', 'grass', 'forest', 'mountain'];
+    // Create a dictionary to store loaded textures
+    const loadedTextures = {};
+    let textureCount = 0; // Track the number of loaded textures
+
+    // Function to handle texture loading completion
+    function onTextureLoaded(textureKey, texture) {
+		loadedTextures[textureKey] = texture;
+		textureCount++;
+		if( textureCount >= 4 * layers.length) {
+			load();
+		}
+    }
+
+	
+	var textures = [];
+    // Load all textures
+	layers.forEach((layer, index) => {
+		textures[index] = [];
+		for (const key in atomTextures) {
+			textures[index].push(loadTexture(`${index}_${layer}/${atomTextures[key]}`, (texture) => onTextureLoaded(key, texture)));
+		}
+	});
+
+    // Function to draw a texture on the canvas
+    function drawTexture(texture, x, y) {
+		ctx.drawImage(texture, x, y, tileSize / 2, tileSize / 2); // Assuming each atom is 256x256
+    }
+
+    // Function to generate a molecule texture for various molecule ty
+	function buildBaseMolecules(sprites) {
+		// Define texture objects
+		const fullTexture = document.createElement("canvas");
+		const oneCornerTexture = document.createElement("canvas");
+		const twoCornerTexture = document.createElement("canvas");
+		const threeCornerTexture = document.createElement("canvas");
+		fullTexture.setAttribute('willReadFrequently', true); 
+		oneCornerTexture.setAttribute('willReadFrequently', true); 
+		twoCornerTexture.setAttribute('willReadFrequently', true); 
+		threeCornerTexture.setAttribute('willReadFrequently', true); 
+		// Set the texture sizes
+		const spriteResolution = sprites[0].width;
+		const finalTileBaseResolution = spriteResolution * 2;
+        const tileResolutionMidIndex = (finalTileBaseResolution * finalTileBaseResolution / 2) + (finalTileBaseResolution / 2);
+		const bottomLeftOffset = 0;
+        const bottomRightOffset = finalTileBaseResolution / 2;
+        const topLeftOffset = finalTileBaseResolution * finalTileBaseResolution / 2; 
+        const topRightOffset = finalTileBaseResolution * finalTileBaseResolution / 2 + finalTileBaseResolution / 2; 
+
+		fullTexture.width = spriteResolution;
+		fullTexture.height = spriteResolution;
+
+		oneCornerTexture.width = spriteResolution;
+		oneCornerTexture.height = spriteResolution;
+
+		twoCornerTexture.width = spriteResolution;
+		twoCornerTexture.height = spriteResolution;
+
+		threeCornerTexture.width = spriteResolution;
+		threeCornerTexture.height = spriteResolution;	
+		
+
+		// Get sprite textures
+		const fullSprite = sprites[0];
+		const oneCornerSprite = sprites[1];
+		const twoCornerSprite = sprites[2];
+		const threeCornerSprite = sprites[3];
+
+		// Create CanvasRenderingContext2D objects for each texture
+		const fullCtx = fullTexture.getContext("2d");
+		const oneCornerCtx = oneCornerTexture.getContext("2d");
+		const twoCornerCtx = twoCornerTexture.getContext("2d");
+		const threeCornerCtx = threeCornerTexture.getContext("2d");
+		
+		// Copy pixels from sprites to texture canvases
+		fullCtx.drawImage(fullSprite,0,0);
+		oneCornerCtx.drawImage(oneCornerSprite,0,0);
+		twoCornerCtx.drawImage(twoCornerSprite,0,0);
+		threeCornerCtx.drawImage(threeCornerSprite,0,0);
+
+		// Get pixel data from the canvases
+		const fullImageData = fullCtx.getImageData(0, 0, spriteResolution, spriteResolution);
+		const oneCornerImageData = oneCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution);
+		
+		const twoCornerTopImageData = twoCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution);
+		const twoCornerLeftImageData = rotateTexture(twoCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution), -Math.PI / 2);
+		const twoCornerRightImageData = rotateTexture(twoCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution), Math.PI / 2);
+		const twoCornerBottomImageData = flipTextureVertical(twoCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution));
+		
+		const threeCornerTopRightImageData = threeCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution);
+		const threeCornerTopLeftImageData = flipTextureHorizontal(threeCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution));
+		const threeCornerBottomLeftImageData = rotateTexture(threeCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution), Math.PI);
+		const threeCornerBottomRightImageData = flipTextureVertical(threeCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution));
+
+				
+		// Define molecule objects
+		const fullTile = document.createElement("canvas");
+		const cornerTile = document.createElement("canvas");
+		const edgeTile = document.createElement("canvas");
+		const tunnelTile = document.createElement("canvas");
+		const twoSidesTile = document.createElement("canvas");
+		const penninsulaTile = document.createElement("canvas");
+		const islandTile = document.createElement("canvas");
+		fullTile.setAttribute('willReadFrequently', true); 
+		cornerTile.setAttribute('willReadFrequently', true); 
+		edgeTile.setAttribute('willReadFrequently', true); 
+		tunnelTile.setAttribute('willReadFrequently', true); 
+		twoSidesTile.setAttribute('willReadFrequently', true); 
+		penninsulaTile.setAttribute('willReadFrequently', true); 
+		islandTile.setAttribute('willReadFrequently', true); 
+
+		// document.body.appendChild(fullTile);
+		// document.body.appendChild(cornerTile);
+		// document.body.appendChild(edgeTile);
+		// document.body.appendChild(tunnelTile);
+		// document.body.appendChild(twoSidesTile);
+		// document.body.appendChild(penninsulaTile);
+		// document.body.appendChild(islandTile);
+		
+		fullTile.width = finalTileBaseResolution;
+		fullTile.height = finalTileBaseResolution;
+
+		cornerTile.width = spriteResolution;
+		cornerTile.height = spriteResolution;
+
+		edgeTile.width = finalTileBaseResolution;
+		edgeTile.height = finalTileBaseResolution;
+		
+		tunnelTile.width = finalTileBaseResolution;
+		tunnelTile.height = finalTileBaseResolution;
+
+		twoSidesTile.width = finalTileBaseResolution;
+		twoSidesTile.height = finalTileBaseResolution;
+
+		penninsulaTile.width = finalTileBaseResolution;
+		penninsulaTile.height = finalTileBaseResolution;
+
+		islandTile.width = finalTileBaseResolution;
+		islandTile.height = finalTileBaseResolution;
+		
+		const fullTileCtx = fullTile.getContext('2d');
+		const cornerTileCtx = cornerTile.getContext('2d');
+		const edgeTileCtx = edgeTile.getContext('2d');
+		const tunnelTileCtx = tunnelTile.getContext('2d');
+		const twoSidesTileCtx = twoSidesTile.getContext('2d');
+		const penninsulaTileCtx = penninsulaTile.getContext('2d');
+		const islandTileCtx = islandTile.getContext('2d');
+		fullTileCtx.putImageData(fullImageData, 0, 0);
+		fullTileCtx.putImageData(fullImageData, spriteResolution, 0);
+		fullTileCtx.putImageData(fullImageData, 0, spriteResolution);
+		fullTileCtx.putImageData(fullImageData, spriteResolution, spriteResolution);
+
+		cornerTileCtx.fillStyle = 'black';
+		cornerTileCtx.fillRect(0, 0, spriteResolution, spriteResolution);
+		cornerTileCtx.putImageData(oneCornerImageData, 0, 0);
+		
+		edgeTileCtx.fillStyle = 'black';
+		edgeTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
+		edgeTileCtx.putImageData(twoCornerTopImageData, 0, 0);
+		edgeTileCtx.putImageData(twoCornerTopImageData, spriteResolution, 0);
+		
+		tunnelTileCtx.fillStyle = 'black';
+		tunnelTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
+		tunnelTileCtx.putImageData(twoCornerBottomImageData, 0, 0);
+		tunnelTileCtx.putImageData(twoCornerBottomImageData, spriteResolution, 0);
+		tunnelTileCtx.putImageData(twoCornerTopImageData, 0, spriteResolution);
+		tunnelTileCtx.putImageData(twoCornerTopImageData, spriteResolution, spriteResolution);
+		
+		twoSidesTileCtx.fillStyle = 'black';
+		twoSidesTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
+		twoSidesTileCtx.putImageData(twoCornerTopImageData, 0, 0);
+		twoSidesTileCtx.putImageData(threeCornerTopRightImageData, spriteResolution, 0);
+		twoSidesTileCtx.putImageData(twoCornerRightImageData, spriteResolution, spriteResolution);
+		
+		penninsulaTileCtx.fillStyle = 'black';
+		penninsulaTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
+		penninsulaTileCtx.putImageData(threeCornerTopLeftImageData, 0, 0);
+		penninsulaTileCtx.putImageData(threeCornerTopRightImageData, spriteResolution, 0);
+		penninsulaTileCtx.putImageData(twoCornerLeftImageData, 0, spriteResolution);
+		penninsulaTileCtx.putImageData(twoCornerRightImageData, spriteResolution,spriteResolution);
+		
+		islandTileCtx.fillStyle = 'black';
+		islandTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
+		islandTileCtx.putImageData(threeCornerTopLeftImageData, 0, 0);
+		islandTileCtx.putImageData(threeCornerTopRightImageData, spriteResolution, 0);
+		islandTileCtx.putImageData(threeCornerBottomLeftImageData, 0, spriteResolution);
+		islandTileCtx.putImageData(threeCornerBottomRightImageData, spriteResolution,spriteResolution);
+
+		
+		// Create an array of textures
+		var imageDataList = [
+			fullTileCtx.getImageData(0, 0, finalTileBaseResolution, finalTileBaseResolution),
+			cornerTileCtx.getImageData(0, 0, spriteResolution, spriteResolution),
+			edgeTileCtx.getImageData(0, 0, finalTileBaseResolution, finalTileBaseResolution),
+			tunnelTileCtx.getImageData(0, 0, finalTileBaseResolution, finalTileBaseResolution),
+			twoSidesTileCtx.getImageData(0, 0, finalTileBaseResolution, finalTileBaseResolution),
+			penninsulaTileCtx.getImageData(0, 0, finalTileBaseResolution, finalTileBaseResolution),
+			islandTileCtx.getImageData(0, 0, finalTileBaseResolution, finalTileBaseResolution),
+		];
+
+		return imageDataList;
+	}
+
+	function getSpriteRotations(imageDataDict, hasCorners, addNoise = false) {
+		let rotationDict = {};
+
+		let requiredTransforms = {};
+
+		requiredTransforms[TileMolecule.Full] = [];
+		requiredTransforms[TileMolecule.Corner] = [TileTransforms.FlipHorizontal, TileTransforms.FlipVertical, TileTransforms.Rotate180];
+		requiredTransforms[TileMolecule.Edge] = [TileTransforms.ClockWise90, TileTransforms.CounterClockWise90, TileTransforms.Rotate180];
+		requiredTransforms[TileMolecule.Tunnel] = [TileTransforms.CounterClockWise90];
+		requiredTransforms[TileMolecule.TwoSides] = [TileTransforms.FlipHorizontal, TileTransforms.FlipVertical, TileTransforms.Rotate180];
+		requiredTransforms[TileMolecule.Penninsula] = [TileTransforms.FlipVertical, TileTransforms.ClockWise90, TileTransforms.CounterClockWise90];
+		requiredTransforms[TileMolecule.Island] = [];
+
+		Object.keys(imageDataDict).forEach(tileBase => {
+			let rotations = {};
+			let colors = imageDataDict[tileBase];
+			let isCorner = tileBase === TileMolecule.Corner;
+			rotations[TileTransforms.None] = colors;
+
+			if (requiredTransforms[tileBase].includes(TileTransforms.ClockWise90)) {
+				rotations[TileTransforms.ClockWise90] = rotateTexture(colors, Math.PI / 2);
+			}
+			if (requiredTransforms[tileBase].includes(TileTransforms.CounterClockWise90)) {
+				rotations[TileTransforms.CounterClockWise90] = rotateTexture(colors, -Math.PI / 2);
+			}
+			if (requiredTransforms[tileBase].includes(TileTransforms.Rotate180)) {
+				rotations[TileTransforms.Rotate180] = rotateTexture(colors, Math.PI);
+			}
+			if (requiredTransforms[tileBase].includes(TileTransforms.FlipHorizontal)) {
+				rotations[TileTransforms.FlipHorizontal] = flipTextureHorizontal(colors);
+			}
+			if (requiredTransforms[tileBase].includes(TileTransforms.FlipVertical)) {
+				rotations[TileTransforms.FlipVertical] = flipTextureVertical(colors);
+			}
+
+			rotationDict[tileBase] = rotations;
+		});
+
+		return rotationDict;
+	}
+
+	function rotateTexture(imageData, angle) {
+		const tempCanvas = document.createElement("canvas");
+		tempCanvas.width = imageData.width;
+		tempCanvas.height = imageData.height;
+		const tempCtx = tempCanvas.getContext("2d");
+		tempCtx.putImageData(imageData, 0, 0);
+
+		const rotatedTexture = document.createElement("canvas");
+		rotatedTexture.width = imageData.width;
+		rotatedTexture.height = imageData.height;
+		const rotatedCtx = rotatedTexture.getContext("2d");
+
+		rotatedCtx.translate(rotatedTexture.width / 2, rotatedTexture.height / 2);
+		rotatedCtx.rotate(angle);
+		rotatedCtx.translate(-rotatedTexture.width / 2, -rotatedTexture.height / 2);
+
+		rotatedCtx.drawImage(tempCanvas, 0, 0);
+
+		return rotatedCtx.getImageData(0, 0, rotatedTexture.width, rotatedTexture.height);
+	}
+	function flipTextureVertical(imageData) {
+		const tempCanvas = document.createElement("canvas");
+		tempCanvas.width = imageData.width;
+		tempCanvas.height = imageData.height;
+		const tempCtx = tempCanvas.getContext("2d");
+		tempCtx.putImageData(imageData, 0, 0);
+
+		const canvas = document.createElement("canvas");
+		canvas.width = imageData.width;
+		canvas.height = imageData.height;
+		const ctx = canvas.getContext("2d");
+
+		ctx.translate(0, canvas.height);
+		ctx.scale(1, -1);
+		ctx.drawImage(tempCanvas, 0, 0);
+
+		return ctx.getImageData(0, 0, imageData.width, imageData.height);
+	}
+	function flipTextureHorizontal(imageData) {
+		const tempCanvas = document.createElement("canvas");
+		tempCanvas.width = imageData.width;
+		tempCanvas.height = imageData.height;
+		const tempCtx = tempCanvas.getContext("2d");
+		tempCtx.putImageData(imageData, 0, 0);
+
+		const canvas = document.createElement("canvas");
+		canvas.width = imageData.width;
+		canvas.height = imageData.height;
+		const ctx = canvas.getContext("2d");
+
+		ctx.translate(canvas.width, 0);
+		ctx.scale(-1, 1);
+		ctx.drawImage(tempCanvas, 0, 0);
+
+		return ctx.getImageData(0, 0, imageData.width, imageData.height);
+	}
+
+	function analyzeTile(locationIndex, map) {
+		let tileAnalysis = new TileAnalysis();
+		let row = Math.floor(locationIndex / numColumns);
+		let col = locationIndex % numColumns;
+
+		if (row < 0 || row >= numColumns || col < 0 || col >= numColumns) {
+			return tileAnalysis; // Out of bounds
+		}
+
+		let heightIndex = map[row][col];
+		tileAnalysis.heightIndex = heightIndex;
+
+		// Helper function to check if a location is within bounds
+		function isWithinBounds(r, c) {
+			return r >= 0 && r < numColumns && c >= 0 && c < numColumns;
+		}
+
+		// Helper function to check and update tile analysis
+		function checkAndUpdate(r, c, propertyLess, propertyLess2, decrement = 1) {
+			if (isWithinBounds(r, c) && map[r][c] < heightIndex) {
+				tileAnalysis[propertyLess] = true;
+				if(['topLess', 'leftLess', 'rightLess', 'botLess'].indexOf(propertyLess) >= 0 ) {
+					tileAnalysis.neighborLowerCount++;
+				}
+				if (map[r][c] < heightIndex - decrement) {
+					tileAnalysis[propertyLess2] = true;
+				}
+			}
+		}
+
+		checkAndUpdate(row - 1, col, 'topLess');
+		checkAndUpdate(row, col - 1, 'leftLess');
+		checkAndUpdate(row, col + 1, 'rightLess');
+		checkAndUpdate(row + 1, col, 'botLess');
+		checkAndUpdate(row - 1, col - 1, 'c1Less', 'c1Less2');
+		checkAndUpdate(row - 1, col + 1, 'c2Less', 'c2Less2');
+		checkAndUpdate(row + 1, col - 1, 'c3Less', 'c3Less2');
+		checkAndUpdate(row + 1, col + 1, 'c4Less', 'c4Less2');
+
+		return tileAnalysis;
+	}
+
+	// Function to generate a random integer between min and max (inclusive)
+	function getRandomInt(min, max) {
+		return Math.floor(Math.random() * (max - min + 1)) + min;
+	}
+
+	// Function to generate a random 10x10 map
+	function generateRandomMap(rows, columns) {
+		let map = [];
+		for (let i = 0; i < rows; i++) {
+			let row = [];
+			for (let j = 0; j < columns; j++) {
+				row.push(getRandomInt(0, layers.length - 1)); // Random height between 0 and 10
+			}
+			map.push(row);
+		}
+		return map;
+	}
+	function analyzeMap(map) {
+		let analyzedTiles = [];
+
+		for (let i = 0; i < numColumns; i++) {
+			for (let j = 0; j < numColumns; j++) {
+				let locationIndex = i * numColumns + j;
+				analyzedTiles.push(analyzeTile(locationIndex, map, numColumns, numColumns));
+			}
+		}
+
+		return analyzedTiles;
+	}
+
+	//
+	function getTransformedTexture(transformationDict, tileAnalysis, tileBase){
+		
+		switch(tileAnalysis.neighborLowerCount){				
+			case 1:
+				if(tileAnalysis.leftLess){                    
+					return transformationDict[tileBase][TileTransforms.CounterClockWise90];
+				} else if(tileAnalysis.rightLess){
+                    return transformationDict[tileBase][TileTransforms.ClockWise90];
+				} else if(tileAnalysis.botLess){		
+					return transformationDict[tileBase][TileTransforms.Rotate180];
+				}
+				break;
+			case 2:
+				if(tileAnalysis.topLess && tileAnalysis.leftLess){
+					return transformationDict[tileBase][TileTransforms.FlipHorizontal];
+				} else if(tileAnalysis.botLess && tileAnalysis.leftLess){		
+					return transformationDict[tileBase][TileTransforms.Rotate180];
+				} else if(tileAnalysis.botLess && tileAnalysis.rightLess){		
+					return transformationDict[tileBase][TileTransforms.FlipVertical];
+				} else if(tileAnalysis.leftLess && tileAnalysis.rightLess){
+					return transformationDict[tileBase][TileTransforms.CounterClockWise90];
+				}
+				break;
+			case 3:
+				if(!tileAnalysis.topLess){
+					return transformationDict[tileBase][TileTransforms.FlipVertical];
+				} else if(!tileAnalysis.leftLess){		
+					return transformationDict[tileBase][TileTransforms.ClockWise90];
+				} else if(!tileAnalysis.rightLess){		
+					return transformationDict[tileBase][TileTransforms.CounterClockWise90];
+				}
+				break;
+			case 4:
+				break;
+			default:
+				break;
+		}		
+        return transformationDict[tileBase][TileTransforms.None];
+	}
+	function getTileBaseByTileAnalysis(tileAnalysis){
+		var tileBase = 0;								
+		switch(tileAnalysis.neighborLowerCount){
+			case 0:
+				tileBase = 0;
+				break;
+			case 1:
+				tileBase = 2;
+				break;
+			case 2:
+				if((tileAnalysis.topLess && tileAnalysis.botLess) || (tileAnalysis.leftLess && tileAnalysis.rightLess)){
+					tileBase = 3;
+				} else {
+					tileBase = 4;
+				}
+				break;								
+			default:
+				tileBase = tileAnalysis.neighborLowerCount + 2;
+				break;
+		}
+		return tileBase;
+	}
+
+	function colorImageData(layerTextures, imageData, tileAnalysis, tileBase) {
+		var tempCanvas = document.createElement('canvas');
+		tempCanvas.width = tileSize;
+		tempCanvas.height = tileSize;
+		var tempCtx = tempCanvas.getContext('2d');
+		var tempImageData = tempCtx.createImageData(tileSize, tileSize);
+
+		for (let j = 0; j < tileSize; j++) {
+			for (let i = 0; i < tileSize; i++) {
+				let index = j * tileSize + i;
+				let dataIndex = index * 4;
+
+				let pColor = { r: imageData.data[dataIndex], g: imageData.data[dataIndex + 1], b: imageData.data[dataIndex + 2], a: imageData.data[dataIndex + 3] };
+				let tColor = { r: 255, g: 0, b: 0, a: 255 }; // Assuming outputTexture[index] is similar to pColor
+				let bColor = { r: 0, g: 255, b: 0, a: 255 }; // Black color
+
+				if (layerTextures.length > tileAnalysis.heightIndex) {
+					let baseColors = layerTextures[tileAnalysis.heightIndex][TileMolecule.Full][TileTransforms.None];
+					if (baseColors.data.length > index) {
+						bColor = { r: baseColors.data[dataIndex], g: baseColors.data[dataIndex + 1], b: baseColors.data[dataIndex + 2], a: baseColors.data[dataIndex + 3] };
+					}
+				}
+				if (tileAnalysis.heightIndex - 1 >= 0) {
+					let neighborColors = layerTextures[tileAnalysis.heightIndex - 1][TileMolecule.Full][TileTransforms.None];
+					if (neighborColors.data.length > index) {
+						tColor = { r: neighborColors.data[dataIndex], g: neighborColors.data[dataIndex + 1], b: neighborColors.data[dataIndex + 2], a: neighborColors.data[dataIndex + 3] };
+					}
+				}
+				let fColor = pColor;
+				if (isEqualColor(fColor, { r: 0, g: 0, b: 0, a: 0 })) fColor = tColor;
+				if (isEqualColor(fColor, { r: 0, g: 0, b: 0, a: 255 })) fColor = bColor;
+
+				tempImageData.data[dataIndex] = fColor.r;
+				tempImageData.data[dataIndex + 1] = fColor.g;
+				tempImageData.data[dataIndex + 2] = fColor.b;
+				tempImageData.data[dataIndex + 3] = fColor.a;
+			}
+		}
+
+		tempCtx.putImageData(tempImageData, 0, 0);
+		return tempCtx.getImageData(0, 0, tileSize, tileSize);
+	}
+
+	function isEqualColor(color1, color2) {
+		return color1.r === color2.r && color1.g === color2.g && color1.b === color2.b && color1.a === color2.a;
+	}
+
+	function drawMap(analyzedMap, layerTextures, canvas) {
+
+		const ctx = canvas.getContext('2d');
+		
+
+		analyzedMap.forEach((tileAnalysis, index) => {
+
+			const x = (index % numColumns) * tileSize;
+			const y = Math.floor(index / numColumns) * tileSize;
+			var tileBase = getTileBaseByTileAnalysis(tileAnalysis);
+			const imageData = getTransformedTexture(layerTextures[tileAnalysis.heightIndex], tileAnalysis, tileBase);
+			const coloredData = colorImageData(layerTextures, imageData, tileAnalysis, tileBase);
+			ctx.putImageData(coloredData, x, y);
+
+		});
+	}
+	function load(){
+
+		const layerTextures = [];
+		layers.forEach((layer, index) => {
+			const textureData = buildBaseMolecules(textures[index]);
+			const rotationsDict = getSpriteRotations(textureData, true);
+			layerTextures[index] = rotationsDict;
+		});
+
+		// Generate the map
+		let randomMap = generateRandomMap(numColumns, numColumns);
+
+		// Example usage
+		let analyzedMap = analyzeMap(randomMap);
+
+		var canvas = document.createElement("canvas");
+		canvas.width = numColumns * tileSize;
+		canvas.height = numColumns * tileSize;
+		drawMap(analyzedMap, layerTextures, canvas);
+		document.body.appendChild(canvas);
+		// Object.keys(rotationsDict).forEach(tileBase => {
+		// 	Object.keys(rotationsDict[tileBase]).forEach(tileTransform => {
+		// 		var imageData = rotationsDict[tileBase][tileTransform];
+		// 		const canvas = document.createElement("canvas");
+		// 		canvas.width = 512;
+		// 		canvas.height = 512;
+		// 		canvas.getContext('2d').putImageData(imageData, 0, 0);
+		// 		document.body.appendChild(canvas);
+		// 	});
+		// });
+		// console.log(rotationsDict);
+
+	}
+	
+
+  </script>
+</body>
+</html>
+

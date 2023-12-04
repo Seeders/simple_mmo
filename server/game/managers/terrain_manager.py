@@ -30,11 +30,12 @@ class TerrainManager:
                 if self.is_border_tile(x, y, 'grass', 'forest'):
                     ramp_candidates.append({'x': x, 'y': y})
 
-        num_ramps = random.randint(1, len(ramp_candidates) // 2)  # Adjust the number of ramps as needed
-        for _ in range(num_ramps):
-            ramp_tile = random.choice(ramp_candidates)
-            ramp_candidates.remove(ramp_tile)
-            self.place_ramp(ramp_tile)
+        if len(ramp_candidates) > 0:
+            num_ramps = random.randint(1, len(ramp_candidates) // 2)  # Adjust the number of ramps as needed
+            for _ in range(num_ramps):
+                ramp_tile = random.choice(ramp_candidates)
+                ramp_candidates.remove(ramp_tile)
+                self.place_ramp(ramp_tile)
     
     def is_land(self, x, y):
         world_map = self.terrain.terrain

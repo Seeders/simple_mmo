@@ -1,5 +1,5 @@
 export const CONFIG = {
-    tileSize: 32, // Size of each tile in pixels
+    tileSize: 64, // Size of each tile in pixels
     unitSize: 16,
     worldSize: 100,
     overworldMiniMapSize: 1024,
