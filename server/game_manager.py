@@ -226,6 +226,7 @@ class GameManager:
             # Track worlds with active players
             active_worlds = set()
             for player_id in self.connected:
+                self.connected[player_id].update(current_time)
                 player_world = self.overworld_manager.get_world_of_player(player_id)
                 if player_world:
                     active_worlds.add(player_world)

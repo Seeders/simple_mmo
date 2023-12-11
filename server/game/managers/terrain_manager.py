@@ -135,6 +135,11 @@ class TerrainManager:
 
         return False
 
+    def tile_type_id_at_position(self, position):
+        if 0 <= position['x'] < len(self.terrain.terrain) and 0 <= position['y'] < len(self.terrain.terrain[0]):
+            return self.terrain.terrain[position['y']][position['x']]
+        return 0
+
     def tile_type_at_position(self, position):
         if 0 <= position['x'] < len(self.terrain.terrain) and 0 <= position['y'] < len(self.terrain.terrain[0]):
             return self.terrain_layers[self.terrain.terrain[position['y']][position['x']]]

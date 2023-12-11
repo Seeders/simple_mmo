@@ -6,7 +6,18 @@ export default class EventHandler {
     constructor(gameState, networkManager) {
         this.gameState = gameState;
         this.networkManager = networkManager;
+        this.currentFrameTime = Date.now();   
+        this.serverUpdateRate = 100; // Milliseconds, adjust as needed
+        this.lastServerUpdateTime = Date.now();
+        requestAnimationFrame(() => this.setFrameTime());
     }
+
+    setFrameTime() {
+        this.deltaTime = Date.now() - this.currentFrameTime;
+        this.currentFrameTime = Date.now();
+        requestAnimationFrame(() => this.setFrameTime());
+    }
+
 
     setupEventListeners() {
         // Set up user input event listeners
@@ -84,7 +95,11 @@ export default class EventHandler {
         }        
 
         const destination = this.gridCoordsFromCanvas(coords.x, coords.y);
-        
+        this.networkManager.socket.send(JSON.stringify({
+            type: "move",
+            playerId: this.gameState.currentPlayerId,
+            destination: destination            
+        }));
         // Assuming you have a method to check if the destination is walkable
        
         this.gameState.getCurrentPlayer().playerMoveDestination = destination;
@@ -125,54 +140,62 @@ export default class EventHandler {
         clearTimeout(player.pathTimeout);
         this.gameState.playerMoved = true;
         // Assuming you have a function to calculate the path
-        const path = this.gameState.findPath(player.position, destination);
+        let playerTilePosition = { x: parseInt(player.position.x / CONFIG.tileSize), y: parseInt(player.position.y / CONFIG.tileSize) };
+        const path = this.gameState.findPath(playerTilePosition, destination);
         
         if (path.length > 0) {
             player.path = path;
             this.movePlayerAlongPath(player, path);
         } else {
             let move = { x: 0, y: 0 };
-            if(destination.x < player.position.x) move.x = -1;
-            if(destination.x > player.position.x) move.x = 1;
-            if(destination.y < player.position.y) move.y = -1;
-            if(destination.y > player.position.y) move.y = 1;
+            if(destination.x < playerTilePosition.x) move.x = -CONFIG.tileSize;
+            if(destination.x > playerTilePosition.x) move.x = CONFIG.tileSize;
+            if(destination.y < playerTilePosition.y) move.y = -CONFIG.tileSize;
+            if(destination.y > playerTilePosition.y) move.y = CONFIG.tileSize;
             this.networkManager.socket.send(JSON.stringify({type: "move", playerId: this.gameState.currentPlayerId, move: move, position: { x: player.position.x + move.x, y: player.position.y + move.y }}));
         }
     }
-
+    lerp(start, end, t) {
+        return start * (1 - t) + end * t;
+    }
+   
     movePlayerAlongPath(player, path) {
         let nextStep = 0;
-        clearTimeout(player.pathTimeout);
-        let movePlayer = () => {
-            if(!this.gameState.playerMoved) {
-                player.playerMoveDestination = null;
-                player.path = null;
-                clearTimeout(player.pathTimeout);
-                return;
-            }
-            
-            if (nextStep < path.length) {
-                this.gameState.playerMoved = false;
-                let move = { x: path[nextStep].x - player.position.x, y: path[nextStep].y - player.position.y };
-                this.networkManager.socket.send(JSON.stringify({type: "move", playerId: this.gameState.currentPlayerId, move: move, position: path[nextStep]}));
-                player.pathStep = nextStep++;                
-    
-                // Check if the player is on a road for the next step
-                let roadBonus = player.isOnRoad ? 1.5 : this.gameState.getTerrainCost(player.position);
-                let nextMoveTime = 1000 / (roadBonus * player.stats['move_speed']);
-    
-                // Schedule the next move
-                player.pathTimeout = setTimeout(movePlayer, nextMoveTime);
+        let t = 0; // Interpolation factor
+        const updateRate = 100; // Milliseconds, adjust as needed
+
+        const movePlayer = () => {
+
+            if (nextStep < path.length) {  
+                let roadBonus = player.isOnRoad ? 1.5 : this.gameState.getTerrainCost({ x: parseInt(parseInt(player.position.x) / CONFIG.tileSize),  y: parseInt(parseInt(player.position.y) / CONFIG.tileSize)});
+   
+                let start = { x: player.position.x, y: player.position.y };
+                let end = { x: path[nextStep].x * CONFIG.tileSize, y: path[nextStep].y * CONFIG.tileSize };
+                t += (updateRate * roadBonus * player.stats['move_speed']) / 1000;
+        
+                let newPosition = { x: this.lerp(start.x, end.x, t), y: this.lerp(start.y, end.y, t) };
+
+                player.position = newPosition;
+
+                if (t >= 1) {
+                    t = 0;
+                    nextStep++;
+                }
             } else {
                 player.playerMoveDestination = null;
                 player.path = null;
-                if (player.pathTimeout) {
-                    clearTimeout(player.pathTimeout);
-                }
+                clearInterval(this.moveInterval);
             }
         };
-    
-        // Start moving the player
-        movePlayer();
+        if(this.moveInterval){
+            // Clear any existing interval and start a new one
+            clearInterval(this.moveInterval);
+        }
+        this.moveInterval = setInterval(movePlayer, updateRate);
+
+        // Modify handleClick or any other function that sets a new destination
+        // to clear and reset the interval when a new destination is clicked
     }
+
+    
 }

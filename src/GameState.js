@@ -197,8 +197,8 @@ export default class GameState {
     adjustViewToCurrentPlayer() {
         let player = this.getCurrentPlayer();
         if (player) {
-            this.offsetX = this.canvas.width / 2 - player.position.x * CONFIG.tileSize;
-            this.offsetY = this.canvas.height / 2 - player.position.y * CONFIG.tileSize;
+            this.offsetX = this.canvas.width / 2 - player.position.x;
+            this.offsetY = this.canvas.height / 2 - player.position.y;
         }
     }
 
@@ -286,8 +286,8 @@ export default class GameState {
                 player.position = data.position;
                 player.stats.health = data.health;
                 // Adjust the offset to center the view on the player's new position
-                this.offsetX = this.canvas.width / 2 - player.position.x * CONFIG.tileSize;
-                this.offsetY = this.canvas.height / 2 - player.position.y * CONFIG.tileSize;
+                this.offsetX = this.canvas.width / 2 - player.position.x;
+                this.offsetY = this.canvas.height / 2 - player.position.y;
             }
         } else {
             // If another player has respawned, just update their position and health

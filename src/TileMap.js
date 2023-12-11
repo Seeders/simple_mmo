@@ -29,7 +29,7 @@ class TileAnalysis {
     Full: 0,
     OneCorner: 1,
     TwoCorner: 2,
-    ThreeCorner: 3,
+    ThreeCorner: 3
   };
   
   const TileMolecule = {

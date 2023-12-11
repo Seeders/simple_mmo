@@ -164,11 +164,13 @@ export default class RenderManager {
 
     updateFogOfWar(playerPosition, viewDistance) {
 // Calculate the affected area bounds
-        const affectedArea = this.calculateAffectedArea(playerPosition, viewDistance);
-
+        let playerTileX = parseInt(playerPosition.x / CONFIG.tileSize);
+        let playerTileY = parseInt(playerPosition.y / CONFIG.tileSize);
+        let playerTilePosition = { x: playerTileX, y: playerTileY };
+        const affectedArea = this.calculateAffectedArea(playerTilePosition, viewDistance);
         // Update visibility for the current position
-        for (let x = playerPosition.x - viewDistance; x <= playerPosition.x + viewDistance; x++) {
-            for (let y = playerPosition.y - viewDistance; y <= playerPosition.y + viewDistance; y++) {
+        for (let x = playerTileX - viewDistance; x <= playerTileX + viewDistance; x++) {
+            for (let y = playerTileY - viewDistance; y <= playerTileY + viewDistance; y++) {
                 if (x >= 0 && x < CONFIG.worldSize && y >= 0 && y < CONFIG.worldSize) {
                     this.fogOfWarMap[y][x] = FogTileState.VISIBLE;
                 }
@@ -178,7 +180,7 @@ export default class RenderManager {
         // Update explored tiles
         for (let x = affectedArea.minX; x <= affectedArea.maxX; x++) {
             for (let y = affectedArea.minY; y <= affectedArea.maxY; y++) {
-                if (this.fogOfWarMap[y][x] === FogTileState.VISIBLE && !this.isVisibleToPlayer(x, y, playerPosition, viewDistance)) {
+                if (this.fogOfWarMap[y][x] === FogTileState.VISIBLE && !this.isVisibleToPlayer(x, y, playerTilePosition, viewDistance)) {
                     this.fogOfWarMap[y][x] = FogTileState.EXPLORED;
                 }
             }
@@ -186,17 +188,17 @@ export default class RenderManager {
         this.fogOfWarRendered = false;
         return affectedArea;
     }
-    calculateAffectedArea(playerPosition, viewDistance) {
-        const minX = Math.max(Math.min(playerPosition.x, this.playerPreviousPosition?.x) - viewDistance, 0);
-        const maxX = Math.min(Math.max(playerPosition.x, this.playerPreviousPosition?.x) + viewDistance, CONFIG.worldSize - 1);
-        const minY = Math.max(Math.min(playerPosition.y, this.playerPreviousPosition?.y) - viewDistance, 0);
-        const maxY = Math.min(Math.max(playerPosition.y, this.playerPreviousPosition?.y) + viewDistance, CONFIG.worldSize - 1);
+    calculateAffectedArea(playerTilePosition, viewDistance) {
+        const minX = Math.max(Math.min(playerTilePosition.x, this.playerPreviousPosition?.x) - viewDistance, 0);
+        const maxX = Math.min(Math.max(playerTilePosition.x, this.playerPreviousPosition?.x) + viewDistance, CONFIG.worldSize - 1);
+        const minY = Math.max(Math.min(playerTilePosition.y, this.playerPreviousPosition?.y) - viewDistance, 0);
+        const maxY = Math.min(Math.max(playerTilePosition.y, this.playerPreviousPosition?.y) + viewDistance, CONFIG.worldSize - 1);
         
         return { minX, maxX, minY, maxY };
     }
-    isVisibleToPlayer(tileX, tileY, playerPosition, viewDistance) {
-        const dx = playerPosition.x - tileX;
-        const dy = playerPosition.y - tileY;
+    isVisibleToPlayer(tileX, tileY, playerTilePosition, viewDistance) {
+        const dx = playerTilePosition.x - tileX;
+        const dy = playerTilePosition.y - tileY;
         return (dx * dx + dy * dy) <= (viewDistance * viewDistance);
     }
 
@@ -228,8 +230,8 @@ export default class RenderManager {
             const worldPixelHeight = this.gameState.terrain.map.length * CONFIG.tileSize;
        
             // Calculate the desired center position
-            let desiredCenterX = player.position.x * CONFIG.tileSize + CONFIG.tileSize / 2;
-            let desiredCenterY = player.position.y * CONFIG.tileSize + CONFIG.tileSize / 2;
+            let desiredCenterX = player.position.x + CONFIG.unitSize / 2;
+            let desiredCenterY = player.position.y + CONFIG.unitSize / 2;
        
             // Clamp the center position to prevent the viewport from showing out-of-bounds areas
             desiredCenterX = Math.max(halfCanvasWidth, Math.min(desiredCenterX, worldPixelWidth - halfCanvasWidth));
@@ -451,7 +453,7 @@ export default class RenderManager {
             const img = this.assetManager.assets[player.spriteSheetKey];            
             const spritePosition = player.currentSprite;  
             // Adjust the position to center the larger unit image on the tile
-            this.renderSprite(this.gameState.context, img, player.position.x, player.position.y, spritePosition.x, spritePosition.y, CONFIG.unitSize); 
+            this.renderSprite(this.gameState.context, img, player.position.x + this.gameState.offsetX, player.position.y + this.gameState.offsetY, spritePosition.x, spritePosition.y, CONFIG.unitSize, false); 
            // this.drawDebugHitbox(this.gameState.context, player.position.x, player.position.y);
                           
         }
@@ -720,7 +722,7 @@ export default class RenderManager {
         }
     }
 
-    renderView() {
+    renderView() {return;
         let player = this.gameState.getCurrentPlayer();
         if(player){
             let tileType = this.gameState.terrain.map[player.position.y][player.position.x];

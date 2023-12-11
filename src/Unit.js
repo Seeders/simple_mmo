@@ -37,9 +37,11 @@ export default class Unit {
         if (this.animationState.isAttacking) {
             this.attack();
         } else {
-            if(this.position.x > this.previousPosition.x){
+            let xDiff = Math.abs(this.position.x - this.previousPosition.x);
+            let yDiff = Math.abs(this.position.y - this.previousPosition.y);
+            if(this.position.x > this.previousPosition.x && xDiff > yDiff){
                 this.faceDirection( 'move', 'right' );
-            } else if(this.position.x < this.previousPosition.x){
+            } else if(this.position.x < this.previousPosition.x && xDiff > yDiff){
                 this.faceDirection( 'move', 'left' );
             } else if(this.position.y > this.previousPosition.y){
                 this.faceDirection( 'move', 'down' );

@@ -6,6 +6,8 @@ HEALTH_INCREMENT = 20  # Additional health per level
 from utils.broadcast import broadcast, broadcastCombatLog
 from .item import generate_specific_item
 from .attacker import Attacker
+from .config.world_size import tile_size
+from .pathfinder import Pathfinder
 class Player:
 
     def __init__(self, world, player_id, position={"x": 50, "y": 50}, stats=None, inventory=[]):
@@ -22,6 +24,10 @@ class Player:
         self.name = player_id
         self.attacker = Attacker(self, self.stats)
         self.world.spacial_grid.add_entity(self)
+        self.pathfinder = Pathfinder(self.world, self, self.stats['move_speed'])
+
+    def update(self, current_time):
+        self.pathfinder.update(current_time)
 
     def set_next_level_exp(self):        
         self.stats['next_level_exp'] = self.calculate_next_level_exp(self.stats['level'])
@@ -39,19 +45,22 @@ class Player:
         self.stats['max_health'] += HEALTH_INCREMENT
         self.stats['health'] = self.stats['max_health']  # Heal the player to full health on level up
 
-    def move(self, new_position):
-        if self.world.terrain_manager.is_position_valid(new_position):
-            if self.world.terrain_manager.tile_type_at_position(new_position) == "forest" and self.world.terrain_manager.tile_type_at_position(self.position) == "grass" and self.world.terrain_manager.is_ramp_at_position(new_position) == -1:
-                return False # Player must use ramp to go to forest from grass
-            if self.world.terrain_manager.tile_type_at_position(new_position) == "grass" and self.world.terrain_manager.tile_type_at_position(self.position) == "forest" and self.world.terrain_manager.is_ramp_at_position(self.position) == -1:
-                return False # Player must use ramp to go to grass from forest
-            if self.is_tree_at_position(new_position):
-                self.attack_target("tree", new_position)
-                return False  # Player does not move, but attacks the tree
-            if self.is_stone_at_position(new_position):
-                self.attack_target("stone", new_position)
-                return False  # Player does not move, but attacks the tree
-            self.world.spacial_grid.move_entity(self, new_position)
+    def move(self, destination):
+        self.pathfinder.set_destination(destination)
+        new_destination = destination#{ 'x': int(destination['x'] / tile_size), 'y': int(destination['y'] / tile_size) }
+
+        if self.world.terrain_manager.is_position_valid(new_destination):
+            if self.pathfinder.is_adjacent(self.position, destination):
+                if self.world.terrain_manager.tile_type_at_position(new_destination) == "forest" and self.world.terrain_manager.tile_type_at_position(self.position) == "grass" and self.world.terrain_manager.is_ramp_at_position(new_destination) == -1:
+                    return False # Player must use ramp to go to forest from grass
+                if self.world.terrain_manager.tile_type_at_position(new_destination) == "grass" and self.world.terrain_manager.tile_type_at_position(self.position) == "forest" and self.world.terrain_manager.is_ramp_at_position(self.position) == -1:
+                    return False # Player must use ramp to go to grass from forest
+                if self.is_tree_at_position(new_destination):
+                    self.attack_target("tree", new_destination)
+                    return False  # Player does not move, but attacks the tree
+                if self.is_stone_at_position(new_destination):
+                    self.attack_target("stone", new_destination)
+                    return False  # Player does not move, but attacks the tree
             return True
         return False
 
