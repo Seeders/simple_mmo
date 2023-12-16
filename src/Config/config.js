@@ -7,7 +7,7 @@ export const CONFIG = {
     zoom: 1,
     serverUrl: "ws://localhost:6789/",    
     tileTypes: ['water', 'sand', 'grass', 'forest', 'mountain'],
-    overworldTileTypes: [ 'ocean', 'river', 'coast','grass',  'desert', 'forest', 'mountain', 'volcanic', 'mystical', 'ruins' ],
+    overworldTileTypes: [ 'ocean', 'river', 'coast','grass',  'forest', 'desert', 'mountain', 'ruins', 'mystical', 'volcanic'],
     overworldTileSize: 32,
     overworldSize: 32,
     roadTileIndex: 2,

@@ -47,6 +47,7 @@ export default class GameState {
         this.cursorY = 0;
         this.cursorTileX = 0;
         this.cursorTileY = 0;
+        this.serverPlayerPosition = null;
     }
     setupUI() {
         const chatUI = new ChatUI(this);
@@ -191,7 +192,9 @@ export default class GameState {
         
         let pathfinding = new Pathfinding(tempTerrain, this.terrainCosts);
         let path = pathfinding.aStar(start, goal);
-        
+        if( path[0] == start ) {
+            path.splice(0, 1);
+        }
         return path;
     }
     adjustViewToCurrentPlayer() {

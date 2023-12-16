@@ -29,7 +29,11 @@ class TileAnalysis {
     Full: 0,
     OneCorner: 1,
     TwoCorner: 2,
-    ThreeCorner: 3
+    ThreeCorner: 3,
+	FullVariation: 4,
+	OneCornerBot: 5,
+	TwoCornerBot: 6,
+	ThreeCornerBot: 7
   };
   
   const TileMolecule = {
@@ -40,6 +44,29 @@ class TileAnalysis {
     TwoSides: 4,
     Penninsula: 5,
     Island: 6,
+  };
+  
+  const TileCliffMolecules = {
+    Full: 0,
+    CornerTL: 1,
+    CornerTR: 2,
+    CornerBL: 3,
+    CornerBR: 4,
+    EdgeT: 5,
+    EdgeL: 6,
+	EdgeR: 7,
+    EdgeB: 8,
+    TunnelH: 9,
+    TunnelV: 10,
+    TwoSidesTL: 11,
+    TwoSidesTR: 12,
+    TwoSidesBL: 13,
+    TwoSidesBR: 14,    
+    PenninsulaT: 15,
+	PenninsulaL: 16,
+	PenninsulaR: 17,
+    PenninsulaB: 18,
+    Island: 19,
   };
 
 class TileMap {
@@ -61,29 +88,22 @@ class TileMap {
 		this.numColumns = this.tileMap.length;
 		// Load all textures
 
-
-		if( !this.layerTextures || this.layerTextures.length == 0 ) {
+		if(!this.layerTextures || this.layerTextures.length == 0) {
 			this.layerTextures = [];    
 			var textures = [];        
 			this.layers.forEach((layer, index) => {
-				textures[index] = [];
-				for (const val in TileAtom) {
-					let tempKey = TileAtom[val];					
-					let img = this.assetManager.assets[`${this.asset_prefix}${layer}${tempKey}`]; 
-					if(!img) {
-						tempKey = 0;
-						img = this.assetManager.assets[`${this.asset_prefix}${layer}${tempKey}`]; 
-					}
-					textures[index].push(img);
-				
-				}
+				textures[index] = this.extractSpritesFromSheet(
+					this.assetManager.assets[`${this.asset_prefix}${layer}_sheet`], // Assumes sprite sheet is loaded here
+					4, 2 // Number of columns and rows in the sprite sheet
+				);
 			});
-			this.layers.forEach((layer, index) => {	  
-				const textureData = this.buildBaseMolecules(textures[index]);
-				const rotationsDict = this.getSpriteRotations(textureData, true);
-				this.layerTextures[index] = rotationsDict;
+	
+			this.layers.forEach((layer, index) => {      
+				const moleculeData = this.buildBaseMolecules(textures[index]);
+				this.layerTextures[index] = moleculeData;
 			});
 		}
+
 		let analyzedMap = this.analyzeMap(this.tileMap);
 		this.drawMap(analyzedMap, this.layerTextures, this.canvas);
     }
@@ -96,13 +116,25 @@ class TileMap {
 	buildBaseMolecules(sprites) {
 		// Define texture objects
 		const fullTexture = document.createElement("canvas");
+
 		const oneCornerTexture = document.createElement("canvas");
 		const twoCornerTexture = document.createElement("canvas");
 		const threeCornerTexture = document.createElement("canvas");
+
+		const oneCornerBotTexture = document.createElement("canvas");
+		const twoCornerBotTexture = document.createElement("canvas");
+		const threeCornerBotTexture = document.createElement("canvas");
+
 		fullTexture.setAttribute('willReadFrequently', true); 
+
 		oneCornerTexture.setAttribute('willReadFrequently', true); 
 		twoCornerTexture.setAttribute('willReadFrequently', true); 
 		threeCornerTexture.setAttribute('willReadFrequently', true); 
+
+		oneCornerBotTexture.setAttribute('willReadFrequently', true); 
+		twoCornerBotTexture.setAttribute('willReadFrequently', true); 
+		threeCornerBotTexture.setAttribute('willReadFrequently', true); 
+
 		// Set the texture sizes
 		const spriteResolution = sprites[0].width;
 		const finalTileBaseResolution = spriteResolution * 2;
@@ -118,132 +150,153 @@ class TileMap {
 
 		threeCornerTexture.width = spriteResolution;
 		threeCornerTexture.height = spriteResolution;	
+
+		oneCornerBotTexture.width = spriteResolution;
+		oneCornerBotTexture.height = spriteResolution;	
+
+		twoCornerBotTexture.width = spriteResolution;
+		twoCornerBotTexture.height = spriteResolution;	
+
+		threeCornerBotTexture.width = spriteResolution;
+		threeCornerBotTexture.height = spriteResolution;	
 		
 		// Get sprite textures
-		const fullSprite = sprites[0];
-		const oneCornerSprite = sprites[1];
-		const twoCornerSprite = sprites[2];
-		const threeCornerSprite = sprites[3];
+		const fullSprite = sprites[TileAtom.Full];
+
+		const oneCornerSprite = sprites[TileAtom.OneCorner];
+		const twoCornerSprite = sprites[TileAtom.TwoCorner];
+		const threeCornerSprite = sprites[TileAtom.ThreeCorner];
+
+		const oneCornerBotSprite = sprites[TileAtom.OneCornerBot];
+		const twoCornerBotSprite = sprites[TileAtom.TwoCornerBot];
+		const threeCornerBotSprite = sprites[TileAtom.ThreeCornerBot];
 
 		// Create CanvasRenderingContext2D objects for each texture
 		const fullCtx = fullTexture.getContext("2d");
+
 		const oneCornerCtx = oneCornerTexture.getContext("2d", { willReadFrequently: true });
 		const twoCornerCtx = twoCornerTexture.getContext("2d", { willReadFrequently: true });
 		const threeCornerCtx = threeCornerTexture.getContext("2d", { willReadFrequently: true });
+
+		const oneCornerBotCtx = oneCornerBotTexture.getContext("2d", { willReadFrequently: true });
+		const twoCornerBotCtx = twoCornerBotTexture.getContext("2d", { willReadFrequently: true });
+		const threeCornerBotCtx = threeCornerBotTexture.getContext("2d", { willReadFrequently: true });
 		
 		// Copy pixels from sprites to texture canvases
 		fullCtx.drawImage(fullSprite,0,0);
+
 		oneCornerCtx.drawImage(oneCornerSprite,0,0);
 		twoCornerCtx.drawImage(twoCornerSprite,0,0);
 		threeCornerCtx.drawImage(threeCornerSprite,0,0);
 
+		oneCornerBotCtx.drawImage(oneCornerBotSprite,0,0);
+		twoCornerBotCtx.drawImage(twoCornerBotSprite,0,0);
+		threeCornerBotCtx.drawImage(threeCornerBotSprite,0,0);
+
 		// Get pixel data from the canvases
 		const fullImageData = fullCtx.getImageData(0, 0, spriteResolution, spriteResolution);
-		const oneCornerImageData = oneCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution);
+		const oneCornerTopRightImageData = oneCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution);
+		const oneCornerTopLeftImageData = this.flipTextureHorizontal(oneCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution));	
+
+		const oneCornerBotRightImageData = oneCornerBotCtx.getImageData(0, 0, spriteResolution, spriteResolution);
+		const oneCornerBotLeftImageData = this.flipTextureHorizontal(oneCornerBotCtx.getImageData(0, 0, spriteResolution, spriteResolution));	
 		
 		const twoCornerTopImageData = twoCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution);
 		const twoCornerLeftImageData = this.rotateTexture(twoCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution), -Math.PI / 2);
 		const twoCornerRightImageData = this.rotateTexture(twoCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution), Math.PI / 2);
-		const twoCornerBottomImageData = this.flipTextureVertical(twoCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution));
+		const twoCornerBottomImageData = twoCornerBotCtx.getImageData(0, 0, spriteResolution, spriteResolution);
 		
 		const threeCornerTopRightImageData = threeCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution);
-		const threeCornerTopLeftImageData = this.flipTextureHorizontal(threeCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution));
-		const threeCornerBottomLeftImageData = this.rotateTexture(threeCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution), Math.PI);
-		const threeCornerBottomRightImageData = this.flipTextureVertical(threeCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution));
+		const threeCornerTopLeftImageData = this.flipTextureHorizontal(threeCornerCtx.getImageData(0, 0, spriteResolution, spriteResolution));		
+		const threeCornerBottomRightImageData = threeCornerBotCtx.getImageData(0, 0, spriteResolution, spriteResolution);
+		const threeCornerBottomLeftImageData = this.flipTextureHorizontal(threeCornerBotCtx.getImageData(0, 0, spriteResolution, spriteResolution));
+				
 			
 		// Define molecule objects
-		const fullTile = document.createElement("canvas");
-		const cornerTile = document.createElement("canvas");
-		const edgeTile = document.createElement("canvas");
-		const tunnelTile = document.createElement("canvas");
-		const twoSidesTile = document.createElement("canvas");
-		const penninsulaTile = document.createElement("canvas");
-		const islandTile = document.createElement("canvas");
+		const moleculeCanvas = document.createElement("canvas");
 
-		fullTile.width = finalTileBaseResolution;
-		fullTile.height = finalTileBaseResolution;
+		moleculeCanvas.width = finalTileBaseResolution;
+		moleculeCanvas.height = finalTileBaseResolution;
+		
+		const moleculeCtx = moleculeCanvas.getContext('2d', { willReadFrequently: true });
 
-		cornerTile.width = spriteResolution;
-		cornerTile.height = spriteResolution;
+		const cornerCanvas = document.createElement("canvas");
 
-		edgeTile.width = finalTileBaseResolution;
-		edgeTile.height = finalTileBaseResolution;
+		cornerCanvas.width = finalTileBaseResolution / 2;
+		cornerCanvas.height = finalTileBaseResolution / 2;
 		
-		tunnelTile.width = finalTileBaseResolution;
-		tunnelTile.height = finalTileBaseResolution;
+		const cornerCtx = cornerCanvas.getContext('2d', { willReadFrequently: true });
 
-		twoSidesTile.width = finalTileBaseResolution;
-		twoSidesTile.height = finalTileBaseResolution;
-
-		penninsulaTile.width = finalTileBaseResolution;
-		penninsulaTile.height = finalTileBaseResolution;
-
-		islandTile.width = finalTileBaseResolution;
-		islandTile.height = finalTileBaseResolution;
-		
-		const fullTileCtx = fullTile.getContext('2d', { willReadFrequently: true });
-		const cornerTileCtx = cornerTile.getContext('2d', { willReadFrequently: true });
-		const edgeTileCtx = edgeTile.getContext('2d', { willReadFrequently: true });
-		const tunnelTileCtx = tunnelTile.getContext('2d', { willReadFrequently: true });
-		const twoSidesTileCtx = twoSidesTile.getContext('2d', { willReadFrequently: true });
-		const penninsulaTileCtx = penninsulaTile.getContext('2d', { willReadFrequently: true });
-		const islandTileCtx = islandTile.getContext('2d', { willReadFrequently: true });
-		fullTileCtx.putImageData(fullImageData, 0, 0);
-		fullTileCtx.putImageData(fullImageData, spriteResolution, 0);
-		fullTileCtx.putImageData(fullImageData, 0, spriteResolution);
-		fullTileCtx.putImageData(fullImageData, spriteResolution, spriteResolution);
-
-		let baseFillStyle = 'black';
-		cornerTileCtx.fillStyle = baseFillStyle;
-		cornerTileCtx.fillRect(0, 0, spriteResolution, spriteResolution);
-		cornerTileCtx.putImageData(oneCornerImageData, 0, 0);
-		
-		edgeTileCtx.fillStyle = baseFillStyle;
-		edgeTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
-		edgeTileCtx.putImageData(twoCornerTopImageData, 0, 0);
-		edgeTileCtx.putImageData(twoCornerTopImageData, spriteResolution, 0);
-		
-		tunnelTileCtx.fillStyle = baseFillStyle;
-		tunnelTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
-		tunnelTileCtx.putImageData(twoCornerTopImageData, 0, 0);
-		tunnelTileCtx.putImageData(twoCornerTopImageData, spriteResolution, 0);
-		tunnelTileCtx.putImageData(twoCornerBottomImageData, 0, spriteResolution);
-		tunnelTileCtx.putImageData(twoCornerBottomImageData, spriteResolution, spriteResolution);
-		
-		twoSidesTileCtx.fillStyle = baseFillStyle;
-		twoSidesTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
-		twoSidesTileCtx.putImageData(twoCornerTopImageData, 0, 0);
-		twoSidesTileCtx.putImageData(threeCornerTopRightImageData, spriteResolution, 0);
-		twoSidesTileCtx.putImageData(twoCornerRightImageData, spriteResolution, spriteResolution);
-		
-		penninsulaTileCtx.fillStyle = baseFillStyle;
-		penninsulaTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
-		penninsulaTileCtx.putImageData(threeCornerTopLeftImageData, 0, 0);
-		penninsulaTileCtx.putImageData(threeCornerTopRightImageData, spriteResolution, 0);
-		penninsulaTileCtx.putImageData(twoCornerLeftImageData, 0, spriteResolution);
-		penninsulaTileCtx.putImageData(twoCornerRightImageData, spriteResolution,spriteResolution);
-		
-		islandTileCtx.fillStyle = baseFillStyle;
-		islandTileCtx.fillRect(0, 0, finalTileBaseResolution, finalTileBaseResolution);
-		islandTileCtx.putImageData(threeCornerTopLeftImageData, 0, 0);
-		islandTileCtx.putImageData(threeCornerTopRightImageData, spriteResolution, 0);
-		islandTileCtx.putImageData(threeCornerBottomLeftImageData, 0, spriteResolution);
-		islandTileCtx.putImageData(threeCornerBottomRightImageData, spriteResolution,spriteResolution);
-		
 		var imageDataList = [
-			fullTileCtx.getImageData(0, 0, finalTileBaseResolution, finalTileBaseResolution),
-			cornerTileCtx.getImageData(0, 0, spriteResolution, spriteResolution),
-			edgeTileCtx.getImageData(0, 0, finalTileBaseResolution, finalTileBaseResolution),
-			tunnelTileCtx.getImageData(0, 0, finalTileBaseResolution, finalTileBaseResolution),
-			twoSidesTileCtx.getImageData(0, 0, finalTileBaseResolution, finalTileBaseResolution),
-			penninsulaTileCtx.getImageData(0, 0, finalTileBaseResolution, finalTileBaseResolution),
-			islandTileCtx.getImageData(0, 0, finalTileBaseResolution, finalTileBaseResolution),
+			//FULL
+			this.createMolecule(moleculeCtx, fullImageData, fullImageData, fullImageData, fullImageData),
+
+			//CORNERS
+			oneCornerTopLeftImageData, 
+			oneCornerTopRightImageData,
+			oneCornerBotLeftImageData,
+			oneCornerBotRightImageData,
+			//EDGES
+			this.createMolecule(moleculeCtx, twoCornerTopImageData, twoCornerTopImageData, fullImageData, fullImageData),
+			this.createMolecule(moleculeCtx, twoCornerLeftImageData, fullImageData, twoCornerLeftImageData, fullImageData),
+			this.createMolecule(moleculeCtx, fullImageData, twoCornerRightImageData, fullImageData, twoCornerRightImageData),
+			this.createMolecule(moleculeCtx, fullImageData, fullImageData, twoCornerBottomImageData, twoCornerBottomImageData),
+
+			//TUNNELS
+			this.createMolecule(moleculeCtx, twoCornerTopImageData, twoCornerTopImageData, twoCornerBottomImageData, twoCornerBottomImageData),
+			this.createMolecule(moleculeCtx, twoCornerLeftImageData, twoCornerRightImageData, twoCornerLeftImageData, twoCornerRightImageData),
+
+			//TWO SIDES
+			this.createMolecule(moleculeCtx, threeCornerTopLeftImageData, twoCornerTopImageData, twoCornerLeftImageData, fullImageData),
+			this.createMolecule(moleculeCtx, twoCornerTopImageData, threeCornerTopRightImageData, fullImageData, twoCornerRightImageData),
+			this.createMolecule(moleculeCtx, twoCornerLeftImageData, fullImageData, threeCornerBottomLeftImageData, twoCornerBottomImageData),
+			this.createMolecule(moleculeCtx, fullImageData, twoCornerRightImageData, twoCornerBottomImageData, threeCornerBottomRightImageData),
+
+			//PENNINSULAS		
+			this.createMolecule(moleculeCtx, threeCornerTopLeftImageData, threeCornerTopRightImageData, twoCornerLeftImageData, twoCornerRightImageData),
+			this.createMolecule(moleculeCtx, threeCornerTopLeftImageData, twoCornerTopImageData, threeCornerBottomLeftImageData, twoCornerBottomImageData),
+			this.createMolecule(moleculeCtx, twoCornerTopImageData, threeCornerTopRightImageData, twoCornerBottomImageData, threeCornerBottomRightImageData),
+			this.createMolecule(moleculeCtx, twoCornerLeftImageData, twoCornerRightImageData, threeCornerBottomLeftImageData, threeCornerBottomRightImageData),
+
+			//ISLAND
+			this.createMolecule(moleculeCtx, threeCornerTopLeftImageData, threeCornerTopRightImageData, threeCornerBottomLeftImageData, threeCornerBottomRightImageData),
 		];
 
 		return imageDataList;
 	}
 
-	getSpriteRotations(imageDataDict) {
+	createMolecule(context, TLImageData, TRImageData, BLImageData, BRImageData) {
+		let size = context.canvas.width;
+		let spriteResolution = size / 2;
+		context.fillStyle = 'black';
+		context.fillRect(0, 0, size, size);
+		context.putImageData(TLImageData, 0, 0);
+		context.putImageData(TRImageData, spriteResolution, 0);
+		context.putImageData(BLImageData, 0, spriteResolution);
+		context.putImageData(BRImageData, spriteResolution, spriteResolution);
+		return context.getImageData(0, 0, size, size);
+	}
+
+	extractSpritesFromSheet(spriteSheet, columns, rows) {
+		let sprites = [];
+		let spriteWidth = spriteSheet.width / columns;
+		let spriteHeight = spriteSheet.height / rows;
+	
+		for (let y = 0; y < rows; y++) {
+			for (let x = 0; x < columns; x++) {
+				let canvas = document.createElement('canvas');
+				canvas.width = spriteWidth;
+				canvas.height = spriteHeight;
+				let context = canvas.getContext('2d');
+				context.drawImage(spriteSheet, x * spriteWidth, y * spriteHeight, spriteWidth, spriteHeight, 0, 0, spriteWidth, spriteHeight);
+				sprites.push(canvas);
+			}
+		}
+	
+		return sprites;
+	}
+	
+	getSpriteRotations(imageDataList) {
 		let rotationDict = {};
 
 		let requiredTransforms = {};
@@ -256,28 +309,28 @@ class TileMap {
 		requiredTransforms[TileMolecule.Penninsula] = [TileTransforms.FlipVertical, TileTransforms.ClockWise90, TileTransforms.CounterClockWise90];
 		requiredTransforms[TileMolecule.Island] = [];
 
-		Object.keys(imageDataDict).forEach(tileBase => {
+		Object.keys(imageDataList).forEach(moleculeType => {
 			let rotations = {};
-			let colors = imageDataDict[tileBase];
+			let colors = imageDataList[moleculeType];
 			rotations[TileTransforms.None] = colors;
 
-			if (requiredTransforms[tileBase].includes(TileTransforms.ClockWise90)) {
+			if (requiredTransforms[moleculeType].includes(TileTransforms.ClockWise90)) {
 				rotations[TileTransforms.ClockWise90] = this.rotateTexture(colors, Math.PI / 2);
 			}
-			if (requiredTransforms[tileBase].includes(TileTransforms.CounterClockWise90)) {
+			if (requiredTransforms[moleculeType].includes(TileTransforms.CounterClockWise90)) {
 				rotations[TileTransforms.CounterClockWise90] = this.rotateTexture(colors, -Math.PI / 2);
 			}
-			if (requiredTransforms[tileBase].includes(TileTransforms.Rotate180)) {
+			if (requiredTransforms[moleculeType].includes(TileTransforms.Rotate180)) {
 				rotations[TileTransforms.Rotate180] = this.rotateTexture(colors, Math.PI);
 			}
-			if (requiredTransforms[tileBase].includes(TileTransforms.FlipHorizontal)) {
+			if (requiredTransforms[moleculeType].includes(TileTransforms.FlipHorizontal)) {
 				rotations[TileTransforms.FlipHorizontal] = this.flipTextureHorizontal(colors);
 			}
-			if (requiredTransforms[tileBase].includes(TileTransforms.FlipVertical)) {
+			if (requiredTransforms[moleculeType].includes(TileTransforms.FlipVertical)) {
 				rotations[TileTransforms.FlipVertical] = this.flipTextureVertical(colors);
 			}
 
-			rotationDict[tileBase] = rotations;
+			rotationDict[moleculeType] = rotations;
 		});
 
 		return rotationDict;
@@ -368,35 +421,35 @@ class TileMap {
 		return analyzedTiles;
 	}
 
-	getTransformedTexture(transformationDict, tileAnalysis, tileBase){
+	getTransformedTexture(transformationDict, tileAnalysis, molecule){
 		switch(tileAnalysis.neighborLowerCount){				
 			case 1:
 				if(tileAnalysis.leftLess){                    
-					return transformationDict[tileBase][TileTransforms.CounterClockWise90];
+					return transformationDict[molecule][TileTransforms.CounterClockWise90];
 				} else if(tileAnalysis.rightLess){
-                    return transformationDict[tileBase][TileTransforms.ClockWise90];
+                    return transformationDict[molecule][TileTransforms.ClockWise90];
 				} else if(tileAnalysis.botLess){		
-					return transformationDict[tileBase][TileTransforms.Rotate180];
+					return transformationDict[molecule][TileTransforms.Rotate180];
 				}
 				break;
 			case 2:
 				if(tileAnalysis.topLess && tileAnalysis.leftLess){
-					return transformationDict[tileBase][TileTransforms.FlipHorizontal];
+					return transformationDict[molecule][TileTransforms.FlipHorizontal];
 				} else if(tileAnalysis.botLess && tileAnalysis.leftLess){		
-					return transformationDict[tileBase][TileTransforms.Rotate180];
+					return transformationDict[molecule][TileTransforms.Rotate180];
 				} else if(tileAnalysis.botLess && tileAnalysis.rightLess){		
-					return transformationDict[tileBase][TileTransforms.FlipVertical];
+					return transformationDict[molecule][TileTransforms.FlipVertical];
 				} else if(tileAnalysis.leftLess && tileAnalysis.rightLess){
-					return transformationDict[tileBase][TileTransforms.CounterClockWise90];
+					return transformationDict[molecule][TileTransforms.CounterClockWise90];
 				}
 				break;
 			case 3:
 				if(!tileAnalysis.topLess){
-					return transformationDict[tileBase][TileTransforms.FlipVertical];
+					return transformationDict[molecule][TileTransforms.FlipVertical];
 				} else if(!tileAnalysis.leftLess){		
-					return transformationDict[tileBase][TileTransforms.ClockWise90];
+					return transformationDict[molecule][TileTransforms.ClockWise90];
 				} else if(!tileAnalysis.rightLess){		
-					return transformationDict[tileBase][TileTransforms.CounterClockWise90];
+					return transformationDict[molecule][TileTransforms.CounterClockWise90];
 				}
 				break;
 			case 4:
@@ -404,30 +457,57 @@ class TileMap {
 			default:
 				break;
 		}		
-        return transformationDict[tileBase][TileTransforms.None];
+        return transformationDict[molecule][TileTransforms.None];
 	}
 
-	getTileBaseByTileAnalysis(tileAnalysis){
-		var tileBase = 0;								
+	getMoleculeByTileAnalysis(tileAnalysis){
+		var molecule = TileCliffMolecules.Full;								
 		switch(tileAnalysis.neighborLowerCount){
-			case 0:
-				tileBase = 0;
+			case 0: 
+				molecule = TileCliffMolecules.Full;
 				break;
 			case 1:
-				tileBase = 2;
+				if(tileAnalysis.topLess) {
+					molecule = TileCliffMolecules.EdgeT;
+				} else if(tileAnalysis.leftLess) {
+					molecule = TileCliffMolecules.EdgeL;
+				} else if(tileAnalysis.rightLess) {
+					molecule = TileCliffMolecules.EdgeR;
+				} else if(tileAnalysis.botLess) {
+					molecule = TileCliffMolecules.EdgeB;
+				}
 				break;
 			case 2:
-				if((tileAnalysis.topLess && tileAnalysis.botLess) || (tileAnalysis.leftLess && tileAnalysis.rightLess)){
-					tileBase = 3;
-				} else {
-					tileBase = 4;
+				if(tileAnalysis.topLess && tileAnalysis.botLess){
+					molecule = TileCliffMolecules.TunnelH;
+				} else if(tileAnalysis.leftLess && tileAnalysis.rightLess){
+					molecule = TileCliffMolecules.TunnelV;
+				} else if(tileAnalysis.topLess && tileAnalysis.leftLess){
+					molecule = TileCliffMolecules.TwoSidesTL;
+				} else if(tileAnalysis.topLess && tileAnalysis.rightLess){
+					molecule = TileCliffMolecules.TwoSidesTR;
+				} else if(tileAnalysis.botLess && tileAnalysis.leftLess){
+					molecule = TileCliffMolecules.TwoSidesBL;
+				} else if(tileAnalysis.botLess && tileAnalysis.rightLess){
+					molecule = TileCliffMolecules.TwoSidesBR;
+				} 
+				break;
+			case 3:
+				if( !tileAnalysis.topLess ) {
+					molecule = TileCliffMolecules.PenninsulaB;
+				} else if( !tileAnalysis.leftLess ) {
+					molecule = TileCliffMolecules.PenninsulaR;
+				} else if( !tileAnalysis.rightLess ) {
+					molecule = TileCliffMolecules.PenninsulaL;
+				} else if( !tileAnalysis.botLess ) {
+					molecule = TileCliffMolecules.PenninsulaT;
 				}
 				break;								
-			default:
-				tileBase = tileAnalysis.neighborLowerCount + 2;
+			case 4:
+				molecule = TileCliffMolecules.Island;
 				break;
 		}
-		return tileBase;
+		return molecule;
 	}
 
 	colorImageData(imageData, tileAnalysis) {
@@ -459,8 +539,8 @@ class TileMap {
 			blackData.fill(0); // Fill with black (0, 0, 0, 255)
 			return new ImageData(blackData, this.tileSize, this.tileSize);
 		}
-		let baseColors = this.layerTextures[tileAnalysis.heightIndex][TileMolecule.Full][TileTransforms.None].data;
-		let neighborColors = this.layerTextures[lowerNeighborHeight][TileMolecule.Full][TileTransforms.None].data;
+		let baseColors = this.layerTextures[tileAnalysis.heightIndex][TileMolecule.Full].data;
+		let neighborColors = this.layerTextures[lowerNeighborHeight][TileMolecule.Full].data;
 
 		// Iterate over each pixel
 		for (let i = 0; i < numPixels; i++) {
@@ -499,22 +579,22 @@ class TileMap {
 	
 		if (tileAnalysis.cornerLowerCount > 0) {
 			if (tileAnalysis.cornerTopLeftLess && (!tileAnalysis.topLess && !tileAnalysis.leftLess)) {				
-				cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.FlipHorizontal];
+				cornerTexture = this.layerTextures[heightIndex][TileCliffMolecules.CornerTL];
 				imageData = this.colorCornerTextureRoutine(imageData, 0, 0, cornerTexture, tileAnalysis);			
 			}
 			// Assuming tileAnalysis, textureDict, and other variables are already defined
 			if (tileAnalysis.cornerTopRightLess && (!tileAnalysis.topLess && !tileAnalysis.rightLess)) {				
-				cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.None];
+				cornerTexture = this.layerTextures[heightIndex][TileCliffMolecules.CornerTR];
 				imageData = this.colorCornerTextureRoutine(imageData, cornerSize, 0, cornerTexture, tileAnalysis);			
 			}
 
 			if (tileAnalysis.cornerBottomLeftLess && (!tileAnalysis.botLess && !tileAnalysis.leftLess)) {				
-				cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.Rotate180];
+				cornerTexture = this.layerTextures[heightIndex][TileCliffMolecules.CornerBL];
 				imageData = this.colorCornerTextureRoutine(imageData, 0, cornerSize, cornerTexture, tileAnalysis);			
 			}
 
 			if (tileAnalysis.cornerBottomRightLess && (!tileAnalysis.botLess && !tileAnalysis.rightLess)) {			
-				cornerTexture = this.layerTextures[heightIndex][TileMolecule.Corner][TileTransforms.FlipVertical];
+				cornerTexture = this.layerTextures[heightIndex][TileCliffMolecules.CornerBR];
 				imageData = this.colorCornerTextureRoutine(imageData, cornerSize, cornerSize, cornerTexture, tileAnalysis);			
 			}
 		}
@@ -524,7 +604,7 @@ class TileMap {
 	colorCornerTextureRoutine(outputImageData, x, y, cornerImageData, tileAnalysis) {
 		let cornerSize = this.tileSize / 2;	
 		let baseHeightIndex = tileAnalysis.heightIndex;
-		let baseColors = this.layerTextures[baseHeightIndex][TileMolecule.Full][TileTransforms.None];
+		let baseColors = this.layerTextures[baseHeightIndex][TileMolecule.Full];
 		const data = new Uint8ClampedArray(outputImageData.data);
 		for (let j = 0; j < cornerSize; j++) {
 			for (let i = 0; i < cornerSize; i++) {
@@ -607,35 +687,35 @@ class TileMap {
 				if (_tileAnalysis.heightIndex > layerIndex) {
 					// Use base image data for higher layers
 					_tileAnalysis.heightIndex = layerIndex;
-					if(_tileAnalysis.topLess && _tileAnalysis.topHeight >= layerIndex) {
+					if(_tileAnalysis.topLess && _tileAnalysis.topHeight >= _tileAnalysis.heightIndex) {
 						_tileAnalysis.topLess = false;
 						_tileAnalysis.neighborLowerCount--;
 					}
-					if(_tileAnalysis.leftLess && _tileAnalysis.leftHeight >= layerIndex) {
+					if(_tileAnalysis.leftLess && _tileAnalysis.leftHeight >= _tileAnalysis.heightIndex) {
 						_tileAnalysis.leftLess = false;
 						_tileAnalysis.neighborLowerCount--;
 					}
-					if(_tileAnalysis.rightLess && _tileAnalysis.rightHeight >= layerIndex){
+					if(_tileAnalysis.rightLess && _tileAnalysis.rightHeight >= _tileAnalysis.heightIndex){
 						_tileAnalysis.rightLess = false;
 						_tileAnalysis.neighborLowerCount--;
 					}
-					if(_tileAnalysis.botLess && _tileAnalysis.botHeight >= layerIndex) {
+					if(_tileAnalysis.botLess && _tileAnalysis.botHeight >= _tileAnalysis.heightIndex) {
 						_tileAnalysis.botLess = false;
 						_tileAnalysis.neighborLowerCount--;
 					}
-					if(_tileAnalysis.cornerTopLeftLess && _tileAnalysis.topLeftHeight >= layerIndex) {
+					if(_tileAnalysis.cornerTopLeftLess && _tileAnalysis.topLeftHeight >= _tileAnalysis.heightIndex) {
 						_tileAnalysis.cornerTopLeftLess = false;
 						_tileAnalysis.cornerLowerCount--;
 					}
-					if(_tileAnalysis.cornerTopRightLess && _tileAnalysis.topRightHeight >= layerIndex) {
+					if(_tileAnalysis.cornerTopRightLess && _tileAnalysis.topRightHeight >= _tileAnalysis.heightIndex) {
 						_tileAnalysis.cornerTopRightLess = false;
 						_tileAnalysis.cornerLowerCount--;
 					}
-					if(_tileAnalysis.cornerBottomLeftLess && _tileAnalysis.botLeftHeight >= layerIndex) {
+					if(_tileAnalysis.cornerBottomLeftLess && _tileAnalysis.botLeftHeight >= _tileAnalysis.heightIndex) {
 						_tileAnalysis.cornerBottomLeftLess = false;
 						_tileAnalysis.cornerLowerCount--;
 					}
-					if(_tileAnalysis.cornerBottomRightLess && _tileAnalysis.botRightHeight >= layerIndex) {
+					if(_tileAnalysis.cornerBottomRightLess && _tileAnalysis.botRightHeight >= _tileAnalysis.heightIndex) {
 						_tileAnalysis.cornerBottomRightLess = false;
 						_tileAnalysis.cornerLowerCount--;
 					}
@@ -655,13 +735,13 @@ class TileMap {
 					
 					imageData = new ImageData(transparentData, this.tileSize, this.tileSize);
 					
-				} else {
+				 } else {
 					imageData = new ImageData(new Uint8ClampedArray(4), 1, 1);
 					if( _tileAnalysis.heightIndex >= 0 ) {
-						let tileBase = this.getTileBaseByTileAnalysis(_tileAnalysis);
-						imageData = this.getTransformedTexture(this.layerTextures[_tileAnalysis.heightIndex], _tileAnalysis, tileBase);			
+						let molecule = this.getMoleculeByTileAnalysis(_tileAnalysis);						
+						imageData = this.layerTextures[_tileAnalysis.heightIndex][molecule];//this.getTransformedTexture(this.layerTextures[_tileAnalysis.heightIndex], _tileAnalysis, molecule);			
 						imageData = this.colorImageData(imageData, _tileAnalysis);
-						imageData = this.addVariationImage(imageData, _tileAnalysis);
+						//imageData = this.addVariationImage(imageData, _tileAnalysis);
 						imageData = this.addCornerGraphics(imageData, _tileAnalysis);
 					} else {
 						let numPixels = this.tileSize * this.tileSize;
@@ -677,9 +757,9 @@ class TileMap {
 	
 		// Drawing each layer canvas onto the main canvas
 		Object.keys(layerCanvases).forEach(layerIndex => {
-		//	if( layerIndex == 0 || layerIndex == 1 || layerIndex == 2) {
+			//if( layerIndex == 0 || layerIndex == 1 || layerIndex == 2) {
 			ctx.drawImage(layerCanvases[layerIndex], 0, 0);
-			//}
+		//}
 		});
 	}
   }

@@ -25,9 +25,17 @@ class Player:
         self.attacker = Attacker(self, self.stats)
         self.world.spacial_grid.add_entity(self)
         self.pathfinder = Pathfinder(self.world, self, self.stats['move_speed'])
+        self.previousPosition = self.position
 
-    def update(self, current_time):
+    def update(self, current_time):        
         self.pathfinder.update(current_time)
+        if self.previousPosition != self.position:
+            asyncio.create_task(broadcast({
+                "type": "player_move",
+                "id": self.id,
+                "position": self.position,
+            }, self.world.game_manager.connected, self.world.game_manager.connections))
+        self.previousPosition = self.position
 
     def set_next_level_exp(self):        
         self.stats['next_level_exp'] = self.calculate_next_level_exp(self.stats['level'])
@@ -49,18 +57,25 @@ class Player:
         self.pathfinder.set_destination(destination)
         new_destination = destination#{ 'x': int(destination['x'] / tile_size), 'y': int(destination['y'] / tile_size) }
 
+        path_as_positions = [{'x': pos[0], 'y': pos[1]} for pos in self.pathfinder.path]
+
+        asyncio.create_task(broadcast({
+                "type": "player_path",
+                "id": self.id,
+                "path": path_as_positions,
+        }, self.world.game_manager.connected, self.world.game_manager.connections))
         if self.world.terrain_manager.is_position_valid(new_destination):
-            if self.pathfinder.is_adjacent(self.position, destination):
-                if self.world.terrain_manager.tile_type_at_position(new_destination) == "forest" and self.world.terrain_manager.tile_type_at_position(self.position) == "grass" and self.world.terrain_manager.is_ramp_at_position(new_destination) == -1:
-                    return False # Player must use ramp to go to forest from grass
-                if self.world.terrain_manager.tile_type_at_position(new_destination) == "grass" and self.world.terrain_manager.tile_type_at_position(self.position) == "forest" and self.world.terrain_manager.is_ramp_at_position(self.position) == -1:
-                    return False # Player must use ramp to go to grass from forest
+            if self.pathfinder.is_adjacent(self.position, destination):               
                 if self.is_tree_at_position(new_destination):
                     self.attack_target("tree", new_destination)
                     return False  # Player does not move, but attacks the tree
                 if self.is_stone_at_position(new_destination):
                     self.attack_target("stone", new_destination)
                     return False  # Player does not move, but attacks the tree
+                if self.world.terrain_manager.tile_type_at_position(new_destination) == "forest" and self.world.terrain_manager.tile_type_at_position(self.position) == "grass" and self.world.terrain_manager.is_ramp_at_position(new_destination) == -1:
+                    return False # Player must use ramp to go to forest from grass
+                if self.world.terrain_manager.tile_type_at_position(new_destination) == "grass" and self.world.terrain_manager.tile_type_at_position(self.position) == "forest" and self.world.terrain_manager.is_ramp_at_position(self.position) == -1:
+                    return False # Player must use ramp to go to grass from forest
             return True
         return False
 

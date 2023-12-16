@@ -454,9 +454,15 @@ export default class RenderManager {
             const spritePosition = player.currentSprite;  
             // Adjust the position to center the larger unit image on the tile
             this.renderSprite(this.gameState.context, img, player.position.x + this.gameState.offsetX, player.position.y + this.gameState.offsetY, spritePosition.x, spritePosition.y, CONFIG.unitSize, false); 
+            if( player.serverPosition ) {
+                this.gameState.context.globalAlpha = .5;
+                this.renderSprite(this.gameState.context, img, player.serverPosition.x + this.gameState.offsetX, player.serverPosition.y + this.gameState.offsetY, spritePosition.x, spritePosition.y, CONFIG.unitSize, false); 
+                this.gameState.context.globalAlpha = 1;
+            }
            // this.drawDebugHitbox(this.gameState.context, player.position.x, player.position.y);
                           
         }
+
     }
 
     renderEnemies() {
@@ -507,19 +513,20 @@ export default class RenderManager {
 
             const rampImg = this.assetManager.assets[`ramp`]; // Replace with your stone sprite key
             const tileAnalysis = this.tileMap.analyzeTile(ramp.x, ramp.y);
-            const rampX = ramp.x * CONFIG.tileSize + CONFIG.unitSize / 2;
-            const rampY = ramp.y * CONFIG.tileSize + CONFIG.unitSize / 2;
+            const rampX = ramp.x * CONFIG.tileSize;
+            const rampY = ramp.y * CONFIG.tileSize;
             if (tileAnalysis.leftLess) {
                 this.canvasUtility.rotateImage(rampImg, Math.PI / 2);
-                this.terrainCtx.drawImage(this.canvasUtility.canvas, rampX - CONFIG.unitSize, rampY);
+                this.canvasUtility.flipCanvasVertical();
+                this.terrainCtx.drawImage(this.canvasUtility.canvas, rampX - CONFIG.unitSize / 4, rampY + CONFIG.unitSize);
             } else if (tileAnalysis.rightLess) {
                 this.canvasUtility.rotateImage(rampImg, -Math.PI / 2);
-                this.terrainCtx.drawImage(this.canvasUtility.canvas, rampX + CONFIG.unitSize, rampY);
+                this.terrainCtx.drawImage(this.canvasUtility.canvas, rampX + CONFIG.tileSize / 2 + CONFIG.unitSize / 4, rampY + CONFIG.unitSize);
             } else if (tileAnalysis.botLess) {
-                this.terrainCtx.drawImage(rampImg, rampX, rampY + CONFIG.unitSize);
+                this.terrainCtx.drawImage(rampImg, rampX + CONFIG.unitSize, rampY + CONFIG.unitSize * 2 );
             } else if (tileAnalysis.topLess) {
                 this.canvasUtility.flipImageVertical(rampImg);
-                this.terrainCtx.drawImage(this.canvasUtility.canvas, rampX, rampY - CONFIG.unitSize);
+                this.terrainCtx.drawImage(this.canvasUtility.canvas, rampX + CONFIG.unitSize, rampY - CONFIG.unitSize / 2);
                 //transformedImageData = this.canvasUtility.drawImage(rampImg); // Assuming you want to flip horizontally for topLess
             }
         

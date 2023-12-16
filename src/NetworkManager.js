@@ -65,15 +65,21 @@ export default class NetworkManager {
                 this.gameState.playerManager.addPlayer({ id: data.id, position: data.position, stats: data.stats});
                 break;
             case "player_move":
-                // player = this.gameState.playerManager.getPlayer(data.id);
-                // if( player ) {
-                //     // this.gameState.offsetX -= data.move.x;
-                //     // this.gameState.offsetY -= data.move.y;
-                //     // if(data.id == this.gameState.currentPlayerId){
-                //     //     this.gameState.playerMoved = true;
-                //     // }
-                //     //player.position = data.position;
-                // }
+                player = this.gameState.playerManager.getPlayer(data.id);
+                if( player ) {
+                    // this.gameState.offsetX -= data.move.x;
+                    // this.gameState.offsetY -= data.move.y;
+                    // if(data.id == this.gameState.currentPlayerId){
+                    //     this.gameState.playerMoved = true;
+                    // }
+                    player.serverPosition = data.position;
+                }
+                break;
+            case "player_path":
+                player = this.gameState.playerManager.getPlayer(data.id);
+                if( player && player.navigator ) {
+                    player.navigator.setPath(data.path);
+                }
                 break;
             case "player_disconnect":
                 this.gameState.removePlayer(data.id);

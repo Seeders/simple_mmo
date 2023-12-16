@@ -1,4 +1,4 @@
-overworld_map_types = ['ocean','river', 'coast', 'grass',  'desert',  'forest', 'mountain', 'volcanic', 'mystical', 'ruins']
+overworld_map_types = ['ocean','river', 'coast', 'grass',  'forest', 'desert', 'mountain', 'ruins', 'mystical',  'volcanic']
 
 perimeter_type = 0
 

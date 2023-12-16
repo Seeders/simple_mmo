@@ -74,7 +74,7 @@ class Pathfinding:
         return goal
 
     def is_passable(self, node):
-        return self.costs[self.terrain[node[1]][node[0]]] > 0
+        return self.costs[self.terrain[int(node[1])][int(node[0])]] > 0
 
     def find_nearest_accessible_tile(self, target, start):
         neighbors = self.get_neighbors(target)

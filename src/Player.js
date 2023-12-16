@@ -1,10 +1,12 @@
 import Unit from './Unit';
+import Navigator from './Components/Navigator';
 import { CONFIG } from './Config/config';
 export default class Player extends Unit {
     constructor(gameState, data) {        
         super(gameState, data);
         this.spriteSheetKey = 'champ_okomo';      
         this.inventory = data.inventory || [];
+        this.navigator = new Navigator(this);
         this.isOnRoad = false;
         this.faction = 0;
         this.inventory.forEach((item) => {            

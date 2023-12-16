@@ -14,6 +14,8 @@ class Pathfinder:
 
     def set_destination(self, dest):
         self.destination = dest
+        tile_position = {'x': int(self.parent.position['x'] / tile_size), 'y': int(self.parent.position['y'] / tile_size)}
+        self.path = self.world.find_path(tile_position, self.destination) 
         self.t = 0  # Reset interpolation factor for new path
 
     def update(self, current_time):
@@ -21,10 +23,6 @@ class Pathfinder:
             self.move_towards_target(current_time)
 
     def move_towards_target(self, current_time):
-        if len(self.path) == 0:
-            tile_position = {'x': int(self.parent.position['x'] / tile_size), 'y': int(self.parent.position['y'] / tile_size)}
-            self.path = self.world.find_path(tile_position, self.destination)
-
         if self.path and len(self.path) > 1:
             self.follow_path(current_time)
         elif len(self.path) == 1:

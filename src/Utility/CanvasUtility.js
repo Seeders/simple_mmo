@@ -110,6 +110,12 @@ export default class CanvasUtility {
         return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
     }
 
+    flipCanvasVertical() {
+        this.ctx.translate(0, this.canvas.height);
+        this.ctx.scale(1, -1);
+        return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    }
+
     flipImageHorizontal(image) {
         this.setSize(image.width, image.height);
         this.ctx.translate(this.canvas.width, 0);

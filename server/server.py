@@ -54,12 +54,7 @@ async def game_server(websocket, path, game_manager:GameManager):
 
             # Handle different message types with appropriate game_manager methods
             if data["type"] == "move":
-                if game_manager.connected[player_id].move(data["destination"]):       
-                    await broadcast({
-                        "type": "player_move",
-                        "id": player_id,
-                        "destination": data["destination"],
-                    }, game_manager.connected, game_manager.connections)       
+                game_manager.connected[player_id].move(data["destination"])   
             elif data["type"] == "chat":                
                 # Sanitize chat message
                 sanitized_message = sanitize_chat_message(data["message"])
